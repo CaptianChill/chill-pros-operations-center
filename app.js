@@ -68,7 +68,7 @@ async function copyText(text){
 }
 intakeForm.addEventListener('submit', async (e) => {
   e.preventDefault();
-
+alert('Submit button is connected');
   const d = getFormData();
   d.id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now());
   d.createdAt = new Date().toISOString();
@@ -81,9 +81,10 @@ intakeForm.addEventListener('submit', async (e) => {
 
     intakeForm.reset();
     toast('Submitted to office queue');
-    showView('office-queue');
+        showView('office-queue');
   } catch (err) {
     console.error(err);
+    alert('Firebase error: ' + err.message);
     toast('Failed to save to Firebase');
   }
 });
