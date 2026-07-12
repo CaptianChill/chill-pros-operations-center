@@ -1,41 +1,154 @@
-const assets=[
-{id:'CP-SA-000014',type:'RTU',customer:'Broadway Bistro',location:'Roof • Zone 2',maker:'Trane',model:'YSC060E3',serial:'2419K4R7H',refrigerant:'R-410A',health:84,status:'Needs attention',notes:'Elevated compressor amperage. Verify airflow and capacitor on next visit.'},
-{id:'CP-SA-000006',type:'Ice Machine',customer:'Riverwalk Hotel',location:'Main kitchen',maker:'Manitowoc',model:'IDT0750A',serial:'110728392',refrigerant:'R-410A',health:97,status:'Operational',notes:'Quarterly sanitation program active.'},
-{id:'CP-SA-000003',type:'Walk-In Cooler',customer:'Alamo Market',location:'Receiving area',maker:'Heatcraft',model:'BZT060',serial:'HTC992801',refrigerant:'R-404A',health:72,status:'Monitor',notes:'Recurring low-temperature alarm and door gasket wear.'},
-{id:'CP-SA-000021',type:'Reach-In',customer:'Southtown Cafe',location:'Prep line',maker:'True',model:'T-49-HC',serial:'10877654',refrigerant:'R-290',health:93,status:'Operational',notes:'No active concerns.'},
-{id:'CP-SA-000019',type:'RTU',customer:'Stone Oak Offices',location:'Roof • Suite 400',maker:'Lennox',model:'ZGB060S4BM1Y',serial:'5624L02911',refrigerant:'R-410A',health:88,status:'Operational',notes:'Expansion valve history noted.'}
-];
-let currentPage='dashboard';
-function healthClass(n){return n>=90?'good':n>=75?'warn':'bad'}
-function renderPriority(){
-document.getElementById('priorityList').innerHTML=assets.slice().sort((a,b)=>a.health-b.health).slice(0,4).map(a=>`<div class="asset-mini" onclick="openAsset('${a.id}')"><div><b>${a.id} • ${a.type}</b><span>${a.customer} — ${a.location}</span></div><span class="health ${healthClass(a.health)}">${a.health}%</span></div>`).join('')
+const STORAGE_KEY = 'chillProsOverlayRecordsV02';
+let records = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+
+const views = document.querySelectorAll('.view');
+const navButtons = document.querySelectorAll('.nav-btn');
+const form = document.getElementById('intakeForm');
+const template = document.getElementById('recordTemplate');
+
+function showView(id){
+  views.forEach(v => v.classList.toggle('active', v.id === id));
+  navButtons.forEach(b => b.classList.toggle('active', b.dataset.view === id));
+  if(id === 'records') renderRecords();
+  if(id === 'dashboard') renderDashboard();
+  window.scrollTo({top:0, behavior:'smooth'});
 }
-function renderAssets(){
-const q=document.getElementById('assetSearch')?.value.toLowerCase()||'',f=document.getElementById('assetFilter')?.value||'';
-const filtered=assets.filter(a=>(!f||a.type===f)&&Object.values(a).join(' ').toLowerCase().includes(q));
-document.getElementById('assetTable').innerHTML=`<div class="asset-row header"><div>Asset</div><div>Customer</div><div>Manufacturer</div><div>Status</div><div>Health</div></div>`+
-filtered.map(a=>`<div class="asset-row" onclick="openAsset('${a.id}')"><div><b>${a.id}</b><span>${a.type} • ${a.location}</span></div><div><b>${a.customer}</b><span>${a.model}</span></div><div>${a.maker}</div><div>${a.status}</div><div><span class="health ${healthClass(a.health)}">${a.health}%</span></div></div>`).join('')
+navButtons.forEach(btn => btn.addEventListener('click', () => showView(btn.dataset.view)));
+document.querySelectorAll('[data-open-intake]').forEach(btn => btn.addEventListener('click', () => showView('intake')));
+
+function save(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+  renderDashboard();
+  renderRecords();
 }
-function openAsset(id){
-const a=assets.find(x=>x.id.toLowerCase()===id.toLowerCase());if(!a){toast('Asset not found');return}
-document.getElementById('assetDetail').innerHTML=`<div class="detail-hero"><div class="equipment-icon">❄</div><div><span class="eyebrow">${a.id}</span><h2>${a.type}</h2><p>${a.customer} • ${a.location}</p></div><span class="health ${healthClass(a.health)}">${a.health}% HEALTH</span></div>
-<div class="detail-grid"><article class="panel"><h3>Equipment Information</h3><div class="kv"><div><span>Manufacturer</span><b>${a.maker}</b></div><div><span>Model</span><b>${a.model}</b></div><div><span>Serial</span><b>${a.serial}</b></div><div><span>Refrigerant</span><b>${a.refrigerant}</b></div><div><span>Status</span><b>${a.status}</b></div><div><span>Asset ID</span><b>${a.id}</b></div></div></article>
-<article class="panel"><h3>Technician Intelligence</h3><p>${a.notes}</p><button class="primary">Start Work Order</button> <button class="secondary">Order Parts</button></article>
-<article class="panel"><h3>Service Timeline</h3><div class="service-item"><b>Preventive Maintenance</b><span>Cooling inspection completed • 06/18/2026</span></div><div class="service-item"><b>Corrective Repair</b><span>Electrical component replaced • 03/02/2026</span></div></article>
-<article class="panel"><h3>Documents & Photos</h3><p>Nameplate photo, wiring diagram, service manual, warranty file, and before/after photos.</p><button class="secondary">Upload Document</button></article></div>`;
-showPage('detail')
+function toast(message){
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = message;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1800);
 }
-function showPage(id){
-document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById(id).classList.add('active');
-document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));
-const titles={dashboard:['Operations Dashboard','Chill Pros asset intelligence and field operations'],assets:['Asset Registry','Search and manage installed equipment'],detail:['Asset Profile','Complete equipment record and service intelligence'],add:['Add Asset','Create a standardized Chill Pros equipment record'],scan:['QR Asset Scanner','Open equipment records directly from field tags'],workorders:['Work Orders','Job execution and Jobber synchronization'],pm:['Preventive Maintenance','Upcoming service and compliance tracking'],reports:['Reports & Analytics','Operational and asset portfolio intelligence']};
-document.getElementById('pageTitle').textContent=titles[id][0];document.getElementById('pageSubtitle').textContent=titles[id][1];
-currentPage=id;document.querySelector('.sidebar').classList.remove('open');window.scrollTo(0,0)
+function formObject(){
+  return Object.fromEntries(new FormData(form).entries());
 }
-function manualLookup(){openAsset(document.getElementById('manualAsset').value.trim())}
-function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)}
-document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>showPage(b.dataset.page));
-document.getElementById('mobileMenu').onclick=()=>document.querySelector('.sidebar').classList.toggle('open');
-document.getElementById('assetSearch').oninput=renderAssets;document.getElementById('assetFilter').onchange=renderAssets;
-document.getElementById('assetForm').onsubmit=e=>{e.preventDefault();const f=Object.fromEntries(new FormData(e.target));const next=String(Math.max(...assets.map(a=>+a.id.split('-').pop()))+1).padStart(6,'0');const a={id:`CP-SA-${next}`,type:f.type,customer:f.customer,location:f.equipmentLocation||f.location,maker:f.manufacturer,model:f.model,serial:f.serial,refrigerant:f.refrigerant||'Not recorded',health:100,status:'New asset',notes:f.notes||'Newly created asset. Initial condition assessment pending.'};assets.unshift(a);renderAssets();e.target.reset();toast(`${a.id} created`);openAsset(a.id)};
-renderPriority();renderAssets();
+function summary(r){
+  return [
+    `CHILL PROS FIELD RECORD`,
+    `Type: ${r.recordType}`,
+    `Priority: ${r.priority}`,
+    `Status: ${r.officeStatus}`,
+    `Customer: ${r.customerName}`,
+    `Contact: ${r.contactName || '-'}`,
+    `Phone: ${r.phone || '-'}`,
+    `Email: ${r.email || '-'}`,
+    `Address: ${r.address || '-'}`,
+    `Equipment: ${r.equipmentType || '-'} | ${r.manufacturer || '-'} | Model ${r.modelNumber || '-'} | Serial ${r.serialNumber || '-'}`,
+    `Asset ID: ${r.assetId || '-'}`,
+    `Site Location: ${r.equipmentLocation || '-'}`,
+    `Complaint: ${r.complaint || '-'}`,
+    `Findings: ${r.findings || '-'}`,
+    `Recommendation: ${r.recommendation || '-'}`,
+    `Estimated Amount: ${r.estimatedAmount ? '$' + Number(r.estimatedAmount).toFixed(2) : '-'}`,
+    `Photo Notes: ${r.photoNotes || '-'}`,
+    `Created: ${new Date(r.createdAt).toLocaleString()}`
+  ].join('\n');
+}
+async function copyText(text){
+  try{
+    await navigator.clipboard.writeText(text);
+    toast('Copied to clipboard');
+  }catch{
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+    toast('Copied to clipboard');
+  }
+}
+
+form.addEventListener('submit', e => {
+  e.preventDefault();
+  const data = formObject();
+  data.id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now());
+  data.createdAt = new Date().toISOString();
+  records.unshift(data);
+  save();
+  form.reset();
+  toast('Record saved');
+  showView('records');
+});
+
+document.getElementById('copySummary').addEventListener('click', () => {
+  const data = formObject();
+  data.createdAt = new Date().toISOString();
+  copyText(summary(data));
+});
+document.getElementById('clearForm').addEventListener('click', () => {
+  form.reset();
+  toast('Form cleared');
+});
+
+function renderDashboard(){
+  document.getElementById('totalRecords').textContent = records.length;
+  document.getElementById('quoteCount').textContent = records.filter(r => r.officeStatus === 'Needs Quote').length;
+  document.getElementById('invoiceCount').textContent = records.filter(r => r.officeStatus === 'Ready to Invoice').length;
+  const recent = document.getElementById('recentRecords');
+  recent.innerHTML = '';
+  if(!records.length){ recent.className='empty'; recent.textContent='No records yet.'; return; }
+  recent.className='';
+  records.slice(0,5).forEach(r => recent.appendChild(recordNode(r, false)));
+}
+
+function recordNode(r, withDelete=true){
+  const node = template.content.firstElementChild.cloneNode(true);
+  node.querySelector('.record-title').textContent = `${r.customerName} — ${r.recordType}`;
+  node.querySelector('.record-meta').textContent = `${r.equipmentType || 'Equipment not set'} • ${r.manufacturer || 'Manufacturer not set'} • ${new Date(r.createdAt).toLocaleString()}`;
+  node.querySelector('.record-detail').textContent = r.complaint || '';
+  node.querySelector('.badge').textContent = r.officeStatus || 'Needs Review';
+  node.querySelector('.copy-record').addEventListener('click', () => copyText(summary(r)));
+  const del = node.querySelector('.delete-record');
+  if(withDelete){
+    del.addEventListener('click', () => {
+      if(confirm('Delete this record?')){
+        records = records.filter(x => x.id !== r.id);
+        save();
+        toast('Record deleted');
+      }
+    });
+  }else{
+    del.remove();
+  }
+  return node;
+}
+
+function renderRecords(){
+  const list = document.getElementById('recordsList');
+  const q = document.getElementById('searchRecords').value.trim().toLowerCase();
+  const status = document.getElementById('statusFilter').value;
+  const filtered = records.filter(r => {
+    const haystack = JSON.stringify(r).toLowerCase();
+    return (!q || haystack.includes(q)) && (!status || r.officeStatus === status);
+  });
+  list.innerHTML='';
+  if(!filtered.length){ list.className='empty'; list.textContent='No matching records.'; return; }
+  list.className='';
+  filtered.forEach(r => list.appendChild(recordNode(r)));
+}
+document.getElementById('searchRecords').addEventListener('input', renderRecords);
+document.getElementById('statusFilter').addEventListener('change', renderRecords);
+
+document.getElementById('exportRecords').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(records, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `chill-pros-overlay-records-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Export created');
+});
+
+renderDashboard();
+renderRecords();

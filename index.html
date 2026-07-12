@@ -1,143 +1,218 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Chill Pros AMS Prototype</title>
-  <link rel="stylesheet" href="styles.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chill Pros Operations Overlay</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-<div class="app">
-  <aside class="sidebar">
-    <div class="brand">
-      <div class="brand-mark">CP</div>
-      <div><strong>CHILL PROS</strong><span>OPERATIONS OVERLAY</span></div>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">CHILL PROS</p>
+      <h1>Operations Overlay</h1>
     </div>
-    <nav id="nav">
-      <button class="active" data-page="dashboard">Dashboard</button>
-      <button data-page="assets">Assets</button>
-      <button data-page="add">Add Asset</button>
-      <button data-page="scan">Scan QR</button>
-      <button data-page="workorders">Work Orders</button>
-      <button data-page="pm">Preventive Maintenance</button>
-      <button data-page="reports">Reports</button>
-    </nav>
-    <div class="side-footer">Prototype v0.1<br>Jobber overlay foundation</div>
-  </aside>
+    <button id="installBtn" class="ghost" hidden>Install App</button>
+  </header>
+
+  <nav class="nav">
+    <button class="nav-btn active" data-view="dashboard">Dashboard</button>
+    <button class="nav-btn" data-view="intake">New Intake</button>
+    <button class="nav-btn" data-view="records">Records</button>
+  </nav>
 
   <main>
-    <header>
-      <button class="mobile-menu" id="mobileMenu">☰</button>
-      <div>
-        <h1 id="pageTitle">Operations Dashboard</h1>
-        <p id="pageSubtitle">Chill Pros asset intelligence and field operations</p>
-      </div>
-      <div class="user-chip"><span class="status-dot"></span> Owner</div>
-    </header>
-
-    <section id="dashboard" class="page active">
-      <div class="hero">
-        <div><span class="eyebrow">SATURDAY • LIVE OPERATIONS</span><h2>Good afternoon, Chill Pros</h2><p>Manage assets, service activity, and preventive maintenance from one field-ready workspace.</p></div>
-        <button class="primary" onclick="showPage('scan')">Scan Equipment QR</button>
-      </div>
-      <div class="stats">
-        <article><span>Assets Managed</span><strong>248</strong><small>Across 17 locations</small></article>
-        <article><span>Open Work Orders</span><strong>14</strong><small>4 require approval</small></article>
-        <article><span>PM Due This Week</span><strong>23</strong><small>8 due in 48 hours</small></article>
-        <article><span>Asset Health</span><strong>89%</strong><small>Portfolio average</small></article>
-      </div>
-      <div class="grid-two">
-        <article class="panel">
-          <div class="panel-head"><h3>Priority Assets</h3><button class="text-btn" onclick="showPage('assets')">View all</button></div>
-          <div id="priorityList"></div>
-        </article>
-        <article class="panel">
-          <div class="panel-head"><h3>Recent Activity</h3></div>
-          <div class="timeline">
-            <div><b>RTU-014</b><span>Contactor replacement completed</span><small>18 min ago</small></div>
-            <div><b>IM-006</b><span>Quarterly cleaning documented</span><small>1 hr ago</small></div>
-            <div><b>WIC-003</b><span>Low-temperature alert added</span><small>2 hrs ago</small></div>
-            <div><b>RTU-009</b><span>PM checklist approved</span><small>Yesterday</small></div>
-          </div>
-        </article>
-      </div>
-      <div class="quick-actions">
-        <button onclick="showPage('add')">＋ Add Asset</button>
-        <button onclick="showPage('assets')">⌕ Search Assets</button>
-        <button onclick="showPage('workorders')">▤ Work Orders</button>
-        <button onclick="showPage('pm')">✓ PM Schedule</button>
-      </div>
-    </section>
-
-    <section id="assets" class="page">
-      <div class="toolbar">
-        <input id="assetSearch" placeholder="Search asset ID, customer, type, model or serial">
-        <select id="assetFilter"><option value="">All equipment</option><option>RTU</option><option>Ice Machine</option><option>Walk-In Cooler</option><option>Reach-In</option></select>
-        <button class="primary" onclick="showPage('add')">Add Asset</button>
-      </div>
-      <div class="panel">
-        <div class="asset-table" id="assetTable"></div>
-      </div>
-    </section>
-
-    <section id="detail" class="page">
-      <button class="back" onclick="showPage('assets')">← Back to assets</button>
-      <div id="assetDetail"></div>
-    </section>
-
-    <section id="add" class="page">
-      <div class="panel form-panel">
-        <div class="stepper"><span class="on">1</span><i></i><span>2</span><i></i><span>3</span><i></i><span>4</span></div>
-        <h2>Add New Asset</h2>
-        <p>Capture the core equipment record. Additional technical fields can be added after creation.</p>
-        <form id="assetForm">
-          <div class="form-grid">
-            <label>Customer<input name="customer" required placeholder="Customer or account"></label>
-            <label>Location<input name="location" required placeholder="Service location"></label>
-            <label>Equipment Type<select name="type" required><option value="">Select type</option><option>RTU</option><option>Ice Machine</option><option>Walk-In Cooler</option><option>Walk-In Freezer</option><option>Reach-In</option><option>Commercial Kitchen</option></select></label>
-            <label>Manufacturer<input name="manufacturer" required placeholder="Manufacturer"></label>
-            <label>Model Number<input name="model" required placeholder="Model number"></label>
-            <label>Serial Number<input name="serial" required placeholder="Serial number"></label>
-            <label>Equipment Location<input name="equipmentLocation" placeholder="Roof, kitchen, mechanical room…"></label>
-            <label>Refrigerant<input name="refrigerant" placeholder="R-410A, R-404A…"></label>
-          </div>
-          <label class="wide">Technician Notes<textarea name="notes" placeholder="Nameplate condition, access notes, observed condition…"></textarea></label>
-          <div class="form-actions"><button type="reset" class="secondary">Clear</button><button class="primary" type="submit">Create Asset & Generate ID</button></div>
-        </form>
-      </div>
-    </section>
-
-    <section id="scan" class="page">
-      <div class="scanner panel">
-        <div class="scan-frame"><span></span><span></span><span></span><span></span><div>QR</div></div>
-        <h2>Scan Chill Pros Asset Tag</h2>
-        <p>Camera integration will open the matching asset record. Use the demo button to simulate a successful scan.</p>
-        <button class="primary" onclick="openAsset('CP-SA-000014')">Simulate Scan: CP-SA-000014</button>
-        <div class="manual-entry"><input id="manualAsset" placeholder="Enter asset ID manually"><button onclick="manualLookup()">Open</button></div>
-      </div>
-    </section>
-
-    <section id="workorders" class="page">
-      <div class="empty panel"><div class="large-icon">▤</div><h2>Work Orders</h2><p>Jobber work-order synchronization is reserved for the integration phase.</p><button class="primary">Start Integration Mapping</button></div>
-    </section>
-
-    <section id="pm" class="page">
-      <div class="panel">
-        <div class="panel-head"><h3>Preventive Maintenance Queue</h3><span class="badge warning">23 due</span></div>
-        <div class="pm-list">
-          <div><b>CP-SA-000006 • Ice Machine</b><span>Quarterly sanitation • Due today</span><button>Open</button></div>
-          <div><b>CP-SA-000003 • Walk-In Cooler</b><span>Monthly inspection • Due tomorrow</span><button>Open</button></div>
-          <div><b>CP-SA-000014 • RTU</b><span>Spring cooling PM • Due Monday</span><button>Open</button></div>
+    <section id="dashboard" class="view active">
+      <div class="hero card">
+        <div>
+          <p class="eyebrow">FIELD-TO-OFFICE WORKFLOW</p>
+          <h2>Capture the job once. Send the office everything.</h2>
+          <p>Use this overlay before or during a service call to collect customer, equipment, job, photo, and next-step information.</p>
         </div>
+        <button class="primary" data-open-intake>Start New Intake</button>
       </div>
+
+      <div class="stats">
+        <article class="card stat">
+          <span>Total Records</span>
+          <strong id="totalRecords">0</strong>
+        </article>
+        <article class="card stat">
+          <span>Needs Quote</span>
+          <strong id="quoteCount">0</strong>
+        </article>
+        <article class="card stat">
+          <span>Ready to Invoice</span>
+          <strong id="invoiceCount">0</strong>
+        </article>
+      </div>
+
+      <section class="card">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">RECENT ACTIVITY</p>
+            <h3>Latest Field Records</h3>
+          </div>
+        </div>
+        <div id="recentRecords" class="empty">No records yet.</div>
+      </section>
     </section>
 
-    <section id="reports" class="page">
-      <div class="empty panel"><div class="large-icon">▥</div><h2>Reports & Analytics</h2><p>Portfolio health, PM compliance, repair frequency, refrigerant exposure, and replacement forecasting will appear here.</p></div>
+    <section id="intake" class="view">
+      <form id="intakeForm" class="card form-card">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">NEW FIELD RECORD</p>
+            <h2>Customer & Equipment Intake</h2>
+          </div>
+          <button type="button" class="ghost" id="clearForm">Clear</button>
+        </div>
+
+        <div class="grid two">
+          <label>Record Type
+            <select name="recordType" required>
+              <option value="New Customer">New Customer</option>
+              <option value="Quote Request">Quote Request</option>
+              <option value="Ready to Invoice">Ready to Invoice</option>
+              <option value="Service Follow-Up">Service Follow-Up</option>
+              <option value="Parts Request">Parts Request</option>
+            </select>
+          </label>
+          <label>Priority
+            <select name="priority">
+              <option>Standard</option>
+              <option>Urgent</option>
+              <option>Emergency</option>
+            </select>
+          </label>
+        </div>
+
+        <h3>Customer</h3>
+        <div class="grid two">
+          <label>Customer / Company
+            <input name="customerName" required autocomplete="organization" />
+          </label>
+          <label>Contact Name
+            <input name="contactName" autocomplete="name" />
+          </label>
+          <label>Phone
+            <input name="phone" type="tel" autocomplete="tel" />
+          </label>
+          <label>Email
+            <input name="email" type="email" autocomplete="email" />
+          </label>
+        </div>
+
+        <label>Service Address
+          <input name="address" autocomplete="street-address" />
+        </label>
+
+        <h3>Equipment</h3>
+        <div class="grid three">
+          <label>Equipment Type
+            <select name="equipmentType">
+              <option>HVAC</option>
+              <option>Refrigeration</option>
+              <option>Ice Machine</option>
+              <option>Commercial Kitchen Equipment</option>
+              <option>Kitchen Exhaust</option>
+              <option>Other</option>
+            </select>
+          </label>
+          <label>Manufacturer
+            <input name="manufacturer" />
+          </label>
+          <label>Model Number
+            <input name="modelNumber" />
+          </label>
+          <label>Serial Number
+            <input name="serialNumber" />
+          </label>
+          <label>Asset ID
+            <input name="assetId" placeholder="CP-SA-000001" />
+          </label>
+          <label>Location on Site
+            <input name="equipmentLocation" placeholder="Kitchen, rooftop, walk-in..." />
+          </label>
+        </div>
+
+        <h3>Work Details</h3>
+        <label>Customer Complaint / Requested Work
+          <textarea name="complaint" rows="3" required></textarea>
+        </label>
+        <label>Technician Findings
+          <textarea name="findings" rows="4"></textarea>
+        </label>
+        <label>Recommended Next Step
+          <textarea name="recommendation" rows="3"></textarea>
+        </label>
+
+        <div class="grid two">
+          <label>Estimated Amount
+            <input name="estimatedAmount" type="number" step="0.01" min="0" placeholder="0.00" />
+          </label>
+          <label>Office Status
+            <select name="officeStatus">
+              <option>Needs Review</option>
+              <option>Needs Quote</option>
+              <option>Ready to Invoice</option>
+              <option>Waiting on Parts</option>
+              <option>Completed</option>
+            </select>
+          </label>
+        </div>
+
+        <label>Photo Notes / File References
+          <textarea name="photoNotes" rows="2" placeholder="Example: compressor data plate, before/after coil photos, damaged gasket"></textarea>
+        </label>
+
+        <div class="actions">
+          <button type="submit" class="primary">Save Record</button>
+          <button type="button" id="copySummary" class="secondary">Copy Summary</button>
+        </div>
+      </form>
+    </section>
+
+    <section id="records" class="view">
+      <section class="card">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">OFFICE QUEUE</p>
+            <h2>Saved Records</h2>
+          </div>
+          <button id="exportRecords" class="ghost">Export JSON</button>
+        </div>
+        <div class="filters">
+          <input id="searchRecords" placeholder="Search customer, model, serial, status..." />
+          <select id="statusFilter">
+            <option value="">All statuses</option>
+            <option>Needs Review</option>
+            <option>Needs Quote</option>
+            <option>Ready to Invoice</option>
+            <option>Waiting on Parts</option>
+            <option>Completed</option>
+          </select>
+        </div>
+        <div id="recordsList" class="empty">No records yet.</div>
+      </section>
     </section>
   </main>
-</div>
-<div id="toast"></div>
-<script src="app.js"></script>
+
+  <template id="recordTemplate">
+    <article class="record">
+      <div>
+        <p class="record-title"></p>
+        <p class="record-meta"></p>
+        <p class="record-detail"></p>
+      </div>
+      <div class="record-actions">
+        <span class="badge"></span>
+        <button class="small copy-record">Copy</button>
+        <button class="small danger delete-record">Delete</button>
+      </div>
+    </article>
+  </template>
+
+  <script src="app.js"></script>
 </body>
 </html>
