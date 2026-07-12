@@ -68,6 +68,43 @@ async function copyText(text){
 }
 intakeForm.addEventListener('submit', async (e) => {
   e.preventDefault();
+  alert('Submit button is connected');
+
+  const d = getFormData();
+  d.id = crypto.randomUUID
+    ? crypto.randomUUID()
+    : String(Date.now());
+  d.createdAt = new Date().toISOString();
+
+  try {
+    const saveTimeout = new Promise((_, reject) => {
+      setTimeout(
+        () => reject(
+          new Error('Firebase request timed out after 10 seconds')
+        ),
+        10000
+      );
+    });
+
+    await Promise.race([
+      db.collection('Customers').add(d),
+      saveTimeout
+    ]);
+
+    alert('Firebase save completed');
+
+    queue.unshift(d);
+    persist();
+    intakeForm.reset();
+    toast('Submitted to office queue');
+    showView('office-queue');
+  } catch (err) {
+    console.error(err);
+    alert('Firebase error: ' + err.message);
+    toast('Failed to save to Firebase');
+  }
+});
+  e.preventDefault();
 alert('Submit button is connected');
   const d = getFormData();
   d.id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now());
