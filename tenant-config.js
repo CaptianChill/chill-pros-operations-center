@@ -1,17 +1,17 @@
 window.FIELD_FORGED_CONFIG = {
   platform: {
     name: "FieldForged Overlay Engine",
-    version: "0.3.0"
+    version: "1.0.0-dashboard"
   },
-
   tenant: {
     id: "chill-pros",
     companyName: "Chill Pros",
-    appName: "Chill Pros Operations Overlay",
+    appName: "Chill Pros Operations Center",
     tagline: "License to Chill.",
-    primaryColor: "#0877b9",
-    accentColor: "#9fe8ff",
-    darkColor: "#0d141a",
+    primaryColor: "#008cff",
+    accentColor: "#7edbff",
+    darkColor: "#05090d",
+    panelColor: "#07131d",
     assetPrefix: "CP-SA"
   }
 };
