@@ -67,11 +67,43 @@ async function copyText(text){
   toast('Summary copied');
 }
 intakeForm.addEventListener('submit', async (e) => {
-  clearIntake.addEventListener('click',()=>{intakeForm.reset();toast('Form cleared')});
-copySummary.addEventListener('click',()=>copyText(summary(getFormData())));
-queueSearch.addEventListener('input',renderQueue);
-queueFilter.addEventListener('change',renderQueue);
+  e.preventDefault();
 
+  const d = getFormData();
+
+  d.id = crypto.randomUUID
+    ? crypto.randomUUID()
+    : String(Date.now());
+
+  d.createdAt = new Date().toISOString();
+
+  try {
+    await db.collection('Customers').add(d);
+
+    queue.unshift(d);
+    persist();
+
+    intakeForm.reset();
+    toast('Submitted to office queue');
+    showView('office-queue');
+  } catch (err) {
+    console.error(err);
+    alert('Firebase error: ' + err.message);
+    toast('Failed to save to Firebase');
+  }
+});
+
+clearIntake.addEventListener('click', () => {
+  intakeForm.reset();
+  toast('Form cleared');
+});
+
+copySummary.addEventListener('click', () => {
+  copyText(summary(getFormData()));
+});
+
+queueSearch.addEventListener('input', renderQueue);
+queueFilter.addEventListener('change', renderQueue);
 function renderQueue(){
   queueList.innerHTML='';
   const q=queueSearch.value.trim().toLowerCase();
