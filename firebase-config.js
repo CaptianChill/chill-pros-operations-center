@@ -10,6 +10,4 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 
-const db = firebase.firestore();
-
-window.chillProsDb = db;
+window.chillProsDb = firebase.firestore();
