@@ -1,5 +1,12 @@
 const db = window.chillProsDb;
 const cfg=window.FIELD_FORGED_CONFIG;
+window.onerror = function(message, source, line, column, error) {
+    alert(
+        "ERROR:\n\n" +
+        message +
+        "\n\nLine: " + line
+    );
+};
 const tenant=cfg.tenant;
 const STORAGE_KEY=`fieldForged:${tenant.id}:operations-center:v1`;
 let queue=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
