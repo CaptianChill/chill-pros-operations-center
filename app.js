@@ -1,3 +1,4 @@
+const db = window.chillProsDb;
 const cfg=window.FIELD_FORGED_CONFIG;
 const tenant=cfg.tenant;
 const STORAGE_KEY=`fieldForged:${tenant.id}:operations-center:v1`;
