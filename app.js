@@ -111,7 +111,18 @@ alert('Submit button is connected');
   d.createdAt = new Date().toISOString();
 
   try {
-    await db.collection("Customers").add(d);
+    const saveTimeout = new Promise((_, reject) => {
+  setTimeout(() => {
+    reject(new Error("Firebase request timed out after 10 seconds"));
+  }, 10000);
+});
+
+await Promise.race([
+  db.collection("Customers").add(d),
+  saveTimeout
+]);
+
+alert("Firebase save completed");
 
     queue.unshift(d);
     persist();
