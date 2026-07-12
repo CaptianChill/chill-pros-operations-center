@@ -59,17 +59,28 @@ async function copyText(text){
   try{await navigator.clipboard.writeText(text)}catch{const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove()}
   toast('Summary copied');
 }
-intakeForm.addEventListener('submit',e=>{
+intakeForm.addEventListener('submit', async (e) => {
   e.preventDefault();
-  const d=getFormData();
-  d.id=crypto.randomUUID?crypto.randomUUID():String(Date.now());
-  d.createdAt=new Date().toISOString();
-  queue.unshift(d);
-  persist();
-  intakeForm.reset();
-  toast('Submitted to office queue');
-  showView('office-queue');
+
+  const d = getFormData();
+  d.id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now());
+  d.createdAt = new Date().toISOString();
+
+  try {
+    await db.collection("Customers").add(d);
+
+    queue.unshift(d);
+    persist();
+
+    intakeForm.reset();
+    toast('Submitted to office queue');
+    showView('office-queue');
+  } catch (err) {
+    console.error(err);
+    toast('Failed to save to Firebase');
+  }
 });
+
 clearIntake.addEventListener('click',()=>{intakeForm.reset();toast('Form cleared')});
 copySummary.addEventListener('click',()=>copyText(summary(getFormData())));
 queueSearch.addEventListener('input',renderQueue);
