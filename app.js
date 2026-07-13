@@ -40,7 +40,7 @@ async function loadCustomersFromFirebase() {
           record[key] = value.booleanValue;
         }
       });
-
+record._firestoreName = documentRecord.name;
       return record;
     });
 
@@ -279,7 +279,41 @@ async function saveCustomerToFirebase(record) {
   const url =
     `https://firestore.googleapis.com/v1/projects/${projectId}` +
     `/databases/default/documents/Customers?key=${apiKey}`;
+async function updateCustomerStatus(record, newStatus) {
+  if (!record._firestoreName) {
+    throw new Error("Firestore document reference is missing");
+  }
 
+  const apiKey = "AIzaSyBsBEKMggwSUvEmdTTK1rjY0cdPyYCCL0c";
+
+  const url =
+    `https://firestore.googleapis.com/v1/${record._firestoreName}` +
+    `?updateMask.fieldPaths=officeStatus&key=${apiKey}`;
+
+  const response = await fetch(url, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      fields: {
+        officeStatus: {
+          stringValue: newStatus
+        }
+      }
+    })
+  });
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      result.error?.message || `Firestore error ${response.status}`
+    );
+  }
+
+  return result;
+}
   const fields = {};
 
   Object.entries(record).forEach(([key, value]) => {
@@ -447,7 +481,7 @@ function renderQueue() {
       node.querySelector(".queue-detail");
 
     const statusElement =
-      node.querySelector(".status-pill");
+  node.querySelector(".status-select");
 
     const copyButton =
       node.querySelector(".copy-item");
@@ -474,9 +508,33 @@ function renderQueue() {
     }
 
     if (statusElement) {
-      statusElement.textContent =
+  statusElement.value =
+    record.officeStatus ||
+    "Needs Review";
+
+  statusElement.addEventListener("change", async () => {
+    const newStatus = statusElement.value;
+
+    try {
+      await updateCustomerStatus(record, newStatus);
+
+      record.officeStatus = newStatus;
+      persist();
+
+      toast("Status updated");
+    } catch (error) {
+      console.error(error);
+
+      alert(
+        "Status update failed: " + error.message
+      );
+
+      statusElement.value =
         record.officeStatus ||
         "Needs Review";
+    }
+  });
+}
     }
 
     if (copyButton) {
