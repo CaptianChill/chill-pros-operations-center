@@ -5,6 +5,53 @@ const tenant = cfg.tenant;
 const STORAGE_KEY = `fieldForged:${tenant.id}:operations-center:v1`;
 
 let queue = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+async function loadCustomersFromFirebase() {
+  const projectId = "chill-pros-ice-stream";
+  const apiKey = "AIzaSyBsBEKMggwSUvEmdTTK1rjY0cdPyYCCL0c";
+
+  const url =
+    `https://firestore.googleapis.com/v1/projects/${projectId}` +
+    `/databases/default/documents/Customers?key=${apiKey}`;
+
+  try {
+    const response = await fetch(url);
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        result.error?.message || `Firestore error ${response.status}`
+      );
+    }
+
+    const documents = result.documents || [];
+
+    queue = documents.map((documentRecord) => {
+      const fields = documentRecord.fields || {};
+      const record = {};
+
+      Object.entries(fields).forEach(([key, value]) => {
+        if ("stringValue" in value) {
+          record[key] = value.stringValue;
+        } else if ("integerValue" in value) {
+          record[key] = Number(value.integerValue);
+        } else if ("doubleValue" in value) {
+          record[key] = Number(value.doubleValue);
+        } else if ("booleanValue" in value) {
+          record[key] = value.booleanValue;
+        }
+      });
+
+      return record;
+    });
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(queue));
+    updateCounts();
+    renderQueue();
+  } catch (error) {
+    console.error("Unable to load Firestore customers:", error);
+    toast("Using locally saved queue");
+  }
+}
 
 const schedule = [
   {
@@ -533,3 +580,4 @@ renderSchedule();
 renderActivity();
 renderQueue();
 updateCounts();
+loadCustomersFromFirebase();
