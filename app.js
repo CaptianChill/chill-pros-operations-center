@@ -231,7 +231,7 @@ async function saveCustomerToFirebase(record) {
 
   const url =
     `https://firestore.googleapis.com/v1/projects/${projectId}` +
-    `/databases/(default)/documents/Customers?key=${apiKey}`;
+    `/databases/default/documents/Customers?key=${apiKey}`;
 
   const fields = {};
 
