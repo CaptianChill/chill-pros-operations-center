@@ -225,32 +225,48 @@ async function copyText(text) {
     toast("Summary copied");
   }
 }
-
 async function saveCustomerToFirebase(record) {
-  if (!db) {
-    throw new Error("Firebase database is not connected");
-  }
+  const projectId = "chill-pros-ice-stream";
+  const apiKey = "AIzaSyBsBEKMggwSUvEmdTTK1rjY0cdPyYCCL0c";
 
-  const timeout = new Promise((_, reject) => {
-    setTimeout(() => {
-      reject(
-        new Error(
-          "Firebase request timed out after 10 seconds"
-        )
-      );
-    }, 10000);
+  const url =
+    `https://firestore.googleapis.com/v1/projects/${projectId}` +
+    `/databases/(default)/documents/Customers?key=${apiKey}`;
+
+  const fields = {};
+
+  Object.entries(record).forEach(([key, value]) => {
+    if (value === undefined || value === null) return;
+
+    if (typeof value === "number") {
+      fields[key] = { doubleValue: value };
+    } else if (typeof value === "boolean") {
+      fields[key] = { booleanValue: value };
+    } else {
+      fields[key] = { stringValue: String(value) };
+    }
   });
 
-  const saveRequest = db
-    .collection("Customers")
-    .add(record);
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ fields })
+  });
 
-  return Promise.race([
-    saveRequest,
-    timeout
-  ]);
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      result.error?.message || `Firestore error ${response.status}`
+    );
+  }
+
+  return result;
 }
 
+  
 if (intakeForm) {
   intakeForm.addEventListener("submit", async (event) => {
     event.preventDefault();
