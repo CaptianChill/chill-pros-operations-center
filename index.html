@@ -207,7 +207,46 @@
         <div id="queueList" class="queue-list"></div>
       </section>
 
-      <section id="today-jobs" class="view simple-view"><h2>Today's Jobs</h2><p>Job scheduling and Jobber synchronization will connect here.</p></section>
+      <section id="today-jobs" class="view">
+  <div class="page-header">
+    <div>
+      <p class="eyebrow">FIELD OPERATIONS</p>
+      <h2>Today's Jobs</h2>
+    </div>
+
+    <button class="secondary-action" id="refreshJobs">
+      Refresh Jobs
+    </button>
+  </div>
+
+  <div class="queue-tools">
+    <input
+      id="jobSearch"
+      type="search"
+      placeholder="Search customer, address, equipment or technician"
+    >
+
+    <select id="jobStatusFilter">
+      <option value="">All job statuses</option>
+      <option>Scheduled</option>
+      <option>Dispatched</option>
+      <option>In Progress</option>
+      <option>Paused</option>
+      <option>Completed</option>
+    </select>
+  </div>
+
+  <div id="todayJobsList" class="queue-list">
+    <article class="queue-item">
+      <div>
+        <h3>No jobs scheduled yet</h3>
+        <p class="queue-meta">
+          Schedule an Office Queue record to place it here.
+        </p>
+      </div>
+    </article>
+  </div>
+</section>
       <section id="maintenance" class="view simple-view"><h2>Maintenance</h2><p>PM agreements, visits due and completion tracking will connect here.</p></section>
       <section id="equipment" class="view simple-view"><h2>Equipment Assets</h2><p>Asset records, service history, QR codes and warranty data will connect here.</p></section>
       <section id="parts" class="view simple-view"><h2>Parts Orders</h2><p>OEM verification, aftermarket cross-reference and supplier workflow will connect here.</p></section>
