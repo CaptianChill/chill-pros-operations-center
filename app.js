@@ -1,6 +1,4 @@
-Chill Pros app.js
-Tap the button, return to GitHub, then paste.
-Copy Entire app.js const db = window.chillProsDb;
+const db = window.chillProsDb;
 const cfg = window.FIELD_FORGED_CONFIG || {
   platform: "FieldForged",
   tenant: { id: "chill-pros", name: "Chill Pros" }
