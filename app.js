@@ -1,57 +1,14 @@
-const db = window.chillProsDb;
-const cfg = window.FIELD_FORGED_CONFIG;
+Chill Pros app.js
+Tap the button, return to GitHub, then paste.
+Copy Entire app.js const db = window.chillProsDb;
+const cfg = window.FIELD_FORGED_CONFIG || {
+  platform: "FieldForged",
+  tenant: { id: "chill-pros", name: "Chill Pros" }
+};
 const tenant = cfg.tenant;
-
-const STORAGE_KEY = `fieldForged:${tenant.id}:operations-center:v1`;
+const STORAGE_KEY = `fieldForged:${tenant.id}:operations-center:v3`;
 
 let queue = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-async function loadCustomersFromFirebase() {
-  const projectId = "chill-pros-ice-stream";
-  const apiKey = "AIzaSyBsBEKMggwSUvEmdTTK1rjY0cdPyYCCL0c";
-
-  const url =
-    `https://firestore.googleapis.com/v1/projects/${projectId}` +
-    `/databases/default/documents/Customers?key=${apiKey}`;
-
-  try {
-    const response = await fetch(url);
-    const result = await response.json();
-
-    if (!response.ok) {
-      throw new Error(
-        result.error?.message || `Firestore error ${response.status}`
-      );
-    }
-
-    const documents = result.documents || [];
-
-    queue = documents.map((documentRecord) => {
-      const fields = documentRecord.fields || {};
-      const record = {};
-
-      Object.entries(fields).forEach(([key, value]) => {
-        if ("stringValue" in value) {
-          record[key] = value.stringValue;
-        } else if ("integerValue" in value) {
-          record[key] = Number(value.integerValue);
-        } else if ("doubleValue" in value) {
-          record[key] = Number(value.doubleValue);
-        } else if ("booleanValue" in value) {
-          record[key] = value.booleanValue;
-        }
-      });
-
-      return record;
-    });
-
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(queue));
-    updateCounts();
-    renderQueue();
-  } catch (error) {
-    console.error("Unable to load Firestore customers:", error);
-    toast("Using locally saved queue");
-  }
-}
 
 const schedule = [
   {
@@ -108,10 +65,42 @@ const queueList = document.getElementById("queueList");
 const queueCount = document.getElementById("queueCount");
 
 const scheduleList = document.getElementById("scheduleList");
+const todayJobsList = document.getElementById("todayJobsList");
+const jobSearch = document.getElementById("jobSearch");
+const jobStatusFilter = document.getElementById("jobStatusFilter");
+const refreshJobs = document.getElementById("refreshJobs");
 const activityList = document.getElementById("activityList");
 
 const exportQueue = document.getElementById("exportQueue");
 const addSampleJob = document.getElementById("addSampleJob");
+
+const OFFICE_STATUSES = [
+  "Needs Review",
+  "Scheduled",
+  "Needs Quote",
+  "Ready to Invoice",
+  "Waiting on Parts",
+  "Dispatched",
+  "In Progress",
+  "Paused",
+  "Completed"
+];
+
+const ACTIVE_JOB_STATUSES = new Set([
+  "Scheduled",
+  "Dispatched",
+  "In Progress",
+  "Paused"
+]);
+
+function normalizeRecord(data, id = "") {
+  return {
+    ...data,
+    id: data.id || id || crypto.randomUUID?.() || String(Date.now()),
+    officeStatus: data.officeStatus || "Needs Review",
+    createdAt: data.createdAt || new Date().toISOString()
+  };
+}
 
 function showView(id) {
   views.forEach((view) => {
@@ -124,6 +113,10 @@ function showView(id) {
 
   if (id === "office-queue") {
     renderQueue();
+  }
+
+  if (id === "todays-jobs") {
+    renderTodayJobs();
   }
 
   window.scrollTo({
@@ -151,18 +144,15 @@ function renderSchedule() {
 
   schedule.forEach((job) => {
     const row = document.createElement("div");
-
     row.className = "schedule-row";
-
     row.innerHTML = `
-      <strong>${job.time}</strong>
+      <strong>${escapeHtml(job.time)}</strong>
       <div>
-        <b>${job.name}</b>
-        <small>${job.address}</small>
+        <strong>${escapeHtml(job.name)}</strong>
+        <small>${escapeHtml(job.address)}</small>
       </div>
-      <small>${job.type}</small>
+      <span>${escapeHtml(job.type)}</span>
     `;
-
     scheduleList.appendChild(row);
   });
 }
@@ -174,18 +164,15 @@ function renderActivity() {
 
   activity.forEach((item) => {
     const row = document.createElement("div");
-
     row.className = "activity-row";
-
     row.innerHTML = `
-      <span class="activity-dot">${item.icon}</span>
+      <span>${escapeHtml(item.icon)}</span>
       <div>
-        <b>${item.title}</b>
-        <small>${item.detail}</small>
+        <strong>${escapeHtml(item.title)}</strong>
+        <small>${escapeHtml(item.detail)}</small>
       </div>
-      <small>${item.time}</small>
+      <time>${escapeHtml(item.time)}</time>
     `;
-
     activityList.appendChild(row);
   });
 }
@@ -194,24 +181,29 @@ function persist() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(queue));
   updateCounts();
   renderQueue();
+  renderTodayJobs();
 }
 
 function updateCounts() {
-  if (!queueCount) return;
+  if (queueCount) {
+    const activeQueueCount = queue.filter(
+      (record) => record.officeStatus !== "Completed"
+    ).length;
+    queueCount.textContent = activeQueueCount;
+  }
 
-  const activeCount = queue.filter((record) => {
-    return record.officeStatus !== "Completed";
-  }).length;
-
-  queueCount.textContent = activeCount;
+  const jobsCount = document.getElementById("jobsCount");
+  if (jobsCount) {
+    jobsCount.textContent = queue.filter((record) =>
+      ACTIVE_JOB_STATUSES.has(record.officeStatus)
+    ).length;
+  }
 }
 
 function toast(message) {
   const notification = document.createElement("div");
-
   notification.className = "toast";
   notification.textContent = message;
-
   document.body.appendChild(notification);
 
   setTimeout(() => {
@@ -221,10 +213,7 @@ function toast(message) {
 
 function getFormData() {
   if (!intakeForm) return {};
-
-  return Object.fromEntries(
-    new FormData(intakeForm).entries()
-  );
+  return Object.fromEntries(new FormData(intakeForm).entries());
 }
 
 function createSummary(record) {
@@ -250,6 +239,9 @@ function createSummary(record) {
         ? "$" + Number(record.estimatedAmount).toFixed(2)
         : "-"
     }`,
+    `Technician: ${record.assignedTechnician || "-"}`,
+    `Scheduled Date: ${record.scheduledDate || "-"}`,
+    `Scheduled Time: ${record.scheduledTime || "-"}`,
     `Photo Notes: ${record.photoNotes || "-"}`
   ].join("\n");
 }
@@ -260,92 +252,75 @@ async function copyText(text) {
     toast("Summary copied");
   } catch (error) {
     const textarea = document.createElement("textarea");
-
     textarea.value = text;
-
     document.body.appendChild(textarea);
-
     textarea.select();
     document.execCommand("copy");
     textarea.remove();
-
     toast("Summary copied");
   }
 }
-async function saveCustomerToFirebase(record) {
-  const projectId = "chill-pros-ice-stream";
-  const apiKey = "AIzaSyBsBEKMggwSUvEmdTTK1rjY0cdPyYCCL0c";
 
-  const url =
-    `https://firestore.googleapis.com/v1/projects/${projectId}` +
-    `/databases/default/documents/Customers?key=${apiKey}`;
-
-  const fields = {};
-
-  Object.entries(record).forEach(([key, value]) => {
-    if (value === undefined || value === null) return;
-
-    if (typeof value === "number") {
-      fields[key] = { doubleValue: value };
-    } else if (typeof value === "boolean") {
-      fields[key] = { booleanValue: value };
-    } else {
-      fields[key] = { stringValue: String(value) };
-    }
-  });
-
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ fields })
-  });
-
-  const result = await response.json();
-
-  if (!response.ok) {
-    throw new Error(
-      result.error?.message || `Firestore error ${response.status}`
-    );
+async function loadCustomersFromFirebase() {
+  if (!db) {
+    console.warn("Firestore is unavailable. Using locally saved queue.");
+    persist();
+    return;
   }
 
-  return result;
+  try {
+    const snapshot = await db.collection("Customers").get();
+
+    queue = snapshot.docs.map((documentSnapshot) =>
+      normalizeRecord(documentSnapshot.data(), documentSnapshot.id)
+    );
+
+    persist();
+  } catch (error) {
+    console.error("Unable to load Firestore customers:", error);
+    toast("Using locally saved queue");
+    persist();
+  }
 }
 
-  
+async function saveCustomerToFirebase(record) {
+  if (!db) return record.id;
+
+  const documentReference = await db.collection("Customers").add(record);
+  return documentReference.id;
+}
+
+async function updateCustomerInFirebase(record, changes) {
+  if (!db || !record.id) return;
+
+  await db.collection("Customers").doc(record.id).set(changes, { merge: true });
+}
+
+async function deleteCustomerFromFirebase(record) {
+  if (!db || !record.id) return;
+
+  await db.collection("Customers").doc(record.id).delete();
+}
+
 if (intakeForm) {
   intakeForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
-    const record = getFormData();
-
-    record.id =
-      typeof crypto.randomUUID === "function"
-        ? crypto.randomUUID()
-        : String(Date.now());
-
-    record.createdAt = new Date().toISOString();
+    const record = normalizeRecord(getFormData());
+    record.officeStatus = record.officeStatus || "Needs Review";
 
     try {
-      await saveCustomerToFirebase(record);
+      const firestoreId = await saveCustomerToFirebase(record);
+      record.id = firestoreId || record.id;
 
       queue.unshift(record);
-
       persist();
-
       intakeForm.reset();
-
       toast("Submitted to office queue");
-
       showView("office-queue");
     } catch (error) {
       console.error(error);
-
-      alert(
-        "Firebase error: " + error.message
-      );
-
+      alert(`Firebase error: ${error.message}`);
       toast("Failed to save to Firebase");
     }
   });
@@ -353,34 +328,32 @@ if (intakeForm) {
 
 if (clearIntake) {
   clearIntake.addEventListener("click", () => {
-    intakeForm.reset();
-
+    intakeForm?.reset();
     toast("Form cleared");
   });
 }
 
 if (copySummary) {
   copySummary.addEventListener("click", () => {
-    const record = getFormData();
-
-    copyText(
-      createSummary(record)
-    );
+    copyText(createSummary(getFormData()));
   });
 }
 
 if (queueSearch) {
-  queueSearch.addEventListener(
-    "input",
-    renderQueue
-  );
+  queueSearch.addEventListener("input", renderQueue);
 }
 
 if (queueFilter) {
-  queueFilter.addEventListener(
-    "change",
-    renderQueue
-  );
+  queueFilter.addEventListener("change", renderQueue);
+}
+
+function buildStatusOptions(selectedStatus) {
+  return OFFICE_STATUSES.map((status) => {
+    const selected = status === selectedStatus ? "selected" : "";
+    return `<option value="${escapeHtml(status)}" ${selected}>${escapeHtml(
+      status
+    )}</option>`;
+  }).join("");
 }
 
 function renderQueue() {
@@ -391,127 +364,270 @@ function renderQueue() {
   const searchTerm = queueSearch
     ? queueSearch.value.trim().toLowerCase()
     : "";
-
-  const statusFilter = queueFilter
-    ? queueFilter.value
-    : "";
+  const statusFilter = queueFilter ? queueFilter.value : "";
 
   const filteredQueue = queue.filter((record) => {
     const matchesSearch =
       !searchTerm ||
-      JSON.stringify(record)
-        .toLowerCase()
-        .includes(searchTerm);
+      JSON.stringify(record).toLowerCase().includes(searchTerm);
 
     const matchesStatus =
-      !statusFilter ||
-      record.officeStatus === statusFilter;
+      !statusFilter || record.officeStatus === statusFilter;
 
     return matchesSearch && matchesStatus;
   });
 
   if (!filteredQueue.length) {
     queueList.innerHTML = `
-      <div class="simple-view">
-        <h2>No matching records</h2>
-        <p>
-          Submit a new customer intake to create
-          the first office queue record.
-        </p>
-      </div>
+      <article class="queue-item">
+        <div>
+          <h3>No matching records</h3>
+          <p class="queue-meta">
+            Submit a new customer intake to create the first office queue record.
+          </p>
+        </div>
+      </article>
     `;
-
     return;
   }
 
   filteredQueue.forEach((record) => {
-    const template =
-      document.getElementById(
-        "queueItemTemplate"
-      );
-
+    const template = document.getElementById("queueItemTemplate");
     if (!template) return;
 
-    const node =
-      template.content.firstElementChild.cloneNode(
-        true
-      );
+    const node = template.content.firstElementChild.cloneNode(true);
 
-    const customerElement =
-      node.querySelector(".queue-customer");
-
-    const metaElement =
-      node.querySelector(".queue-meta");
-
-    const detailElement =
-      node.querySelector(".queue-detail");
-
-    const statusElement =
-      node.querySelector(".status-pill");
-
-    const copyButton =
-      node.querySelector(".copy-item");
-
-    const deleteButton =
-      node.querySelector(".delete-item");
+    const customerElement = node.querySelector(".queue-customer");
+    const metaElement = node.querySelector(".queue-meta");
+    const detailElement = node.querySelector(".queue-detail");
+    const statusElement = node.querySelector(".status-pill");
+    const copyButton = node.querySelector(".copy-item");
+    const deleteButton = node.querySelector(".delete-item");
 
     if (customerElement) {
       customerElement.textContent =
-        record.customerName ||
-        "Unnamed Customer";
+        record.customerName || "Unnamed Customer";
     }
 
     if (metaElement) {
+      const created = new Date(record.createdAt);
+      const createdText = Number.isNaN(created.getTime())
+        ? "Date not set"
+        : created.toLocaleString();
+
       metaElement.textContent =
         `${record.equipmentType || "Equipment"} • ` +
         `${record.manufacturer || "Manufacturer not set"} • ` +
-        `${new Date(record.createdAt).toLocaleString()}`;
+        createdText;
     }
 
     if (detailElement) {
-      detailElement.textContent =
-        record.complaint || "";
+      detailElement.textContent = record.complaint || "";
     }
 
     if (statusElement) {
-      statusElement.textContent =
-        record.officeStatus ||
-        "Needs Review";
-    }
+      statusElement.innerHTML = buildStatusOptions(record.officeStatus);
 
-    if (copyButton) {
-      copyButton.addEventListener(
-        "click",
-        () => {
-          copyText(
-            createSummary(record)
-          );
-        }
-      );
-    }
+      statusElement.addEventListener("change", async () => {
+        const previousStatus = record.officeStatus;
+        const newStatus = statusElement.value;
 
-    if (deleteButton) {
-      deleteButton.addEventListener(
-        "click",
-        () => {
-          const confirmed = confirm(
-            "Delete this office queue record?"
-          );
+        record.officeStatus = newStatus;
+        record.statusUpdatedAt = new Date().toISOString();
 
-          if (!confirmed) return;
-
-          queue = queue.filter((item) => {
-            return item.id !== record.id;
+        try {
+          await updateCustomerInFirebase(record, {
+            officeStatus: newStatus,
+            statusUpdatedAt: record.statusUpdatedAt
           });
 
           persist();
 
-          toast("Record deleted");
+          if (newStatus === "Scheduled") {
+            toast("Job added to Today's Jobs");
+          } else {
+            toast(`Status changed to ${newStatus}`);
+          }
+        } catch (error) {
+          console.error(error);
+          record.officeStatus = previousStatus;
+          statusElement.value = previousStatus;
+          toast("Status update failed");
         }
-      );
+      });
+    }
+
+    if (copyButton) {
+      copyButton.addEventListener("click", () => {
+        copyText(createSummary(record));
+      });
+    }
+
+    if (deleteButton) {
+      deleteButton.addEventListener("click", async () => {
+        const confirmed = confirm("Delete this office queue record?");
+        if (!confirmed) return;
+
+        try {
+          await deleteCustomerFromFirebase(record);
+          queue = queue.filter((item) => item.id !== record.id);
+          persist();
+          toast("Record deleted");
+        } catch (error) {
+          console.error(error);
+          toast("Delete failed");
+        }
+      });
     }
 
     queueList.appendChild(node);
+  });
+}
+
+function renderTodayJobs() {
+  if (!todayJobsList) return;
+
+  const searchTerm = jobSearch
+    ? jobSearch.value.trim().toLowerCase()
+    : "";
+  const selectedStatus = jobStatusFilter ? jobStatusFilter.value : "";
+
+  const jobs = queue.filter((record) => {
+    const isJob = ACTIVE_JOB_STATUSES.has(record.officeStatus);
+    const matchesSearch =
+      !searchTerm ||
+      JSON.stringify(record).toLowerCase().includes(searchTerm);
+    const matchesStatus =
+      !selectedStatus || record.officeStatus === selectedStatus;
+
+    return isJob && matchesSearch && matchesStatus;
+  });
+
+  todayJobsList.innerHTML = "";
+
+  if (!jobs.length) {
+    todayJobsList.innerHTML = `
+      <article class="queue-item">
+        <div>
+          <h3>No jobs scheduled yet</h3>
+          <p class="queue-meta">
+            Change an Office Queue record to Scheduled to place it here.
+          </p>
+        </div>
+      </article>
+    `;
+    return;
+  }
+
+  jobs.forEach((record) => {
+    const article = document.createElement("article");
+    article.className = "queue-item todays-job-card";
+
+    article.innerHTML = `
+      <div>
+        <h3>${escapeHtml(record.customerName || "Unnamed Customer")}</h3>
+        <p class="queue-meta">
+          ${escapeHtml(record.equipmentType || "Equipment")} •
+          ${escapeHtml(record.manufacturer || "Manufacturer not set")}
+        </p>
+        <p class="queue-detail">${escapeHtml(
+          record.complaint || "No complaint entered"
+        )}</p>
+        <p class="queue-meta">
+          ${escapeHtml(record.address || "Address not entered")}
+        </p>
+      </div>
+
+      <div class="queue-tools">
+        <label>
+          Status
+          <select class="status-pill job-status">
+            ${buildStatusOptions(record.officeStatus)}
+          </select>
+        </label>
+
+        <label>
+          Technician
+          <input
+            class="job-technician"
+            type="text"
+            value="${escapeAttribute(record.assignedTechnician || "")}"
+            placeholder="Assign technician"
+          >
+        </label>
+
+        <label>
+          Date
+          <input
+            class="job-date"
+            type="date"
+            value="${escapeAttribute(record.scheduledDate || "")}"
+          >
+        </label>
+
+        <label>
+          Time
+          <input
+            class="job-time"
+            type="time"
+            value="${escapeAttribute(record.scheduledTime || "")}"
+          >
+        </label>
+
+        <button type="button" class="save-job">Save Job</button>
+        <button type="button" class="copy-job">Copy</button>
+      </div>
+    `;
+
+    const statusInput = article.querySelector(".job-status");
+    const technicianInput = article.querySelector(".job-technician");
+    const dateInput = article.querySelector(".job-date");
+    const timeInput = article.querySelector(".job-time");
+    const saveButton = article.querySelector(".save-job");
+    const copyButton = article.querySelector(".copy-job");
+
+    saveButton?.addEventListener("click", async () => {
+      const changes = {
+        officeStatus: statusInput?.value || record.officeStatus,
+        assignedTechnician: technicianInput?.value.trim() || "",
+        scheduledDate: dateInput?.value || "",
+        scheduledTime: timeInput?.value || "",
+        statusUpdatedAt: new Date().toISOString()
+      };
+
+      Object.assign(record, changes);
+
+      try {
+        await updateCustomerInFirebase(record, changes);
+        persist();
+        toast("Job updated");
+      } catch (error) {
+        console.error(error);
+        toast("Job update failed");
+      }
+    });
+
+    copyButton?.addEventListener("click", () => {
+      copyText(createSummary(record));
+    });
+
+    todayJobsList.appendChild(article);
+  });
+}
+
+if (jobSearch) {
+  jobSearch.addEventListener("input", renderTodayJobs);
+}
+
+if (jobStatusFilter) {
+  jobStatusFilter.addEventListener("change", renderTodayJobs);
+}
+
+if (refreshJobs) {
+  refreshJobs.addEventListener("click", async () => {
+    await loadCustomersFromFirebase();
+    renderTodayJobs();
+    toast("Jobs refreshed");
   });
 }
 
@@ -524,60 +640,54 @@ if (exportQueue) {
       queue
     };
 
-    const blob = new Blob(
-      [
-        JSON.stringify(
-          payload,
-          null,
-          2
-        )
-      ],
-      {
-        type: "application/json"
-      }
-    );
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: "application/json"
+    });
 
-    const url =
-      URL.createObjectURL(blob);
-
-    const link =
-      document.createElement("a");
-
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
     link.href = url;
-
     link.download =
       `chill-pros-office-queue-${new Date()
         .toISOString()
         .slice(0, 10)}.json`;
 
     link.click();
-
     URL.revokeObjectURL(url);
-
     toast("Queue export created");
   });
 }
 
 if (addSampleJob) {
-  addSampleJob.addEventListener(
-    "click",
-    () => {
-      schedule.push({
-        time: "4:30 PM",
-        name: "Sample Emergency Call",
-        address: "San Antonio, TX",
-        type: "HVAC No-Cool"
-      });
+  addSampleJob.addEventListener("click", () => {
+    schedule.push({
+      time: "4:30 PM",
+      name: "Sample Emergency Call",
+      address: "San Antonio, TX",
+      type: "HVAC No-Cool"
+    });
 
-      renderSchedule();
+    renderSchedule();
+    toast("Sample job added");
+  });
+}
 
-      toast("Sample job added");
-    }
-  );
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function escapeAttribute(value) {
+  return escapeHtml(value);
 }
 
 renderSchedule();
 renderActivity();
 renderQueue();
+renderTodayJobs();
 updateCounts();
 loadCustomersFromFirebase();
