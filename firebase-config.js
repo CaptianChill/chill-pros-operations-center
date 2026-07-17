@@ -11,6 +11,5 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 
 const firestoreDb = firebase.firestore();
-firestoreDb.settings({ experimentalForceLongPolling: true });
 
 window.chillProsDb = firestoreDb;
