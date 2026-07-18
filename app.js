@@ -481,7 +481,7 @@ function renderQueue() {
   });
 }
 
-function renderTodayJobs();{
+function renderTodayJobs() {
   if (!todayJobsList) return;
 
   const searchTerm = jobSearch
