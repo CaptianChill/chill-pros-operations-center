@@ -91,6 +91,16 @@ const ACTIVE_JOB_STATUSES = new Set([
   "Paused"
 ]);
 
+function normalizeRecord(data, firestoreId = "") {
+  return {
+    ...data,
+    firestoreId: firestoreId,
+    id: data.id || crypto.randomUUID?.() || String(Date.now()),
+    officeStatus: data.officeStatus || "Needs Review",
+    createdAt: data.createdAt || new Date().toISOString()
+  };
+}
+
 async function updateCustomerInFirebase(record, changes) {
   if (!db || !record.firestoreId) return;
 
@@ -98,8 +108,7 @@ async function updateCustomerInFirebase(record, changes) {
     .collection("Customers")
     .doc(record.firestoreId)
     .set(changes, { merge: true });
-}
-function showView(id) {
+}function showView(id) {
   views.forEach((view) => {
     view.classList.toggle("active", view.id === id);
   });
