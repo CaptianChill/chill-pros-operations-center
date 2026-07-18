@@ -478,14 +478,7 @@ function renderQueue() {
           } else {
             toast(`Status changed to ${newStatus}`);
           }
-        } catch (error) {
-          console.error(error);
-          record.officeStatus = previousStatus;
-          statusElement.value = previousStatus;
-          toast("Status update failed");
-        }
-      });
-    }
+        
 
     if (copyButton) {
       copyButton.addEventListener("click", () => {
