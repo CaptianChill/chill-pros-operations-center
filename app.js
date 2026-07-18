@@ -681,15 +681,7 @@ function escapeHtml(value) {
 function escapeAttribute(value) {
   return escapeHtml(value);
 }
-queue = snapshot.docs.map((documentSnapshot) =>
-  normalizeRecord(documentSnapshot.data(), documentSnapshot.id)
-);
 
-persist();renderSchedule();
-renderActivity();
-queue = snapshot.docs.map((documentSnapshot) =>
-  normalizeRecord(documentSnapshot.data(), documentSnapshot.id)
-);
 
 persist();
 renderQueue();
