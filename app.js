@@ -94,8 +94,7 @@ const ACTIVE_JOB_STATUSES = new Set([
 function normalizeRecord(data, id = "") {
   return {
     ...data,
-    id: data.id || id || crypto.randomUUID?.() || String(Date.now()),
-    officeStatus: data.officeStatus || "Needs Review",
+    id: id || data.id || crypto.randomUUID?.() || String(Date.now()),    officeStatus: data.officeStatus || "Needs Review",
     createdAt: data.createdAt || new Date().toISOString()
   };
 }
