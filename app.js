@@ -265,7 +265,15 @@ async function copyText(text) {
     toast("Summary copied");
   }
 }
-
+function normalizeRecord(data, firestoreId = "") {
+  return {
+    ...data,
+    firestoreId,
+    id: data.id || crypto.randomUUID?.() || String(Date.now()),
+    officeStatus: data.officeStatus || "Needs Review",
+    createdAt: data.createdAt || new Date().toISOString()
+  };
+}
 async function loadCustomersFromFirebase() {
   if (!db) {
     console.warn("Firestore is unavailable. Using locally saved queue.");
