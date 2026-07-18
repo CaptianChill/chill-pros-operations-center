@@ -444,19 +444,34 @@ function renderQueue() {
       statusElement.innerHTML = buildStatusOptions(record.officeStatus);
 
       statusElement.addEventListener("change", async () => {
-        const previousStatus = record.officeStatus;
-        const newStatus = statusElement.value;
+  const previousStatus = record.officeStatus;
+  const newStatus = statusElement.value;
 
-        record.officeStatus = newStatus;
-        record.statusUpdatedAt = new Date().toISOString();
+  record.officeStatus = newStatus;
+  record.statusUpdatedAt = new Date().toISOString();
 
-        try {
-          await updateCustomerInFirebase(record, {
-            officeStatus: newStatus,
-            statusUpdatedAt: record.statusUpdatedAt
-          });
+  try {
+    await updateCustomerInFirebase(record, {
+      officeStatus: newStatus,
+      statusUpdatedAt: record.statusUpdatedAt
+    });
 
-          persist();
+    persist();
+    renderQueue();
+    renderTodayJobs();
+
+    if (newStatus === "Scheduled") {
+      toast("Job added to Today's Jobs");
+    } else {
+      toast(`Status changed to ${newStatus}`);
+    }
+  } catch (error) {
+    console.error("Status update failed:", error);
+    record.officeStatus = previousStatus;
+    statusElement.value = previousStatus;
+    toast("Status update failed");
+  }
+});          persist();
 
           if (newStatus === "Scheduled") {
             toast("Job added to Today's Jobs");
