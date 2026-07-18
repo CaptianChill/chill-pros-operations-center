@@ -113,9 +113,8 @@ function showView(id) {
     renderQueue();
   }
 
-  if (id === "todays-jobs") {
-    renderTodayJobs();
-  }
+  if (id === "todays-jobsob") {
+    renderTodayJobs();  }
 
   window.scrollTo({
     top: 0,
@@ -482,7 +481,7 @@ function renderQueue() {
   });
 }
 
-function renderTodayJobs() {
+function renderTodayJobs();{
   if (!todayJobsList) return;
 
   const searchTerm = jobSearch
@@ -692,5 +691,7 @@ queue = snapshot.docs.map((documentSnapshot) =>
   normalizeRecord(documentSnapshot.data(), documentSnapshot.id)
 );
 
-persist();updateCounts();
+persist();
+renderQueue();
+renderTodayJobs();updateCounts();
 loadCustomersFromFirebase();
