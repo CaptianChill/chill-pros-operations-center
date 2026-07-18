@@ -91,14 +91,14 @@ const ACTIVE_JOB_STATUSES = new Set([
   "Paused"
 ]);
 
-function normalizeRecord(data, id = "") {
-  return {
-    ...data,
-    id: id || data.id || crypto.randomUUID?.() || String(Date.now()),    officeStatus: data.officeStatus || "Needs Review",
-    createdAt: data.createdAt || new Date().toISOString()
-  };
-}
+async function updateCustomerInFirebase(record, changes) {
+  if (!db || !record.firestoreId) return;
 
+  await db
+    .collection("Customers")
+    .doc(record.firestoreId)
+    .set(changes, { merge: true });
+}
 function showView(id) {
   views.forEach((view) => {
     view.classList.toggle("active", view.id === id);
@@ -293,11 +293,13 @@ async function updateCustomerInFirebase(record, changes) {
 }
 
 async function deleteCustomerFromFirebase(record) {
-  if (!db || !record.id) return;
+  if (!db || !record.firestoreId) return;
 
-  await db.collection("Customers").doc(record.id).delete();
+  await db
+    .collection("Customers")
+    .doc(record.firestoreId)
+    .delete();
 }
-
 if (intakeForm) {
   intakeForm.addEventListener("submit", async (event) => {
     event.preventDefault();
