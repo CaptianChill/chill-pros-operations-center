@@ -682,10 +682,15 @@ function escapeHtml(value) {
 function escapeAttribute(value) {
   return escapeHtml(value);
 }
+queue = snapshot.docs.map((documentSnapshot) =>
+  normalizeRecord(documentSnapshot.data(), documentSnapshot.id)
+);
 
-renderSchedule();
+persist();renderSchedule();
 renderActivity();
-renderQueue();
-renderTodayJobs();
-updateCounts();
+queue = snapshot.docs.map((documentSnapshot) =>
+  normalizeRecord(documentSnapshot.data(), documentSnapshot.id)
+);
+
+persist();updateCounts();
 loadCustomersFromFirebase();
