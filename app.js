@@ -471,15 +471,7 @@ function renderQueue() {
     statusElement.value = previousStatus;
     toast("Status update failed");
   }
-});          persist();
-
-          if (newStatus === "Scheduled") {
-            toast("Job added to Today's Jobs");
-          } else {
-            toast(`Status changed to ${newStatus}`);
-          }
-        
-
+});         
     if (copyButton) {
       copyButton.addEventListener("click", () => {
         copyText(createSummary(record));
