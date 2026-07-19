@@ -515,22 +515,7 @@ function renderQueue() {
 queueList.appendChild(node);
 });
 } 
-function saveTechnicians() {
-  localStorage.setItem(
-    "chillProsTechnicians",
-    JSON.stringify(technicians)
-  );
-}
 
-function renderTechnicians() {
-  if (!technicianList) return;
-
-  technicianList.innerHTML = "";
-
-  if (!technicians.length) {
-    technicianList.innerHTML = "<p>No technicians added yet.</p>";
-    return;
-  }
 
   technicians.forEach((technician) => {
     const card = document.createElement("article");
@@ -793,7 +778,85 @@ async function loadCustomersFromFirebase() {
     persist();
   }
 } 
+function saveTechnicians() {
+  localStorage.setItem(
+    "chillProsTechnicians",
+    JSON.stringify(technicians)
+  );
+}
+
+function renderTechnicians() {
+  if (!technicianList) return;
+
+  technicianList.innerHTML = "";
+
+  if (!technicians.length) {
+    technicianList.innerHTML = "<p>No technicians added yet.</p>";
+    return;
+  }
+
+  technicians.forEach((technician) => {
+    const card = document.createElement("article");
+    card.className = "queue-item";
+
+    card.innerHTML = `
+      <div>
+        <h3>${escapeHtml(technician.name)}</h3>
+        <p class="queue-meta">
+          ${escapeHtml(technician.phone || "No phone")} •
+          ${escapeHtml(technician.email || "No email")}
+        </p>
+        <p>${escapeHtml(technician.skills || "Skills not entered")}</p>
+      </div>
+
+      <div>
+        <strong>${escapeHtml(technician.status)}</strong>
+        <button class="delete-technician">Delete</button>
+      </div>
+    `;
+
+    card
+      .querySelector(".delete-technician")
+      ?.addEventListener("click", () => {
+        technicians = technicians.filter(
+          (item) => item.id !== technician.id
+        );
+
+        saveTechnicians();
+        renderTechnicians();
+      });
+
+    technicianList.appendChild(card);
+  });
+}
+
 if (addTechnicianButton) {
+  addTechnicianButton.addEventListener("click", () => {
+    const name = prompt("Technician name:");
+    if (!name || !name.trim()) return;
+
+    const phone = prompt("Phone number:") || "";
+    const email = prompt("Email address:") || "";
+    const skills =
+      prompt("Skills: HVAC, Refrigeration, Ice Machines, Kitchen Equipment") || "";
+
+    technicians.push({
+      id: crypto.randomUUID?.() || String(Date.now()),
+      name: name.trim(),
+      phone: phone.trim(),
+      email: email.trim(),
+      skills: skills.trim(),
+      status: "Active"
+    });
+
+    saveTechnicians();
+    renderTechnicians();
+    toast("Technician added");
+  });
+}
+
+loadCustomersFromFirebase();
+renderTechnicians();if (addTechnicianButton) {
   addTechnicianButton.addEventListener("click", () => {
     const name = prompt("Technician name:");
     if (!name || !name.trim()) return;
