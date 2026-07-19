@@ -496,7 +496,8 @@ function renderQueue() {
     }
 
 queueList.appendChild(node);
-}
+});
+} 
 
 function renderTodayJobs() {
   if (!todayJobsList) return;
