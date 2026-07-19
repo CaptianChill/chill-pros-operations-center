@@ -703,9 +703,12 @@ function escapeAttribute(value) {
 
 
 
- persist();
+ 
+loadCustomersFromFirebase();
+ queue = snapshot.docs.map((documentSnapshot) =>
+  normalizeRecord(documentSnapshot.data(), documentSnapshot.id)
+);
+persist();
 renderQueue();
 renderTodayJobs();
 updateCounts();
-loadCustomersFromFirebase();
- 
