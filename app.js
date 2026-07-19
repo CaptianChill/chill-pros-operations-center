@@ -7,7 +7,9 @@ const tenant = cfg.tenant;
 const STORAGE_KEY = `fieldForged:${tenant.id}:operations-center:v3`;
 
 let queue = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-
+let technicians = JSON.parse(
+  localStorage.getItem("chillProsTechnicians") || "[]"
+);
 const schedule = [
   {
     time: "9:00 AM",
@@ -71,6 +73,8 @@ const activityList = document.getElementById("activityList");
 
 const exportQueue = document.getElementById("exportQueue");
 const addSampleJob = document.getElementById("addSampleJob");
+const addTechnicianButton = document.getElementById("addTechnicianButton");
+const technicianList = document.getElementById("technicianList");
 
 const OFFICE_STATUSES = [
   "Needs Review",
@@ -511,8 +515,57 @@ function renderQueue() {
 queueList.appendChild(node);
 });
 } 
+function saveTechnicians() {
+  localStorage.setItem(
+    "chillProsTechnicians",
+    JSON.stringify(technicians)
+  );
+}
 
-function renderTodayJobs() {
+function renderTechnicians() {
+  if (!technicianList) return;
+
+  technicianList.innerHTML = "";
+
+  if (!technicians.length) {
+    technicianList.innerHTML = "<p>No technicians added yet.</p>";
+    return;
+  }
+
+  technicians.forEach((technician) => {
+    const card = document.createElement("article");
+    card.className = "queue-item";
+
+    card.innerHTML = `
+      <div>
+        <h3>${escapeHtml(technician.name)}</h3>
+        <p class="queue-meta">
+          ${escapeHtml(technician.phone || "No phone")} •
+          ${escapeHtml(technician.email || "No email")}
+        </p>
+        <p>${escapeHtml(technician.skills || "Skills not entered")}</p>
+      </div>
+
+      <div>
+        <strong>${escapeHtml(technician.status)}</strong>
+        <button class="delete-technician">Delete</button>
+      </div>
+    `;
+
+    card
+      .querySelector(".delete-technician")
+      ?.addEventListener("click", () => {
+        technicians = technicians.filter(
+          (item) => item.id !== technician.id
+        );
+
+        saveTechnicians();
+        renderTechnicians();
+      });
+
+    technicianList.appendChild(card);
+  });
+}function renderTodayJobs() {
   if (!todayJobsList) return;
 
   const searchTerm = jobSearch
@@ -740,4 +793,32 @@ async function loadCustomersFromFirebase() {
     persist();
   }
 } 
+if (addTechnicianButton) {
+  addTechnicianButton.addEventListener("click", () => {
+    const name = prompt("Technician name:");
+    if (!name || !name.trim()) return;
+
+    const phone = prompt("Phone number:") || "";
+    const email = prompt("Email address:") || "";
+    const skills =
+      prompt(
+        "Skills: HVAC, Refrigeration, Ice Machines, Kitchen Equipment"
+      ) || "";
+
+    technicians.push({
+      id: crypto.randomUUID?.() || String(Date.now()),
+      name: name.trim(),
+      phone: phone.trim(),
+      email: email.trim(),
+      skills: skills.trim(),
+      status: "Active"
+    });
+
+    saveTechnicians();
+    renderTechnicians();
+    toast("Technician added");
+  });
+}
+
 loadCustomersFromFirebase();
+renderTechnicians();
