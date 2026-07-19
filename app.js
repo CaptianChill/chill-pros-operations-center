@@ -709,4 +709,4 @@ await updateCustomerInFirebase(record, {
 
 await loadCustomersFromFirebase();
 renderQueue();
-renderTodayJobs();loadCustomersFromFirebase();
+renderTodayJobs();
