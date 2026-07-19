@@ -702,7 +702,7 @@ function escapeAttribute(value) {
 }
 
 
-await updateCustomerInFirebase(record, {
+ updateCustomerInFirebase(record, {
   officeStatus: newStatus,
   statusUpdatedAt: record.statusUpdatedAt
 });
