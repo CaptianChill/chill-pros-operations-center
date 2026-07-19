@@ -100,7 +100,6 @@ function normalizeRecord(data, firestoreId = "") {
     createdAt: data.createdAt || new Date().toISOString()
   };
 }
-
 async function updateCustomerInFirebase(record, changes) {
   if (!db || !record.firestoreId) return;
 
@@ -108,7 +107,8 @@ async function updateCustomerInFirebase(record, changes) {
     .collection("Customers")
     .doc(record.firestoreId)
     .set(changes, { merge: true });
-}function showView(id) {
+}
+function showView(id) {
   views.forEach((view) => {
     view.classList.toggle("active", view.id === id);
   });
