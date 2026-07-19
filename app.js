@@ -706,6 +706,8 @@ function escapeAttribute(value) {
   officeStatus: newStatus,
   statusUpdatedAt: record.statusUpdatedAt
 });
- loadCustomersFromFirebase();
+ persist();
 renderQueue();
 renderTodayJobs();
+updateCounts();
+loadCustomersFromFirebase();
