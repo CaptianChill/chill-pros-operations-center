@@ -708,3 +708,4 @@ renderQueue();
 renderTodayJobs();
 updateCounts();
 loadCustomersFromFirebase();
+ 
