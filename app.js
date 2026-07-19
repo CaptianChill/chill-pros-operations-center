@@ -495,8 +495,7 @@ function renderQueue() {
       });
     }
 
-    queueList.appendChild(node);
-  });
+queueList.appendChild(node);
 }
 
 function renderTodayJobs() {
