@@ -471,7 +471,8 @@ function renderQueue() {
     statusElement.value = previousStatus;
     toast("Status update failed");
   }
-});         
+});
+    }
     if (copyButton) {
       copyButton.addEventListener("click", () => {
         copyText(createSummary(record));
