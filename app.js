@@ -717,11 +717,28 @@ function escapeAttribute(value) {
 
 
  
+async function loadCustomersFromFirebase() {
+  if (!db) {
+    console.warn("Firestore is unavailable. Using locally saved queue.");
+    persist();
+    return;
+  }
+
+  try {
+    const snapshot = await db.collection("Customers").get();
+
+    queue = snapshot.docs.map((documentSnapshot) =>
+      normalizeRecord(documentSnapshot.data(), documentSnapshot.id)
+    );
+
+    persist();
+    renderQueue();
+    renderTodayJobs();
+    updateCounts();
+  } catch (error) {
+    console.error("Unable to load Firestore customers:", error);
+    toast("Using locally saved queue");
+    persist();
+  }
+} 
 loadCustomersFromFirebase();
- queue = snapshot.docs.map((documentSnapshot) =>
-  normalizeRecord(documentSnapshot.data(), documentSnapshot.id)
-);
-persist();
-renderQueue();
-renderTodayJobs();
-updateCounts();
