@@ -706,7 +706,6 @@ await updateCustomerInFirebase(record, {
   officeStatus: newStatus,
   statusUpdatedAt: record.statusUpdatedAt
 });
-
-await loadCustomersFromFirebase();
+ loadCustomersFromFirebase();
 renderQueue();
 renderTodayJobs();
