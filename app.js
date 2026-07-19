@@ -702,10 +702,7 @@ function escapeAttribute(value) {
 }
 
 
- updateCustomerInFirebase(record, {
-  officeStatus: newStatus,
-  statusUpdatedAt: record.statusUpdatedAt
-});
+
  persist();
 renderQueue();
 renderTodayJobs();
