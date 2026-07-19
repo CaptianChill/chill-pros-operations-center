@@ -363,14 +363,27 @@ if (queueFilter) {
 }
 
 function buildStatusOptions(selectedStatus) {
-  return OFFICE_STATUSES.map((status) => {
-    const selected = status === selectedStatus ? "selected" : "";
-    return `<option value="${escapeHtml(status)}" ${selected}>${escapeHtml(
-      status
-    )}</option>`;
-  }).join("");
-}
+  const statuses = [
+    "Needs Review",
+    "Needs Quote",
+    "Scheduled",
+    "Dispatched",
+    "In Progress",
+    "Paused",
+    "Waiting on Parts",
+    "Ready to Invoice",
+    "Completed"
+  ];
 
+  const currentStatus = String(selectedStatus || "Needs Review").trim();
+
+  return statuses
+    .map((status) => {
+      const selected = status === currentStatus ? " selected" : "";
+      return `<option value="${escapeAttribute(status)}"${selected}>${escapeHtml(status)}</option>`;
+    })
+    .join("");
+}
 function renderQueue() {
   if (!queueList) return;
 
