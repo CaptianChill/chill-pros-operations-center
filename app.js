@@ -613,15 +613,20 @@ queueList.appendChild(node);
         </label>
 
         <label>
-          Technician
-          <input
-            class="job-technician"
-            type="text"
-            value="${escapeAttribute(record.assignedTechnician || "")}"
-            placeholder="Assign technician"
-          >
-        </label>
+  Technician
+  <select class="job-technician">
+    <option value="">Assign technician</option>
+    ${technicians
+      .filter((technician) => technician.status === "Active")
+      .map((technician) => {
+        const selected =
+          technician.name === record.assignedTechnician ? " selected" : "";
 
+        return `<option value="${escapeAttribute(technician.name)}"${selected}>${escapeHtml(technician.name)}</option>`;
+      })
+      .join("")}
+  </select>
+</label>
         <label>
           Date
           <input
