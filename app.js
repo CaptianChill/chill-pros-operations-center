@@ -702,7 +702,11 @@ function escapeAttribute(value) {
 }
 
 
-persist();
+await updateCustomerInFirebase(record, {
+  officeStatus: newStatus,
+  statusUpdatedAt: record.statusUpdatedAt
+});
+
+await loadCustomersFromFirebase();
 renderQueue();
-renderTodayJobs();updateCounts();
-loadCustomersFromFirebase();
+renderTodayJobs();loadCustomersFromFirebase();
