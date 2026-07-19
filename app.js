@@ -550,7 +550,8 @@ queueList.appendChild(node);
 
     technicianList.appendChild(card);
   });
-}function renderTodayJobs() {
+}
+function renderTodayJobs() {
   if (!todayJobsList) return;
 
   const searchTerm = jobSearch
@@ -612,7 +613,7 @@ queueList.appendChild(node);
           </select>
         </label>
 
-        <label>
+       <label>
   Technician
   <select class="job-technician">
     <option value="">Assign technician</option>
@@ -620,14 +621,18 @@ queueList.appendChild(node);
       .filter((technician) => technician.status === "Active")
       .map((technician) => {
         const selected =
-          technician.name === record.assignedTechnician ? " selected" : "";
+          technician.name === record.assignedTechnician
+            ? " selected"
+            : "";
 
-        return `<option value="${escapeAttribute(technician.name)}"${selected}>${escapeHtml(technician.name)}</option>`;
+        return `<option value="${escapeAttribute(
+          technician.name
+        )}"${selected}>${escapeHtml(technician.name)}</option>`;
       })
       .join("")}
   </select>
-</label>
-        <label>
+</label>     
+<label>
           Date
           <input
             class="job-date"
