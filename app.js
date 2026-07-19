@@ -455,7 +455,7 @@ function renderQueue() {
 
     if (statusElement) {
       statusElement.innerHTML = buildStatusOptions(record.officeStatus);
-
+      statusElement.value = String(record.officeStatus || "Needs Review").trim();
       statusElement.addEventListener("change", async () => {
   const previousStatus = record.officeStatus;
   const newStatus = statusElement.value;
