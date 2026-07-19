@@ -101,6 +101,9 @@ function normalizeRecord(data, firestoreId = "") {
     firestoreId: firestoreId,
     id: data.id || crypto.randomUUID?.() || String(Date.now()),
     officeStatus: data.officeStatus || "Needs Review",
+    assignedTechnician: data.assignedTechnician || "",
+scheduledDate: data.scheduledDate || "",
+scheduledTime: data.scheduledTime || "",   
     createdAt: data.createdAt || new Date().toISOString()
   };
 }
