@@ -552,7 +552,7 @@ function renderTodayJobs() {
     `;
     return;
   }
-
+  
   jobs.forEach((record) => {
     const article = document.createElement("article");
     article.className = "queue-item todays-job-card";
