@@ -311,11 +311,19 @@ async function saveCustomerToFirebase(record) {
 }
 
 async function updateCustomerInFirebase(record, changes) {
-  if (!db || !record.id) return;
+  const documentId = record.firestoreId || record.id;
 
-  await db.collection("Customers").doc(record.id).set(changes, { merge: true });
+  if (!db || !documentId) return;
+
+  await db
+    .collection("Customers")
+    .doc(documentId)
+    .set(changes, { merge: true });
+
+  if (!record.firestoreId) {
+    record.firestoreId = documentId;
+  }
 }
-
 async function deleteCustomerFromFirebase(record) {
   if (!db || !record.firestoreId) return;
 
