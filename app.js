@@ -517,40 +517,7 @@ queueList.appendChild(node);
 } 
 
 
-  technicians.forEach((technician) => {
-    const card = document.createElement("article");
-    card.className = "queue-item";
-
-    card.innerHTML = `
-      <div>
-        <h3>${escapeHtml(technician.name)}</h3>
-        <p class="queue-meta">
-          ${escapeHtml(technician.phone || "No phone")} •
-          ${escapeHtml(technician.email || "No email")}
-        </p>
-        <p>${escapeHtml(technician.skills || "Skills not entered")}</p>
-      </div>
-
-      <div>
-        <strong>${escapeHtml(technician.status)}</strong>
-        <button class="delete-technician">Delete</button>
-      </div>
-    `;
-
-    card
-      .querySelector(".delete-technician")
-      ?.addEventListener("click", () => {
-        technicians = technicians.filter(
-          (item) => item.id !== technician.id
-        );
-
-        saveTechnicians();
-        renderTechnicians();
-      });
-
-    technicianList.appendChild(card);
-  });
-}
+  
 function renderTodayJobs() {
   if (!todayJobsList) return;
 
