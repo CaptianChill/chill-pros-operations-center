@@ -634,7 +634,7 @@ function renderTodayJobs() {
 
     saveButton?.addEventListener("click", async () => {
       const changes = {
-        officeStatus: statusInput?.value || record.officeStatus,
+        officeStatus: statusInput ? statusInput.value : record.officeStatus,
         assignedTechnician: technicianInput?.value.trim() || "",
         scheduledDate: dateInput?.value || "",
         scheduledTime: timeInput?.value || "",
@@ -642,7 +642,7 @@ function renderTodayJobs() {
       };
 
       Object.assign(record, changes);
-
+      console.log("SAVING JOB CHANGES:", changes);
       try {
         await updateCustomerInFirebase(record, changes);
         persist();
