@@ -428,8 +428,7 @@ function renderQueue() {
     const customerElement = node.querySelector(".queue-customer");
     const metaElement = node.querySelector(".queue-meta");
     const detailElement = node.querySelector(".queue-detail");
-    const statusElement = node.querySelector(".status-pill");
-    const copyButton = node.querySelector(".copy-item");
+    const statusElement = node.querySelector(".status-select");    const copyButton = node.querySelector(".copy-item");
     const deleteButton = node.querySelector(".delete-item");
 
     if (customerElement) {
