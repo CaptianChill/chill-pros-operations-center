@@ -16,12 +16,14 @@ window.FIELD_FORGED_CONFIG = {
   }
 };
 
-// Lock the approved Chill Pros black / ice-blue template and bypass stale iPad caches.
-document.write('<link rel="stylesheet" href="brand-lock.css?v=20260722-9">');
-document.write('<link rel="icon" type="image/png" href="chill-pros-official-logo-transparent.png?v=20260722-9">');
-document.write('<link rel="apple-touch-icon" href="chill-pros-official-logo-transparent.png?v=20260722-9">');
+// Approved Chill Pros black / ice-blue theme.
+document.write('<link rel="stylesheet" href="brand-lock.css?v=20260722-10">');
+document.write('<link rel="stylesheet" href="final-template.css?v=20260722-10">');
+document.write('<link rel="icon" type="image/png" href="chill-pros-official-logo-transparent.png?v=20260722-10">');
+document.write('<link rel="apple-touch-icon" href="chill-pros-official-logo-transparent.png?v=20260722-10">');
 
-// Load the V1.0 authentication, role routing and realtime synchronization layer.
-document.write('<script src="v1-access.js?v=20260722-9"><\/script>');
-// Add detailed login errors, password visibility and password-reset recovery.
-document.write('<script src="auth-diagnostics.js?v=20260722-9"><\/script>');
+// Authentication, role routing and realtime synchronization.
+document.write('<script src="v1-access.js?v=20260722-10"><\/script>');
+document.write('<script src="auth-diagnostics.js?v=20260722-10"><\/script>');
+// Final dashboard composition matching the approved reference.
+document.write('<script src="final-template.js?v=20260722-10"><\/script>');
