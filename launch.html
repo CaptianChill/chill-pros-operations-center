@@ -4,7 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#000000">
-  <title>Launching Chill Pros Operations Center</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Chill Pros">
+  <title>Chill Pros Operations Center</title>
+  <link rel="manifest" href="manifest.webmanifest?v=20260722-15">
+  <link rel="icon" type="image/png" href="cp-app-icon.png?v=20260722-15">
+  <link rel="apple-touch-icon" href="cp-app-icon.png?v=20260722-15">
+  <link rel="apple-touch-icon-precomposed" href="cp-app-icon.png?v=20260722-15">
   <style>
     html,body{height:100%;margin:0;background:#000;color:#7edbff;font-family:Arial,sans-serif;display:grid;place-items:center}
     .launch{text-align:center}.launch strong{display:block;font-size:1.25rem;margin-bottom:10px}.launch small{color:#a9bdca}
@@ -15,7 +22,7 @@
   <script>
     (async () => {
       try {
-        const version = '20260722-14';
+        const version = '20260722-15';
         const response = await fetch(`index.html?v=${version}`, { cache: 'no-store' });
         let html = await response.text();
         html = html
