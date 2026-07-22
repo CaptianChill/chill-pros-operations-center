@@ -2,8 +2,7 @@
   function buildGuide() {
     if (document.querySelector('.cp-brand-guide')) return;
     const main = document.querySelector('.main-panel');
-    const dashboard = document.getElementById('dashboard');
-    if (!main || !dashboard) return;
+    if (!main) return;
 
     const guide = document.createElement('aside');
     guide.className = 'cp-brand-guide';
@@ -41,9 +40,47 @@
     main.appendChild(bottom);
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', buildGuide, { once: true });
-  } else {
+  function repairOwnerDashboard() {
+    const session = window.CHILL_PROS_SESSION;
+    if (!session || session.role !== 'owner') return false;
+
+    document.querySelectorAll('.side-link').forEach((link) => link.classList.remove('role-hidden'));
+    document.querySelectorAll('[data-view-target]').forEach((button) => button.classList.remove('role-hidden'));
+
+    const dashboard = document.getElementById('dashboard');
+    if (dashboard) {
+      dashboard.classList.remove('role-hidden');
+      dashboard.classList.add('active');
+      dashboard.style.display = 'block';
+      dashboard.style.visibility = 'visible';
+      dashboard.style.opacity = '1';
+    }
+
+    document.querySelectorAll('.view').forEach((view) => {
+      if (view.id !== 'dashboard') view.classList.remove('active');
+    });
+
+    const dashLink = document.querySelector('.side-link[data-view="dashboard"]');
+    document.querySelectorAll('.side-link').forEach((link) => link.classList.remove('active'));
+    dashLink?.classList.add('active');
+
+    document.querySelector('.app-shell')?.style.setProperty('visibility', 'visible');
+    document.querySelector('.main-panel')?.style.setProperty('visibility', 'visible');
+    return true;
+  }
+
+  function initializeFinalTemplate() {
     buildGuide();
+    let attempts = 0;
+    const timer = setInterval(() => {
+      attempts += 1;
+      if (repairOwnerDashboard() || attempts > 40) clearInterval(timer);
+    }, 250);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeFinalTemplate, { once: true });
+  } else {
+    initializeFinalTemplate();
   }
 })();
