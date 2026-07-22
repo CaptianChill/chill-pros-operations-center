@@ -2,17 +2,17 @@
   "name": "Chill Pros Operations Center",
   "short_name": "Chill Pros",
   "description": "Chill Pros owner, office, and technician operations application.",
-  "start_url": "./launch.html?v=20260722-13",
+  "start_url": "./launch.html?v=20260722-14",
   "scope": "./",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",
   "icons": [
     {
-      "src": "cp-app-icon.png?v=20260722-13",
+      "src": "cp-app-icon.png?v=20260722-14",
       "sizes": "1024x1024",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }
