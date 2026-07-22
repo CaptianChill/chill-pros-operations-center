@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#05090d">
+  <meta name="theme-color" content="#000000">
   <title>Launching Chill Pros Operations Center</title>
   <style>
-    html,body{height:100%;margin:0;background:#020609;color:#7edbff;font-family:Arial,sans-serif;display:grid;place-items:center}
+    html,body{height:100%;margin:0;background:#000;color:#7edbff;font-family:Arial,sans-serif;display:grid;place-items:center}
     .launch{text-align:center}.launch strong{display:block;font-size:1.25rem;margin-bottom:10px}.launch small{color:#a9bdca}
   </style>
 </head>
@@ -15,7 +15,7 @@
   <script>
     (async () => {
       try {
-        const version = '20260722-5';
+        const version = '20260722-6';
         const response = await fetch(`index.html?v=${version}`, { cache: 'no-store' });
         let html = await response.text();
         html = html
