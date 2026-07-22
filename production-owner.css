@@ -1,0 +1,12 @@
+/* Production owner dashboard: approved visual shell without prototype/development panels. */
+.cp-brand-guide,.cp-bottom-grid{display:none!important}
+.main-panel{grid-template-columns:minmax(0,1fr)!important;grid-template-areas:'hero' 'dashboard' 'other'!important;max-width:none!important}
+#dashboard{width:100%!important}
+#addSampleJob{display:none!important}
+.hero-banner{background-image:linear-gradient(rgba(0,0,0,.42),rgba(0,0,0,.58)),url('chill-pros-banner.jpeg')!important}
+.side-link.active,.side-link:hover{background:linear-gradient(180deg,#082f59,#051b31)!important;border-color:#2388c8!important;box-shadow:inset 0 0 8px rgba(126,219,255,.08),0 0 6px rgba(0,112,210,.18)!important}
+.primary-action{background:linear-gradient(180deg,#075aa8,#04366a)!important;border-color:#168bd1!important}
+.metrics-grid,.feature-grid,.lower-grid{width:100%!important}
+.production-empty{display:grid;place-items:center;min-height:105px;text-align:center;color:#91a9ba;padding:14px;border:1px dashed #173f59;border-radius:6px;background:#020507}
+.production-empty strong{display:block;color:#dff8ff;margin-bottom:5px}
+@media(max-width:760px){.main-panel{display:block!important}.metrics-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.feature-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
