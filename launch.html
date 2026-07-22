@@ -15,7 +15,7 @@
   <script>
     (async () => {
       try {
-        const version = '20260722-8';
+        const version = '20260722-9';
         const response = await fetch(`index.html?v=${version}`, { cache: 'no-store' });
         let html = await response.text();
         html = html
