@@ -1,20 +1,79 @@
-/* Official Chill Pros Operations Center theme lock. */
-:root{--bg:#02070c;--panel:#07131d;--panel2:#0a1d2a;--ice:#7edbff;--blue:#008cff;--blue2:#064acb;--white:#f7fbff;--muted:#a7bdd0;--line:#1e4f70;--success:#6cff66;--warning:#ffd634;--danger:#ff5f6d}
+/* Official Chill Pros Operations Center theme lock — approved black/ice layout. */
+:root{--bg:#000;--panel:#03070b;--panel2:#071018;--ice:#7edbff;--blue:#078cff;--blue2:#064acb;--white:#f7fbff;--muted:#9fb3c2;--line:#164968;--success:#6cff66;--warning:#ffd634;--danger:#ff6b78}
 html,body{min-height:100%;background:#000!important;color:var(--white)!important}
-body{background:radial-gradient(circle at top,#062342 0,#02070c 35%,#010306 100%)!important}
-.app-shell{background:transparent!important}
-.sidebar{background:linear-gradient(180deg,#07131c,#02070c)!important;border-right:1px solid #1e6a9c!important}
-.hero-banner{background-image:linear-gradient(90deg,rgba(0,8,18,.18),rgba(0,8,18,.2)),url('chill-pros-banner.jpeg')!important;background-position:center 44%!important;background-size:cover!important;border:1px solid #167ab5!important}
-.brand-logo,.auth-card img{content:url('chill-pros-official-logo-transparent.png')!important;object-fit:contain!important;filter:drop-shadow(0 0 16px rgba(0,140,255,.85))!important;background:transparent!important}
-.brand-logo{width:165px!important;max-height:135px!important}
-.auth-card img{max-width:245px!important;max-height:190px!important;margin:0 auto 12px!important}
-.clipboard-art{background-image:linear-gradient(transparent,transparent),url('chill-pros-official-logo-transparent.png')!important;background-size:contain!important}
-.van-art{background-image:linear-gradient(transparent,transparent),url('chill-pros-banner.jpeg')!important;background-position:center!important;background-size:cover!important}
-.hero-overlay h1,.feature-card h2,.section-title h3,.page-header h2,.simple-view h2{color:#e9fbff!important;text-shadow:0 0 4px #fff,0 0 12px #00a7ff,0 0 28px #006eff!important;-webkit-text-stroke:.5px #0c46a0}
-.metric-card,.glass-card,.form-panel,.simple-view,.queue-item,.panel,.auth-card{background:linear-gradient(180deg,rgba(8,24,36,.97),rgba(2,8,13,.99))!important;border-color:#245b79!important;color:#f7fbff!important}
-.feature-card{background:radial-gradient(circle at 50% 20%,#073c78,#03101c 62%)!important;border-color:#82d7ff!important;color:#f7fbff!important}
-input,select,textarea{background:#030c13!important;color:#fff!important;border-color:#2c5c78!important}
-.side-link:hover,.side-link.active,.primary-action{background:linear-gradient(90deg,#0745ad,#008cff 55%,#0d68d8)!important;color:#fff!important}
-.auth-gate{background:radial-gradient(circle at top,#062342 0,#02070c 42%,#000 100%)!important}
-.auth-card{box-shadow:0 0 28px rgba(0,140,255,.28),0 24px 80px rgba(0,0,0,.65)!important}
-@media(max-width:780px){.auth-card img{max-width:210px!important;max-height:160px!important}.brand-logo{width:145px!important}}
+body{background:#000!important}
+.app-shell{background:#000!important}
+.sidebar{background:#020609!important;border-right:1px solid #164968!important;box-shadow:8px 0 28px rgba(0,0,0,.5)!important}
+.main-panel{background:#000!important}
+.hero-banner{min-height:142px!important;background-image:linear-gradient(90deg,rgba(0,0,0,.38),rgba(0,0,0,.18)),url('chill-pros-banner.jpeg')!important;background-position:center 44%!important;background-size:cover!important;border:1px solid #167ab5!important;box-shadow:0 0 18px rgba(0,140,255,.16)!important}
+.brand-logo,.auth-card img{content:url('chill-pros-official-logo-transparent.png')!important;object-fit:contain!important;filter:drop-shadow(0 0 12px rgba(0,140,255,.68))!important;background:transparent!important}
+.brand-logo{width:132px!important;max-height:104px!important}
+.auth-card img{max-width:220px!important;max-height:165px!important;margin:0 auto 10px!important}
+.hero-overlay h1,.feature-card h2,.section-title h3,.page-header h2,.simple-view h2{color:#effcff!important;text-shadow:0 0 3px #fff,0 0 9px #008cff!important;-webkit-text-stroke:.35px #0b3f7f}
+.metric-card,.glass-card,.form-panel,.simple-view,.queue-item,.panel,.auth-card{background:linear-gradient(180deg,#071018,#020609)!important;border-color:#1a506f!important;color:#f7fbff!important;box-shadow:0 8px 20px rgba(0,0,0,.38),inset 0 0 12px rgba(0,140,255,.035)!important}
+.feature-card{background:linear-gradient(180deg,#06111a,#020609)!important;border-color:#1e5d7f!important;color:#f7fbff!important;box-shadow:0 8px 20px rgba(0,0,0,.38),inset 0 0 12px rgba(0,140,255,.045)!important;padding:16px!important}
+.feature-card:before{border-color:rgba(126,219,255,.08)!important}
+.feature-art{height:70px!important;margin:0 auto 6px!important}
+.clipboard-art{background-image:url('chill-pros-official-logo-transparent.png')!important;background-size:contain!important}
+.van-art{background-image:url('chill-pros-banner.jpeg')!important;background-position:center!important;background-size:cover!important;opacity:.62!important}
+.queue-art{background:linear-gradient(180deg,rgba(0,140,255,.12),rgba(0,0,0,.2)),repeating-linear-gradient(0deg,#0a3150 0 5px,#04111b 5px 11px)!important}
+.brain-art{background:radial-gradient(circle,#159ef0 0 5%,#0b3f72 6% 10%,transparent 11%),radial-gradient(circle at 35% 45%,#0878bd,transparent 30%),radial-gradient(circle at 65% 55%,#0a3d9a,transparent 28%)!important}
+.feature-card p{min-height:48px!important;margin:8px 0 12px!important;color:#c8d8e3!important}
+input,select,textarea{background:#02080d!important;color:#fff!important;border-color:#25516b!important}
+.side-link:hover,.side-link.active,.primary-action{background:linear-gradient(90deg,#0646a9,#078cff 55%,#0b63ca)!important;color:#fff!important}
+.auth-gate{background:#000!important}
+.auth-card{box-shadow:0 0 24px rgba(0,140,255,.2),0 24px 80px rgba(0,0,0,.75)!important}
+.session-bar{right:12px!important;bottom:12px!important;background:rgba(2,8,13,.96)!important;border-color:#245b79!important;box-shadow:0 8px 24px rgba(0,0,0,.58)!important}
+
+@media(max-width:1100px){
+  .metrics-grid{grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:8px!important}
+  .metric-card{padding:11px!important;gap:8px!important}
+  .metric-icon{width:38px!important;height:38px!important}
+  .metric-card strong{font-size:1.42rem!important}
+  .feature-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
+  .lower-grid{grid-template-columns:1fr 1fr!important}
+  .weather-card{grid-column:1/-1!important}
+}
+
+@media(max-width:900px){
+  .app-shell{display:block!important}
+  .sidebar{position:sticky!important;top:0!important;z-index:5000!important;height:auto!important;min-height:0!important;padding:8px!important;border-right:0!important;border-bottom:1px solid #164968!important;display:block!important;overflow:visible!important}
+  .brand-block{display:flex!important;align-items:center!important;justify-content:center!important;gap:10px!important;padding:2px 8px 7px!important}
+  .brand-logo{width:72px!important;max-height:54px!important}
+  .brand-block p{font-size:.58rem!important;margin:0!important}
+  .side-nav{display:flex!important;flex-direction:row!important;gap:6px!important;overflow-x:auto!important;overflow-y:hidden!important;margin:0!important;padding:2px 2px 5px!important;-webkit-overflow-scrolling:touch}
+  .side-link{flex:0 0 auto!important;width:auto!important;min-width:118px!important;justify-content:center!important;padding:9px 11px!important;font-size:.78rem!important;border:1px solid rgba(126,219,255,.08)!important;background:#03090e!important}
+  .side-link span{font-size:1rem!important}
+  .side-link b{margin-left:4px!important}
+  .ice-message{display:none!important}
+  .main-panel{padding:8px!important}
+  .hero-banner{min-height:118px!important;border-radius:12px!important}
+  .hero-overlay{padding:8px 120px 8px 12px!important}
+  .hero-overlay h1{font-size:clamp(1.65rem,5vw,2.55rem)!important}
+  .profile-box{right:10px!important;top:10px!important;padding:7px 9px!important}
+  .avatar{width:34px!important;height:34px!important}
+  .metrics-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;margin:9px 0!important}
+  .feature-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .feature-art{height:58px!important}
+  .lower-grid{grid-template-columns:1fr!important}
+  .weather-card{grid-column:auto!important}
+  .session-bar{position:fixed!important;right:8px!important;bottom:8px!important;max-width:calc(100vw - 16px)!important;font-size:.78rem!important;padding:7px 9px!important}
+}
+
+@media(max-width:600px){
+  .brand-block{justify-content:flex-start!important}
+  .brand-block p{display:none!important}
+  .side-link{min-width:106px!important;padding:8px!important}
+  .hero-overlay{padding:8px!important}
+  .profile-box{display:none!important}
+  .metrics-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .metric-card{padding:10px!important}
+  .feature-grid{grid-template-columns:1fr!important}
+  .feature-card{display:grid!important;grid-template-columns:72px 1fr!important;grid-template-areas:'art title' 'art text' 'art button'!important;text-align:left!important;column-gap:12px!important;align-items:center!important}
+  .feature-art{grid-area:art!important;height:64px!important;width:64px!important;margin:0!important}
+  .feature-card h2{grid-area:title!important;margin:0!important}
+  .feature-card p{grid-area:text!important;min-height:0!important;margin:4px 0 8px!important;font-size:.84rem!important}
+  .feature-card .primary-action{grid-area:button!important;width:max-content!important;padding:9px 12px!important}
+  .form-grid.two,.form-grid.three,.queue-tools{grid-template-columns:1fr!important}
+  .queue-item{flex-direction:column!important}
+}
