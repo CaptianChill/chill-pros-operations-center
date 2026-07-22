@@ -5,8 +5,10 @@ body{background:radial-gradient(circle at top,#062342 0,#02070c 35%,#010306 100%
 .app-shell{background:transparent!important}
 .sidebar{background:linear-gradient(180deg,#07131c,#02070c)!important;border-right:1px solid #1e6a9c!important}
 .hero-banner{background-image:linear-gradient(90deg,rgba(0,8,18,.18),rgba(0,8,18,.2)),url('chill-pros-banner.jpeg')!important;background-position:center 44%!important;background-size:cover!important;border:1px solid #167ab5!important}
-.brand-logo,.auth-card img{content:url('chill-pros-logo.jpeg')!important;object-fit:contain!important;filter:drop-shadow(0 0 14px rgba(0,140,255,.75))!important}
-.clipboard-art{background-image:linear-gradient(transparent,transparent),url('chill-pros-logo.jpeg')!important}
+.brand-logo,.auth-card img{content:url('chill-pros-official-logo-transparent.png')!important;object-fit:contain!important;filter:drop-shadow(0 0 16px rgba(0,140,255,.85))!important;background:transparent!important}
+.brand-logo{width:165px!important;max-height:135px!important}
+.auth-card img{max-width:245px!important;max-height:190px!important;margin:0 auto 12px!important}
+.clipboard-art{background-image:linear-gradient(transparent,transparent),url('chill-pros-official-logo-transparent.png')!important;background-size:contain!important}
 .van-art{background-image:linear-gradient(transparent,transparent),url('chill-pros-banner.jpeg')!important;background-position:center!important;background-size:cover!important}
 .hero-overlay h1,.feature-card h2,.section-title h3,.page-header h2,.simple-view h2{color:#e9fbff!important;text-shadow:0 0 4px #fff,0 0 12px #00a7ff,0 0 28px #006eff!important;-webkit-text-stroke:.5px #0c46a0}
 .metric-card,.glass-card,.form-panel,.simple-view,.queue-item,.panel,.auth-card{background:linear-gradient(180deg,rgba(8,24,36,.97),rgba(2,8,13,.99))!important;border-color:#245b79!important;color:#f7fbff!important}
@@ -14,3 +16,5 @@ body{background:radial-gradient(circle at top,#062342 0,#02070c 35%,#010306 100%
 input,select,textarea{background:#030c13!important;color:#fff!important;border-color:#2c5c78!important}
 .side-link:hover,.side-link.active,.primary-action{background:linear-gradient(90deg,#0745ad,#008cff 55%,#0d68d8)!important;color:#fff!important}
 .auth-gate{background:radial-gradient(circle at top,#062342 0,#02070c 42%,#000 100%)!important}
+.auth-card{box-shadow:0 0 28px rgba(0,140,255,.28),0 24px 80px rgba(0,0,0,.65)!important}
+@media(max-width:780px){.auth-card img{max-width:210px!important;max-height:160px!important}.brand-logo{width:145px!important}}
