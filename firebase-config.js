@@ -1,5 +1,5 @@
 const firebaseConfig = {
-  apiKey: "AIzaSyBsBEKMggwSUVEmdTTK1rjYOcdPyYCCL0c",
+  apiKey: "AIzaSyBsBEKMggwSUvEmdTTK1rjYOcdPyYCCLOc",
   authDomain: "chill-pros-ice-stream.firebaseapp.com",
   projectId: "chill-pros-ice-stream",
   storageBucket: "chill-pros-ice-stream.firebasestorage.app",
