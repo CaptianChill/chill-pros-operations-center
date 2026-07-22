@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#05090d">
+  <title>Launching Chill Pros Operations Center</title>
+  <style>
+    html,body{height:100%;margin:0;background:#020609;color:#7edbff;font-family:Arial,sans-serif;display:grid;place-items:center}
+    .launch{text-align:center}.launch strong{display:block;font-size:1.25rem;margin-bottom:10px}.launch small{color:#a9bdca}
+  </style>
+</head>
+<body>
+  <div class="launch"><strong>Loading Chill Pros Operations Center…</strong><small>Refreshing secure application files</small></div>
+  <script>
+    (async () => {
+      try {
+        const version = '20260722-5';
+        const response = await fetch(`index.html?v=${version}`, { cache: 'no-store' });
+        let html = await response.text();
+        html = html
+          .replace('firebase-config.js', `firebase-config.js?v=${version}`)
+          .replace('tenant-config.js', `tenant-config.js?v=${version}`)
+          .replace('app.js', `app.js?v=${version}`)
+          .replace('styles.css', `styles.css?v=${version}`);
+        document.open();
+        document.write(html);
+        document.close();
+      } catch (error) {
+        document.body.innerHTML = '<div class="launch"><strong>Unable to load the application.</strong><small>Refresh this page and try again.</small></div>';
+        console.error(error);
+      }
+    })();
+  </script>
+</body>
+</html>
