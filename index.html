@@ -1,5 +1,5 @@
-<!doctype html> 
-<html lang="en"> 
+<!doctype html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -18,10 +18,10 @@
       <nav class="side-nav" aria-label="Main navigation">
         <button class="side-link active" data-view="dashboard"><span>⌂</span> Dashboard</button>
         <button class="side-link" data-view="new-customer"><span>＋</span> New Customer</button>
-        <button class="side-link" data-view="office-queue"><span>▤</span> Office Queue <b id="queueCount">0</b></button>    
-          <button class="side-link" data-view="today-jobs"><span>▦</span> Today's Jobs</button>
-        <button class="side-link" data-view="technicians"><span>👷</span> Technicians</button>        
-          <button class="side-link" data-view="maintenance"><span>◆</span> Maintenance</button>
+        <button class="side-link" data-view="office-queue"><span>▤</span> Office Queue <b id="queueCount">0</b></button>
+        <button class="side-link" data-view="today-jobs"><span>▦</span> Today's Jobs</button>
+        <button class="side-link" data-view="technicians"><span>👷</span> Technicians</button>
+        <button class="side-link" data-view="maintenance"><span>◆</span> Maintenance</button>
         <button class="side-link" data-view="equipment"><span>⬡</span> Equipment</button>
         <button class="side-link" data-view="parts"><span>◒</span> Parts Orders <b>2</b></button>
         <button class="side-link" data-view="ai"><span>❄</span> AI Diagnostics</button>
@@ -40,7 +40,7 @@
       <header class="hero-banner">
         <div class="hero-overlay">
           <p class="eyebrow">CHILL PROS</p>
-          <h1>OPERATIONS CENTER</h1> 
+          <h1>OPERATIONS CENTER</h1>
           <p class="tagline">★ LICENSE TO CHILL. ★</p>
         </div>
         <div class="profile-box">
@@ -56,7 +56,7 @@
         <div class="metrics-grid">
           <article class="metric-card">
             <div class="metric-icon">▣</div>
-            <div><span>Today's Jobs</span><strong id="jobsCount">6</strong><small class="success">2 Completed</small></div>
+            <div><span>Today's Jobs</span><strong id="jobsCount">0</strong><small class="success">Active Jobs</small></div>
           </article>
           <article class="metric-card">
             <div class="metric-icon">▦</div>
@@ -64,7 +64,7 @@
           </article>
           <article class="metric-card">
             <div class="metric-icon">◷</div>
-            <div><span>Office Queue</span><strong id="queueCount">5</strong><small class="warning">Needs Attention</small></div>
+            <div><span>Office Queue</span><strong id="dashboardQueueCount">0</strong><small class="warning">Needs Attention</small></div>
           </article>
           <article class="metric-card">
             <div class="metric-icon">◒</div>
@@ -83,21 +83,18 @@
             <p>Capture customer, site, equipment, complaint, photos and technician notes in one workflow.</p>
             <button class="primary-action" data-view-target="new-customer">START INTAKE →</button>
           </article>
-
           <article class="feature-card">
             <div class="feature-art van-art"></div>
             <h2>TODAY'S JOBS</h2>
             <p>Review scheduled jobs, directions, assigned technician, equipment history and service notes.</p>
             <button class="primary-action" data-view-target="today-jobs">VIEW JOBS →</button>
           </article>
-
           <article class="feature-card">
             <div class="feature-art queue-art"></div>
             <h2>OFFICE QUEUE</h2>
             <p>See new submissions waiting for quote, invoice, parts ordering or office review.</p>
             <button class="primary-action" data-view-target="office-queue">OPEN QUEUE →</button>
           </article>
-
           <article class="feature-card">
             <div class="feature-art brain-art"></div>
             <h2>AI DIAGNOSTICS</h2>
@@ -108,24 +105,16 @@
 
         <div class="lower-grid">
           <article class="glass-card">
-            <div class="section-title">
-              <h3>UPCOMING SCHEDULE</h3>
-              <button id="addSampleJob">+ Add Sample</button>
-            </div>
+            <div class="section-title"><h3>UPCOMING SCHEDULE</h3><button id="addSampleJob">+ Add Sample</button></div>
             <div id="scheduleList" class="schedule-list"></div>
           </article>
-
           <article class="glass-card">
             <div class="section-title"><h3>RECENT ACTIVITY</h3></div>
             <div id="activityList" class="activity-list"></div>
           </article>
-
           <article class="glass-card weather-card">
             <div class="section-title"><h3>WEATHER ALERT</h3></div>
-            <div class="weather-main">
-              <strong>96°F</strong>
-              <span>☀</span>
-            </div>
+            <div class="weather-main"><strong>96°F</strong><span>☀</span></div>
             <p>San Antonio, TX</p>
             <small>Heat Index: 103°F</small>
             <div class="weather-note">Stay hydrated and take breaks. Beat the heat. Stay safe.</div>
@@ -138,7 +127,6 @@
           <div><p class="eyebrow">FIELD INTAKE</p><h2>New Customer & Equipment Intake</h2></div>
           <button class="secondary-action" id="clearIntake">Clear Form</button>
         </div>
-
         <form id="intakeForm" class="form-panel">
           <div class="form-section">
             <h3>Customer Information</h3>
@@ -150,7 +138,6 @@
             </div>
             <label>Service Address<input name="address"></label>
           </div>
-
           <div class="form-section">
             <h3>Equipment Information</h3>
             <div class="form-grid three">
@@ -167,7 +154,6 @@
               <label>Site Location<input name="siteLocation" placeholder="Kitchen, rooftop, walk-in..."></label>
             </div>
           </div>
-
           <div class="form-section">
             <h3>Service Details</h3>
             <label>Customer Complaint<textarea name="complaint" rows="3" required></textarea></label>
@@ -184,7 +170,6 @@
             </div>
             <label>Photo Notes / File References<textarea name="photoNotes" rows="2"></textarea></label>
           </div>
-
           <div class="form-actions">
             <button type="submit" class="primary-action">SUBMIT TO OFFICE</button>
             <button type="button" class="secondary-action" id="copySummary">COPY SUMMARY</button>
@@ -201,112 +186,60 @@
           <input id="queueSearch" placeholder="Search customer, model, serial or status">
           <select id="queueFilter">
             <option value="">All statuses</option>
-            <option>Needs Review</option><option>Needs Quote</option><option>Ready to Invoice</option>
-            <option>Waiting on Parts</option><option>Completed</option>
+            <option>Needs Review</option><option>Needs Quote</option><option>Scheduled</option>
+            <option>Dispatched</option><option>In Progress</option><option>Paused</option>
+            <option>Waiting on Parts</option><option>Ready to Invoice</option><option>Completed</option>
           </select>
         </div>
         <div id="queueList" class="queue-list"></div>
       </section>
 
       <section id="today-jobs" class="view">
-  <div class="page-header">
-    <div>
-      <p class="eyebrow">FIELD OPERATIONS</p>
-      <h2>Today's Jobs</h2>
-    </div>
+        <div class="page-header">
+          <div><p class="eyebrow">FIELD OPERATIONS</p><h2>Today's Jobs</h2></div>
+          <button class="secondary-action" id="refreshJobs">Refresh Jobs</button>
+        </div>
+        <div class="queue-tools">
+          <input id="jobSearch" type="search" placeholder="Search customer, address, equipment or technician">
+          <select id="jobStatusFilter">
+            <option value="">All statuses</option>
+            <option>Scheduled</option><option>Dispatched</option><option>In Progress</option><option>Paused</option>
+          </select>
+        </div>
+        <div id="todayJobsList" class="queue-list">
+          <article class="queue-item">
+            <div><h3>No jobs scheduled yet</h3><p class="queue-meta">Schedule an Office Queue record to place it here.</p></div>
+          </article>
+        </div>
+      </section>
 
-    <button class="secondary-action" id="refreshJobs">
-      Refresh Jobs
-    </button>
-  </div>
+      <section id="technicians" class="view">
+        <div class="page-header">
+          <div><p class="eyebrow">DISPATCH OPERATIONS</p><h2>Technician Management</h2></div>
+          <button id="addTechnicianButton" class="secondary-button">Add Technician</button>
+        </div>
+        <div class="panel">
+          <div id="technicianList" class="technician-list"><p>No technicians added yet.</p></div>
+        </div>
+        <div class="panel technician-dashboard-panel">
+          <div class="page-header">
+            <div><p class="eyebrow">FIELD SERVICE</p><h2>Technician Dashboard</h2></div>
+            <select id="technicianDashboardSelect"><option value="">Select technician</option></select>
+          </div>
+          <div id="technicianJobsList" class="technician-jobs-list">
+            <article class="queue-item">
+              <div><h3>No technician selected</h3><p class="queue-meta">Select a technician to display assigned jobs.</p></div>
+            </article>
+          </div>
+        </div>
+      </section>
 
-  <div class="queue-tools">
-    <input
-      id="jobSearch"
-      type="search"
-      placeholder="Search customer, address, equipment or technician"
-    >
-
-    <select id="jobStatusFilter">
-     <option value="">All statuses</option><option value="Scheduled">Scheduled</option>
-<option value="Needs Quote">Needs Quote</option>
-<option value="Ready to Invoice">Ready to Invoice</option>
-<option value="Waiting on Parts">Waiting on Parts</option>
-<option value="Completed">Completed</option><option value="Needs Review">Needs Review</option>
-<option value="Scheduled">Scheduled</option>
-<option value="Needs Quote">Needs Quote</option>
-<option value="Ready to Invoice">Ready to Invoice</option>
-<option value="Waiting on Parts">Waiting on Parts</option>
-<option value="Completed">Completed</option>
-      <option>Dispatched</option>
-      <option>In Progress</option>
-      <option>Paused</option>
-      <option>Completed</option>
-    </select>
-  </div>
-
-  <div id="todayJobsList" class="queue-list">
-    <article class="queue-item">
-      <div>
-        <h3>No jobs scheduled yet</h3>
-        <p class="queue-meta">
-          Schedule an Office Queue record to place it here.
-        </p>
-      </div>
-    </article>
-  </div>
-</section>
-      </section> <!-- Today's Jobs -->
-
-
-
-<section id="maintenance" class="view simple-view">      <section id="maintenance" class="view simple-view"><h2>Maintenance</h2><p>PM agreements, visits due and completion tracking will connect here.</p></section>
+      <section id="maintenance" class="view simple-view"><h2>Maintenance</h2><p>PM agreements, visits due and completion tracking will connect here.</p></section>
       <section id="equipment" class="view simple-view"><h2>Equipment Assets</h2><p>Asset records, service history, QR codes and warranty data will connect here.</p></section>
       <section id="parts" class="view simple-view"><h2>Parts Orders</h2><p>OEM verification, aftermarket cross-reference and supplier workflow will connect here.</p></section>
       <section id="ai" class="view simple-view"><h2>AI Diagnostics</h2><p>FieldForged ADI and Smart Parts Ordering will connect here.</p></section>
       <section id="reports" class="view simple-view"><h2>Reports</h2><p>Revenue, technician performance and operational KPI reports will connect here.</p></section>
-      <section id="technicians" class="view">
-  <div class="page-header">
-    <div>
-      <p class="eyebrow">DISPATCH OPERATIONS</p>
-      <h2>Technician Management</h2>
-    </div>
-
-    <button id="addTechnicianButton" class="secondary-button">
-      Add Technician
-    </button>
-  </div>
-
-  <div class="panel">
-    <div id="technicianList" class="technician-list">
-      <p>No technicians added yet.</p>
-    </div>
-  </div>
-        <div class="panel technician-dashboard-panel">
-  <div class="page-header">
-    <div>
-      <p class="eyebrow">FIELD SERVICE</p>
-      <h2>Technician Dashboard</h2>
-    </div>
-
-    <select id="technicianDashboardSelect">
-      <option value="">Select technician</option>
-    </select>
-  </div>
-
-  <div id="technicianJobsList" class="technician-jobs-list">
-    <article class="queue-item">
-      <div>
-        <h3>No technician selected</h3> 
-        <p class="queue-meta">
-          Select a technician to display assigned jobs.
-        </p>
-      </div>
-    </article>
-  </div>
-</div>
-      </section>     
-  <section id="settings" class="view simple-view"><h2>Settings</h2><p>Company branding, users, roles, integrations and permissions will connect here.</p></section>
+      <section id="settings" class="view simple-view"><h2>Settings</h2><p>Company branding, users, roles, integrations and permissions will connect here.</p></section>
 
       <footer class="footer">PROFESSIONAL SERVICE. ◆ ICE COLD RESULTS.</footer>
     </main>
@@ -320,23 +253,7 @@
         <p class="queue-detail"></p>
       </div>
       <div class="queue-actions">
-      <select class="status-select">
- <option>Needs Review</option>
-<option>Needs Quote</option>
-<option>Scheduled</option>
-<option>In Progress</option>
-<option>Waiting on Parts</option>
-<option>Ready to Invoice</option>
-<option>Completed</option>
-<option>Waiting on Parts</option>
-<option>Ready to Invoice</option>
-<option>Completed</option>
-
-  <option>Needs Quote</option>
-  <option>Ready to Invoice</option>
-  <option>Waiting on Parts</option>
-  <option>Completed</option>
-</select>
+        <select class="status-select"></select>
         <button class="mini-button copy-item">Copy</button>
         <button class="mini-button delete-item">Delete</button>
       </div>
@@ -344,10 +261,9 @@
   </template>
 
   <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js"></script>
-<script src="tenant-config.js"></script>
-<script src="app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="tenant-config.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
-
