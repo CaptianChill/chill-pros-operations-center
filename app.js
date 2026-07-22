@@ -110,14 +110,15 @@ function saveTechnicians() {
 
 function updateCounts() {
   const activeQueueCount = queue.filter((record) => record.officeStatus !== "Completed").length;
-  document.querySelectorAll("#queueCount").forEach((element) => {
-    element.textContent = activeQueueCount;
-  });
+  const activeJobCount = queue.filter((record) => ACTIVE_JOB_STATUSES.has(record.officeStatus)).length;
 
+  const sidebarQueueCount = document.getElementById("queueCount");
+  const dashboardQueueCount = document.getElementById("dashboardQueueCount");
   const jobsCount = document.getElementById("jobsCount");
-  if (jobsCount) {
-    jobsCount.textContent = queue.filter((record) => ACTIVE_JOB_STATUSES.has(record.officeStatus)).length;
-  }
+
+  if (sidebarQueueCount) sidebarQueueCount.textContent = activeQueueCount;
+  if (dashboardQueueCount) dashboardQueueCount.textContent = activeQueueCount;
+  if (jobsCount) jobsCount.textContent = activeJobCount;
 }
 
 function toast(message) {
