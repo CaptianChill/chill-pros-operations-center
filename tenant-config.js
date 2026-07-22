@@ -17,9 +17,9 @@ window.FIELD_FORGED_CONFIG = {
 };
 
 // Lock the approved Chill Pros black / ice-blue template and bypass stale iPad caches.
-document.write('<link rel="stylesheet" href="brand-lock.css?v=20260722-2">');
+document.write('<link rel="stylesheet" href="brand-lock.css?v=20260722-3">');
+document.write('<link rel="icon" type="image/png" href="chill-pros-official-logo-transparent.png?v=20260722-3">');
+document.write('<link rel="apple-touch-icon" href="chill-pros-official-logo-transparent.png?v=20260722-3">');
 
-// Load the V1.0 authentication, role routing and realtime synchronization layer
-// before app.js initializes. This preserves the saved Chill Pros template and
-// keeps all users on one shared application URL.
-document.write('<script src="v1-access.js?v=20260722-2"><\/script>');
+// Load the V1.0 authentication, role routing and realtime synchronization layer.
+document.write('<script src="v1-access.js?v=20260722-3"><\/script>');
