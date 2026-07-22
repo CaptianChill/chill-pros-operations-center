@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+  <meta name="theme-color" content="#02070c">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Chill Pros">
+  <title>Chill Pros — iPhone Field Service</title>
+  <style>
+    html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02070c}
+    #phoneApp{display:block;width:100%;height:100dvh;border:0;background:#02070c}
+    #loading{position:fixed;inset:0;display:grid;place-items:center;background:#02070c;color:#7edbff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-weight:800;letter-spacing:.08em;z-index:2}
+  </style>
+</head>
+<body>
+  <div id="loading">LOADING FIELD SERVICE…</div>
+  <iframe id="phoneApp" src="index.html" title="Chill Pros iPhone Field Service"></iframe>
+  <script>
+    const frame = document.getElementById('phoneApp');
+    const loading = document.getElementById('loading');
+    frame.addEventListener('load', () => {
+      const doc = frame.contentDocument;
+      if (!doc) return;
+      doc.body.classList.add('iphone-field-mode');
+      const stylesheet = doc.createElement('link');
+      stylesheet.rel = 'stylesheet';
+      stylesheet.href = 'iphone.css';
+      doc.head.appendChild(stylesheet);
+
+      const labels = ['Home','Intake','Queue','Jobs','Techs'];
+      doc.querySelectorAll('.side-link').forEach((button,index) => {
+        if (labels[index]) button.dataset.mobileLabel = labels[index];
+      });
+
+      loading.remove();
+    });
+  </script>
+</body>
+</html>
