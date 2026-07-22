@@ -15,3 +15,8 @@ window.FIELD_FORGED_CONFIG = {
     assetPrefix: "CP-SA"
   }
 };
+
+// Load the V1.0 authentication, role routing and realtime synchronization layer
+// before app.js initializes. This preserves the saved Chill Pros template and
+// keeps all users on one shared application URL.
+document.write('<script src="v1-access.js"><\/script>');
