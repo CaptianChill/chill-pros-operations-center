@@ -13,6 +13,7 @@ const requiredFiles = [
   "functions/index.js",
   "functions/package.json",
   "firebase.json",
+  "firestore.rules",
 ];
 
 const failures = [];
@@ -59,6 +60,34 @@ if (fs.existsSync(indexPath)) {
   }
 }
 
+const firebaseConfigPath = path.join(root, "firebase.json");
+if (fs.existsSync(firebaseConfigPath)) {
+  try {
+    const firebaseConfig = JSON.parse(fs.readFileSync(firebaseConfigPath, "utf8"));
+    if (firebaseConfig.firestore?.rules !== "firestore.rules") {
+      failures.push("firebase.json must deploy firestore.rules");
+    }
+  } catch (error) {
+    failures.push(`firebase.json is invalid JSON: ${error.message}`);
+  }
+}
+
+const rulesPath = path.join(root, "firestore.rules");
+if (fs.existsSync(rulesPath)) {
+  const rules = fs.readFileSync(rulesPath, "utf8");
+  const requiredRulePatterns = [
+    [/request\.auth\s*!=\s*null/, "authenticated access check"],
+    [/match\s+\/Customers\/\{customerId\}/, "Customers collection rule"],
+    [/match\s+\/Technicians\/\{technicianId\}/, "Technicians collection rule"],
+    [/match\s+\/\{document=\*\*\}[\s\S]*allow\s+read,\s*write:\s*if\s+false/, "deny-by-default fallback"],
+  ];
+  for (const [pattern, label] of requiredRulePatterns) {
+    if (!pattern.test(rules)) {
+      failures.push(`firestore.rules is missing ${label}`);
+    }
+  }
+}
+
 if (warnings.length) {
   console.warn("RC1 readiness warnings:\n- " + warnings.join("\n- "));
 }
@@ -68,4 +97,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log("RC1 structural smoke checks passed.");
+console.log("RC1 structural and security smoke checks passed.");
