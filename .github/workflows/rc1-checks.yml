@@ -1,0 +1,36 @@
+name: RC1 Checks
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - rc1-production-readiness
+
+permissions:
+  contents: read
+
+jobs:
+  static-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Check JavaScript syntax
+        run: |
+          node --check app.js
+          node --check functions/index.js
+          node --check scripts/rc1-smoke-test.js
+
+      - name: Run RC1 smoke checks
+        run: node scripts/rc1-smoke-test.js
+
+      - name: Validate Firebase Functions dependencies
+        working-directory: functions
+        run: npm install --package-lock=false --ignore-scripts
