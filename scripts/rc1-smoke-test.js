@@ -16,6 +16,7 @@ const requiredFiles = [
   "firebase.json",
   "firestore.rules",
   "docs/TECHNICIAN_ACTIVATION_AND_E2E_TEST.md",
+  "docs/DEPLOYMENT_ROLLBACK_RECOVERY.md",
 ];
 
 const failures = [];
@@ -117,6 +118,22 @@ if (fs.existsSync(activationGuidePath)) {
   }
 }
 
+const recoveryGuidePath = path.join(root, "docs/DEPLOYMENT_ROLLBACK_RECOVERY.md");
+if (fs.existsSync(recoveryGuidePath)) {
+  const guide = fs.readFileSync(recoveryGuidePath, "utf8");
+  for (const requiredTerm of [
+    "firebase deploy --only firestore:rules,functions",
+    "last known-good commit SHA",
+    "Owner-account recovery",
+    "Do not force-push `main`",
+    "Never publish passwords",
+  ]) {
+    if (!guide.includes(requiredTerm)) {
+      failures.push(`Deployment and recovery guide is missing: ${requiredTerm}`);
+    }
+  }
+}
+
 if (warnings.length) {
   console.warn("RC1 readiness warnings:\n- " + warnings.join("\n- "));
 }
@@ -126,4 +143,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log("RC1 structural, security, and technician-access smoke checks passed.");
+console.log("RC1 structural, security, technician-access, and recovery smoke checks passed.");
