@@ -1,0 +1,33 @@
+name: AI Operations Engine
+
+on:
+  pull_request:
+    paths:
+      - "ai/**"
+      - "tests/ai-operations-engine.test.js"
+      - "docs/AI_OPERATIONS_ENGINE.md"
+      - ".github/workflows/ai-operations-engine.yml"
+  push:
+    branches:
+      - "feature/ai-operations-engine-foundation"
+    paths:
+      - "ai/**"
+      - "tests/ai-operations-engine.test.js"
+      - ".github/workflows/ai-operations-engine.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Check syntax
+        run: node --check ai/operations-engine.js
+      - name: Run AI operations tests
+        run: node --test tests/ai-operations-engine.test.js
