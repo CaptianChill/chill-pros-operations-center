@@ -11,6 +11,8 @@ The engine currently provides:
 - recommended next actions for intake review, dispatch, quotes, parts follow-up, field progress, and invoice handoff;
 - explainable technician recommendations using explicit skills, availability, service area, emergency capability, and active workload;
 - explicit exclusion of completed work and inactive technicians from active recommendations;
+- a deterministic approval policy that classifies informational, office-review, owner-approval, prohibited, and unknown actions;
+- immutable advisory recommendation audit records with stable timestamps, correlation identifiers, and recursive credential redaction;
 - a feature-flagged owner-facing Daily Operations Brief UI;
 - an advisory-only execution guard that blocks autonomous dispatch, record changes, customer communication, purchasing, quoting, and invoicing.
 
@@ -25,7 +27,7 @@ The AI Operations Engine is advisory-only. It must not directly:
 - order parts;
 - modify Firebase, Jobber, payment, or accounting records.
 
-Every operational action requires approval and execution by an authenticated owner or office user. The `validateRecommendationForExecution` guard intentionally returns `allowed: false` for all recommendations in this milestone.
+Every operational action requires approval and execution by an authenticated owner or office user. The execution guards intentionally return `allowed: false` for all recommendations in this milestone.
 
 ## Feature-flagged Daily Operations Brief
 
@@ -63,9 +65,15 @@ const {
   buildOperationsBrief,
   recommendTechnicians
 } = require("./ai/operations-engine");
+const { createAuditRecord } = require("./ai/recommendation-audit");
 
 const brief = buildOperationsBrief(records, { now: new Date().toISOString() });
 const candidates = recommendTechnicians(job, technicians);
+const auditRecord = createAuditRecord(recommendation, {
+  actorRole: "owner",
+  tenantId: "chill-pros",
+  correlationId: job.id
+});
 ```
 
 The operations brief accepts normalized job/customer records containing the fields already used by the Operations Center, including `officeStatus`, `complaint`, `findings`, `equipmentType`, `createdAt`, `assignedTechnician`, `phone`, `email`, and `estimatedAmount`.
@@ -91,22 +99,37 @@ Technician fields:
 
 The output is a ranked explanation only. Every candidate includes `advisoryOnly: true` and `requiresHumanApproval: true`. The function never writes an assignment.
 
+## Recommendation audit contract
+
+`ai/recommendation-audit.js` creates immutable, serializable records for later human review. It does not persist data by itself. Any future persistence adapter must remain owner-controlled and must not alter operational records.
+
+Each audit record includes:
+
+- a normalized UTC timestamp;
+- recommendation, action, tenant, source, actor-role, and correlation identifiers;
+- explicit `advisoryOnly: true` and `requiresHumanApproval: true` safeguards;
+- sanitized evidence and metadata;
+- recursive redaction for credential-like keys such as access tokens, refresh tokens, API keys, passwords, secrets, authorization headers, and seed phrases.
+
+The audit helper deliberately avoids storing raw credentials and provides stable key ordering to support deterministic tests and later integrity verification.
+
 ## Next milestones
 
 1. Connect technician recommendations to a read-only normalized technician data adapter.
 2. Add explainable follow-up flags for quotes, parts, incomplete service notes, and invoice handoff.
 3. Add de-identified evaluation fixtures based on real Chill Pros workflows.
-4. Add an external language-model adapter only after provider, budget, privacy, retention, and human-approval policies are approved.
-5. Integrate the feature into production only after RC1 is complete and the owner explicitly approves the AI pull request.
+4. Add a human-controlled persistence adapter for audit records after the storage and retention policy is approved.
+5. Add an external language-model adapter only after provider, budget, privacy, retention, and human-approval policies are approved.
+6. Integrate the feature into production only after RC1 is complete and the owner explicitly approves the AI pull request.
 
 ## Definition of completion for the foundation milestone
 
 - deterministic engine committed on an isolated AI feature branch;
-- automated tests cover ranking, urgency, completed-job exclusion, invoice handoff, missing contact data, technician recommendations, invalid input, safe UI rendering, feature-flag behavior, and the no-autonomous-execution guard;
-- architecture, data contract, feature flag, and safety boundary documented;
+- automated tests cover ranking, urgency, completed-job exclusion, invoice handoff, missing contact data, technician recommendations, invalid input, safe UI rendering, feature-flag behavior, approval classification, audit redaction, and no-autonomous-execution guards;
+- architecture, data contract, feature flag, audit contract, and safety boundary documented;
 - feature-flagged owner Daily Operations Brief implemented;
 - draft pull request opened into `main`;
 - CI green;
 - no changes merged into RC1 or production without owner approval.
 
-The foundation milestone is functionally complete. The latest functional CI run passed; the final documentation/workflow-only commit should also remain green before review. External language-model integration remains a separate milestone requiring owner decisions on provider, budget, privacy, retention, and approval policy.
+The deterministic foundation milestone is functionally complete. External language-model integration and audit persistence remain separate milestones requiring owner decisions on provider, budget, privacy, retention, storage, and approval policy.
