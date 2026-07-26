@@ -39,6 +39,27 @@ service cloud.firestore {
         && data.assignedTechnician == technicianName();
     }
 
+    function technicianUpdateFieldsAreSafe() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'officeStatus',
+        'statusUpdatedAt',
+        'findings',
+        'recommendation',
+        'photoNotes'
+      ]);
+    }
+
+    function technicianStatusIsAllowed() {
+      return request.resource.data.officeStatus in [
+        'Dispatched',
+        'In Progress',
+        'Paused',
+        'Waiting on Parts',
+        'Ready to Invoice',
+        'Completed'
+      ];
+    }
+
     match /Users/{userId} {
       allow read: if signedIn() && (request.auth.uid == userId || isOwner());
       allow create, update, delete: if isOwner();
@@ -49,7 +70,9 @@ service cloud.firestore {
       allow create: if isOwner() || isOffice();
       allow update: if isOwner() || isOffice()
         || (assignedToCurrentTechnician(resource.data)
-          && request.resource.data.assignedTechnician == resource.data.assignedTechnician);
+          && request.resource.data.assignedTechnician == resource.data.assignedTechnician
+          && technicianUpdateFieldsAreSafe()
+          && technicianStatusIsAllowed());
       allow delete: if isOwner() || isOffice();
     }
 
