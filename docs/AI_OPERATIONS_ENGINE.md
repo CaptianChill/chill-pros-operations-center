@@ -10,6 +10,7 @@ The engine currently provides:
 - an operational brief with active, urgent, unassigned, and ready-to-invoice counts;
 - recommended next actions for intake review, dispatch, quotes, parts follow-up, field progress, and invoice handoff;
 - explainable technician recommendations using explicit skills, availability, service area, emergency capability, and active workload;
+- a read-only technician normalization adapter with explicit identity validation, safe operational defaults, duplicate detection, and immutable output;
 - explicit exclusion of completed work and inactive technicians from active recommendations;
 - a deterministic approval policy that classifies informational, office-review, owner-approval, prohibited, and unknown actions;
 - immutable advisory recommendation audit records with stable timestamps, correlation identifiers, and recursive credential redaction;
@@ -66,9 +67,11 @@ const {
   recommendTechnicians
 } = require("./ai/operations-engine");
 const { createAuditRecord } = require("./ai/recommendation-audit");
+const { eligibleTechnicians } = require("./ai/technician-data-adapter");
 
 const brief = buildOperationsBrief(records, { now: new Date().toISOString() });
-const candidates = recommendTechnicians(job, technicians);
+const normalizedTechnicians = eligibleTechnicians(rawTechnicianRecords);
+const candidates = recommendTechnicians(job, normalizedTechnicians);
 const auditRecord = createAuditRecord(recommendation, {
   actorRole: "owner",
   tenantId: "chill-pros",
@@ -99,6 +102,22 @@ Technician fields:
 
 The output is a ranked explanation only. Every candidate includes `advisoryOnly: true` and `requiresHumanApproval: true`. The function never writes an assignment.
 
+## Read-only technician data adapter
+
+`ai/technician-data-adapter.js` converts supported technician record aliases into the explicit contract used by the recommendation engine. It never queries or writes Firebase itself.
+
+The adapter:
+
+- requires a stable `id`, `firestoreId`, or `uid` and a technician name;
+- normalizes skill and service-area lists to lowercase unique values;
+- safely defaults missing availability to unavailable;
+- validates active-job and capacity counts as non-negative integers;
+- rejects duplicate normalized technician IDs;
+- freezes normalized records and result arrays;
+- filters inactive and unavailable technicians by default, with explicit planning-mode overrides.
+
+A future Firebase reader should remain a separate authenticated, read-only boundary and pass retrieved records through this adapter before calling `recommendTechnicians`.
+
 ## Recommendation audit contract
 
 `ai/recommendation-audit.js` creates immutable, serializable records for later human review. It does not persist data by itself. Any future persistence adapter must remain owner-controlled and must not alter operational records.
@@ -115,7 +134,7 @@ The audit helper deliberately avoids storing raw credentials and provides stable
 
 ## Next milestones
 
-1. Connect technician recommendations to a read-only normalized technician data adapter.
+1. Connect the read-only normalized technician adapter to an authenticated Firebase technician reader after RC1 data access is validated.
 2. Add explainable follow-up flags for quotes, parts, incomplete service notes, and invoice handoff.
 3. Add de-identified evaluation fixtures based on real Chill Pros workflows.
 4. Add a human-controlled persistence adapter for audit records after the storage and retention policy is approved.
@@ -125,8 +144,8 @@ The audit helper deliberately avoids storing raw credentials and provides stable
 ## Definition of completion for the foundation milestone
 
 - deterministic engine committed on an isolated AI feature branch;
-- automated tests cover ranking, urgency, completed-job exclusion, invoice handoff, missing contact data, technician recommendations, invalid input, safe UI rendering, feature-flag behavior, approval classification, audit redaction, and no-autonomous-execution guards;
-- architecture, data contract, feature flag, audit contract, and safety boundary documented;
+- automated tests cover ranking, urgency, completed-job exclusion, invoice handoff, missing contact data, technician recommendations, invalid input, safe UI rendering, feature-flag behavior, approval classification, audit redaction, technician normalization, and no-autonomous-execution guards;
+- architecture, data contract, feature flag, audit contract, technician adapter, and safety boundary documented;
 - feature-flagged owner Daily Operations Brief implemented;
 - draft pull request opened into `main`;
 - CI green;
