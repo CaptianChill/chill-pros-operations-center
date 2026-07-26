@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-The first milestone establishes a safe, deterministic, testable operations-intelligence layer that can rank active work, recommend qualified technicians, and produce an owner/office brief without changing production data.
+The foundation establishes a safe, deterministic, testable operations-intelligence layer that can rank active work, recommend qualified technicians, and produce an owner/office brief without changing production data.
 
 The engine currently provides:
 
@@ -11,6 +11,7 @@ The engine currently provides:
 - recommended next actions for intake review, dispatch, quotes, parts follow-up, field progress, and invoice handoff;
 - explainable technician recommendations using explicit skills, availability, service area, emergency capability, and active workload;
 - explicit exclusion of completed work and inactive technicians from active recommendations;
+- a feature-flagged owner-facing Daily Operations Brief UI;
 - an advisory-only execution guard that blocks autonomous dispatch, record changes, customer communication, purchasing, quoting, and invoicing.
 
 ## Safety boundary
@@ -26,16 +27,34 @@ The AI Operations Engine is advisory-only. It must not directly:
 
 Every operational action requires approval and execution by an authenticated owner or office user. The `validateRecommendationForExecution` guard intentionally returns `allowed: false` for all recommendations in this milestone.
 
+## Feature-flagged Daily Operations Brief
+
+The browser UI is disabled by default. It reads the locally normalized Operations Center queue and renders an explainable brief inside the existing AI view only after this local feature flag is enabled:
+
+```js
+localStorage.setItem("chillProsFeatures:aiOperationsBrief", "true");
+location.reload();
+```
+
+Disable it with:
+
+```js
+localStorage.removeItem("chillProsFeatures:aiOperationsBrief");
+location.reload();
+```
+
+The brief is read-only. Its Refresh button re-reads the local queue, recalculates deterministic recommendations, and renders escaped customer-controlled text. It does not write to Firestore, Jobber, local queue records, or technician assignments.
+
 ## Integration contract
 
 Browser usage:
 
 ```html
 <script src="ai/operations-engine.js"></script>
-<script>
-  const brief = window.ChillProsAiOperations.buildOperationsBrief(queue);
-</script>
+<script src="ai/daily-operations-brief.js"></script>
 ```
+
+The AI feature branch loads both modules from `firebase-config.js`. The UI module mounts only when the feature flag is explicitly set to `true`.
 
 Node/test usage:
 
@@ -74,18 +93,20 @@ The output is a ranked explanation only. Every candidate includes `advisoryOnly:
 
 ## Next milestones
 
-1. Add an owner-facing Daily Operations Brief UI behind a feature flag.
-2. Connect technician recommendations to a read-only, normalized technician data adapter.
-3. Add explainable follow-up flags for quotes, parts, incomplete service notes, and invoice handoff.
+1. Connect technician recommendations to a read-only normalized technician data adapter.
+2. Add explainable follow-up flags for quotes, parts, incomplete service notes, and invoice handoff.
+3. Add de-identified evaluation fixtures based on real Chill Pros workflows.
 4. Add an external language-model adapter only after provider, budget, privacy, retention, and human-approval policies are approved.
-5. Add evaluation fixtures based on de-identified real Chill Pros workflows before any production rollout.
+5. Integrate the feature into production only after RC1 is complete and the owner explicitly approves the AI pull request.
 
 ## Definition of completion for the foundation milestone
 
 - deterministic engine committed on an isolated AI feature branch;
-- automated tests cover ranking, urgency, completed-job exclusion, invoice handoff, missing contact data, technician recommendations, invalid input, and the no-autonomous-execution guard;
-- architecture, data contract, and safety boundary documented;
+- automated tests cover ranking, urgency, completed-job exclusion, invoice handoff, missing contact data, technician recommendations, invalid input, safe UI rendering, feature-flag behavior, and the no-autonomous-execution guard;
+- architecture, data contract, feature flag, and safety boundary documented;
+- feature-flagged owner Daily Operations Brief implemented;
 - draft pull request opened into `main`;
+- CI green;
 - no changes merged into RC1 or production without owner approval.
 
-The foundation remains a draft until CI is green and the feature-flagged owner UI is reviewed.
+The foundation is ready for owner review after CI is green. External language-model integration remains a separate milestone requiring owner decisions on provider, budget, privacy, retention, and approval policy.
