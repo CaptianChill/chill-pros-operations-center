@@ -13,3 +13,15 @@ firebase.initializeApp(firebaseConfig);
 const firestoreDb = firebase.firestore();
 
 window.chillProsDb = firestoreDb;
+
+// Every application entry point loads firebase-config.js. Bootstrap the shared
+// authentication/role gate and production empty-state reset here so direct,
+// launcher, iPhone, iPad, and desktop entry points cannot bypass RC1 controls.
+for (const runtimeScript of ["v1-access.js", "production-reset.js"]) {
+  if (!document.querySelector(`script[src^="${runtimeScript}"]`)) {
+    const script = document.createElement("script");
+    script.src = runtimeScript;
+    script.async = false;
+    document.head.appendChild(script);
+  }
+}
