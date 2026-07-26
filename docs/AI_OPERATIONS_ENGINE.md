@@ -109,4 +109,4 @@ The output is a ranked explanation only. Every candidate includes `advisoryOnly:
 - CI green;
 - no changes merged into RC1 or production without owner approval.
 
-The foundation is ready for owner review after CI is green. External language-model integration remains a separate milestone requiring owner decisions on provider, budget, privacy, retention, and approval policy.
+The foundation milestone is functionally complete. The latest functional CI run passed; the final documentation/workflow-only commit should also remain green before review. External language-model integration remains a separate milestone requiring owner decisions on provider, budget, privacy, retention, and approval policy.
