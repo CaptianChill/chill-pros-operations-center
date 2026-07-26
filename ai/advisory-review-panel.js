@@ -7,6 +7,7 @@
 
   const FEATURE_FLAG = "chillProsFeatures:aiOperationsBrief";
   const DEFAULT_STORAGE_KEY = "fieldForged:chill-pros:operations-center:v3";
+  const REFRESH_HANDLER_KEY = "__chillProsAiAdvisoryRefreshHandler";
 
   function escapeHtml(value) {
     return String(value ?? "")
@@ -79,6 +80,17 @@
     return `fieldForged:${config?.tenant?.id || "chill-pros"}:operations-center:v3`;
   }
 
+  function bindRefreshHandler(button, refresh) {
+    if (!button?.addEventListener || typeof refresh !== "function") return false;
+    const previous = button[REFRESH_HANDLER_KEY];
+    if (previous && button.removeEventListener) {
+      button.removeEventListener("click", previous);
+    }
+    button.addEventListener("click", refresh);
+    button[REFRESH_HANDLER_KEY] = refresh;
+    return true;
+  }
+
   function mount(options = {}) {
     const documentRef = options.document || root?.document;
     const storage = options.storage || root?.localStorage;
@@ -107,7 +119,7 @@
       return model;
     };
 
-    documentRef.getElementById("refreshAiAdvisoryReviewPanel")?.addEventListener("click", refresh);
+    bindRefreshHandler(documentRef.getElementById("refreshAiAdvisoryReviewPanel"), refresh);
     return { mounted: true, model: refresh() };
   }
 
@@ -123,6 +135,7 @@
   return Object.freeze({
     FEATURE_FLAG,
     DEFAULT_STORAGE_KEY,
+    bindRefreshHandler,
     buildPanelModel,
     escapeHtml,
     mount,
