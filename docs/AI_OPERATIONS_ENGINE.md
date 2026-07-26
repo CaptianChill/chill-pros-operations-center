@@ -15,6 +15,7 @@ The engine currently provides:
 - a deterministic approval policy that classifies informational, office-review, owner-approval, prohibited, and unknown actions;
 - immutable advisory recommendation audit records with stable timestamps, correlation identifiers, and recursive credential redaction;
 - a feature-flagged owner-facing Daily Operations Brief UI;
+- de-identified workflow evaluation fixtures covering emergency refrigeration, parts follow-up, incomplete field notes, and completed-work exclusion;
 - an advisory-only execution guard that blocks autonomous dispatch, record changes, customer communication, purchasing, quoting, and invoicing.
 
 ## Safety boundary
@@ -132,20 +133,32 @@ Each audit record includes:
 
 The audit helper deliberately avoids storing raw credentials and provides stable key ordering to support deterministic tests and later integrity verification.
 
+## De-identified evaluation fixtures
+
+`tests/fixtures/ai-operations-evaluation.json` contains synthetic, non-customer records designed to exercise representative Chill Pros workflows without exposing customer contact information or production identifiers.
+
+The fixture suite verifies:
+
+- emergency refrigeration work enters the advisory review queue;
+- incomplete field notes produce a follow-up recommendation;
+- completed work is excluded from active recommendations;
+- output remains deterministic, immutable, advisory-only, and non-executable;
+- evaluation does not mutate the source fixture.
+
+Real customer records must not be committed as test fixtures. Any future production-derived evaluation case must be manually de-identified before it enters the repository.
+
 ## Next milestones
 
 1. Connect the read-only normalized technician adapter to an authenticated Firebase technician reader after RC1 data access is validated.
-2. Add explainable follow-up flags for quotes, parts, incomplete service notes, and invoice handoff.
-3. Add de-identified evaluation fixtures based on real Chill Pros workflows.
-4. Add a human-controlled persistence adapter for audit records after the storage and retention policy is approved.
-5. Add an external language-model adapter only after provider, budget, privacy, retention, and human-approval policies are approved.
-6. Integrate the feature into production only after RC1 is complete and the owner explicitly approves the AI pull request.
+2. Add a human-controlled persistence adapter for audit records after the storage and retention policy is approved.
+3. Add an external language-model adapter only after provider, budget, privacy, retention, and human-approval policies are approved.
+4. Integrate the feature into production only after RC1 is complete and the owner explicitly approves the AI pull request.
 
 ## Definition of completion for the foundation milestone
 
 - deterministic engine committed on an isolated AI feature branch;
-- automated tests cover ranking, urgency, completed-job exclusion, invoice handoff, missing contact data, technician recommendations, invalid input, safe UI rendering, feature-flag behavior, approval classification, audit redaction, technician normalization, and no-autonomous-execution guards;
-- architecture, data contract, feature flag, audit contract, technician adapter, and safety boundary documented;
+- automated tests cover ranking, urgency, completed-job exclusion, invoice handoff, missing contact data, technician recommendations, invalid input, safe UI rendering, feature-flag behavior, approval classification, audit redaction, technician normalization, de-identified workflow evaluation, and no-autonomous-execution guards;
+- architecture, data contract, feature flag, audit contract, technician adapter, evaluation-fixture policy, and safety boundary documented;
 - feature-flagged owner Daily Operations Brief implemented;
 - draft pull request opened into `main`;
 - CI green;
