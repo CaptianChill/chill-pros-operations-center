@@ -38,6 +38,11 @@
     return text(value).toLowerCase();
   }
 
+  function normalizedList(value) {
+    const items = Array.isArray(value) ? value : text(value).split(",");
+    return [...new Set(items.map(normalized).filter(Boolean))];
+  }
+
   function finiteNumber(value, fallback) {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : fallback;
@@ -125,6 +130,76 @@
     return "Review job status and next operational step";
   }
 
+  function recommendTechnicians(job, technicians, options) {
+    if (!job || typeof job !== "object") throw new TypeError("job must be an object");
+    if (!Array.isArray(technicians)) throw new TypeError("technicians must be an array");
+
+    const requiredSkills = normalizedList(job.requiredSkills || job.skills || job.equipmentType);
+    const serviceArea = normalized(job.serviceArea || job.city || job.locationArea);
+    const urgent = detectUrgency(job).urgent;
+    const includeUnavailable = Boolean(options && options.includeUnavailable);
+
+    return technicians
+      .filter((technician) => technician && typeof technician === "object")
+      .filter((technician) => technician.active !== false)
+      .filter((technician) => includeUnavailable || technician.available !== false)
+      .map((technician) => {
+        const skills = normalizedList(technician.skills);
+        const serviceAreas = normalizedList(technician.serviceAreas || technician.serviceArea);
+        const matchedSkills = requiredSkills.filter((skill) => skills.includes(skill));
+        const missingSkills = requiredSkills.filter((skill) => !skills.includes(skill));
+        const workload = Math.max(0, finiteNumber(technician.activeJobCount, 0));
+        const available = technician.available !== false;
+        let score = 0;
+        const reasons = [];
+
+        if (requiredSkills.length === 0) {
+          reasons.push("No explicit job skill requirement provided");
+        } else if (matchedSkills.length > 0) {
+          score += Math.round((matchedSkills.length / requiredSkills.length) * 50);
+          reasons.push(`Matched skills: ${matchedSkills.join(", ")}`);
+        }
+
+        if (missingSkills.length > 0) reasons.push(`Missing skills: ${missingSkills.join(", ")}`);
+
+        if (serviceArea && serviceAreas.includes(serviceArea)) {
+          score += 25;
+          reasons.push(`Covers service area: ${serviceArea}`);
+        } else if (serviceArea) {
+          reasons.push(`Service area not confirmed: ${serviceArea}`);
+        }
+
+        if (available) {
+          score += 15;
+          reasons.push("Marked available");
+        } else {
+          score -= 30;
+          reasons.push("Marked unavailable");
+        }
+
+        score += Math.max(0, 15 - workload * 3);
+        reasons.push(`${workload} active job${workload === 1 ? "" : "s"}`);
+
+        if (urgent && technician.emergencyCapable === true) {
+          score += 10;
+          reasons.push("Emergency-capable technician");
+        }
+
+        return {
+          technicianId: text(technician.id || technician.firestoreId),
+          technicianName: text(technician.name) || "Unnamed technician",
+          score,
+          available,
+          matchedSkills,
+          missingSkills,
+          reasons,
+          advisoryOnly: true,
+          requiresHumanApproval: true
+        };
+      })
+      .sort((a, b) => b.score - a.score || a.technicianName.localeCompare(b.technicianName));
+  }
+
   function buildOperationsBrief(records, options) {
     if (!Array.isArray(records)) throw new TypeError("records must be an array");
     const active = records.filter((record) => text(record.officeStatus) !== "Completed");
@@ -159,6 +234,7 @@
   return Object.freeze({
     buildOperationsBrief,
     detectUrgency,
+    recommendTechnicians,
     scoreRecord,
     validateRecommendationForExecution
   });
