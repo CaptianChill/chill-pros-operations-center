@@ -3,6 +3,7 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 const {
+  bindRefreshHandler,
   buildPanelModel,
   readJobs,
   renderPanelMarkup,
@@ -72,4 +73,36 @@ test("empty queue renders a safe informational state", () => {
   const markup = renderPanelMarkup({ totals: {}, queue: [] });
   assert.ok(markup.includes("No advisory items"));
   assert.ok(markup.includes("cannot approve, execute, or persist"));
+});
+
+test("refresh binding replaces the prior listener instead of stacking callbacks", () => {
+  const listeners = new Set();
+  const button = {
+    addEventListener(event, listener) {
+      assert.equal(event, "click");
+      listeners.add(listener);
+    },
+    removeEventListener(event, listener) {
+      assert.equal(event, "click");
+      listeners.delete(listener);
+    }
+  };
+  let firstCalls = 0;
+  let secondCalls = 0;
+  const first = () => { firstCalls += 1; };
+  const second = () => { secondCalls += 1; };
+
+  assert.equal(bindRefreshHandler(button, first), true);
+  assert.equal(bindRefreshHandler(button, second), true);
+  assert.equal(listeners.size, 1);
+
+  for (const listener of listeners) listener();
+  assert.equal(firstCalls, 0);
+  assert.equal(secondCalls, 1);
+});
+
+test("refresh binding fails safely for missing controls or invalid callbacks", () => {
+  assert.equal(bindRefreshHandler(null, () => {}), false);
+  assert.equal(bindRefreshHandler({}, () => {}), false);
+  assert.equal(bindRefreshHandler({ addEventListener() {} }, null), false);
 });
