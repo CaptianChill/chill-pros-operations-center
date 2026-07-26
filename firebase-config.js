@@ -14,9 +14,17 @@ const firestoreDb = firebase.firestore();
 
 window.chillProsDb = firestoreDb;
 
-// The AI foundation remains isolated and advisory-only. The UI module mounts
+// The AI foundation remains isolated and advisory-only. The UI modules mount
 // only when localStorage flag chillProsFeatures:aiOperationsBrief is "true".
-for (const aiScript of ["ai/operations-engine.js", "ai/daily-operations-brief.js"]) {
+for (const aiScript of [
+  "ai/operations-engine.js",
+  "ai/job-data-adapter.js",
+  "ai/follow-up-flags.js",
+  "ai/advisory-review-queue.js",
+  "ai/advisory-pipeline.js",
+  "ai/daily-operations-brief.js",
+  "ai/advisory-review-panel.js"
+]) {
   if (!document.querySelector(`script[src="${aiScript}"]`)) {
     const script = document.createElement("script");
     script.src = aiScript;
