@@ -5,6 +5,7 @@ const test = require("node:test");
 const {
   buildOperationsBrief,
   detectUrgency,
+  recommendTechnicians,
   scoreRecord,
   validateRecommendationForExecution
 } = require("../ai/operations-engine");
@@ -74,6 +75,64 @@ test("missing contact information is surfaced as a scoring reason", () => {
   }, { now: NOW });
 
   assert.ok(result.reasons.includes("Missing customer contact information"));
+});
+
+test("technician recommendations favor skills, service area, availability, and lower workload", () => {
+  const recommendations = recommendTechnicians({
+    complaint: "Walk-in cooler not cooling",
+    requiredSkills: ["refrigeration", "r290"],
+    serviceArea: "San Antonio"
+  }, [
+    {
+      id: "qualified",
+      name: "Alex",
+      skills: ["refrigeration", "r290"],
+      serviceAreas: ["San Antonio"],
+      available: true,
+      emergencyCapable: true,
+      activeJobCount: 1
+    },
+    {
+      id: "busy",
+      name: "Blake",
+      skills: ["refrigeration"],
+      serviceAreas: ["San Antonio"],
+      available: true,
+      emergencyCapable: false,
+      activeJobCount: 5
+    }
+  ]);
+
+  assert.equal(recommendations[0].technicianId, "qualified");
+  assert.deepEqual(recommendations[0].matchedSkills, ["refrigeration", "r290"]);
+  assert.equal(recommendations[0].requiresHumanApproval, true);
+  assert.equal(recommendations[0].advisoryOnly, true);
+});
+
+test("unavailable and inactive technicians are excluded by default", () => {
+  const recommendations = recommendTechnicians({ requiredSkills: ["hvac"] }, [
+    { id: "available", name: "A", skills: ["hvac"], available: true },
+    { id: "unavailable", name: "B", skills: ["hvac"], available: false },
+    { id: "inactive", name: "C", skills: ["hvac"], active: false }
+  ]);
+
+  assert.deepEqual(recommendations.map((item) => item.technicianId), ["available"]);
+});
+
+test("unavailable technicians can be included for planning but are penalized", () => {
+  const recommendations = recommendTechnicians({ requiredSkills: ["hvac"] }, [
+    { id: "available", name: "A", skills: ["hvac"], available: true, activeJobCount: 2 },
+    { id: "unavailable", name: "B", skills: ["hvac"], available: false, activeJobCount: 0 }
+  ], { includeUnavailable: true });
+
+  assert.equal(recommendations.length, 2);
+  assert.equal(recommendations[0].technicianId, "available");
+  assert.ok(recommendations[1].reasons.includes("Marked unavailable"));
+});
+
+test("technician recommendations reject invalid inputs", () => {
+  assert.throws(() => recommendTechnicians(null, []), /job must be an object/);
+  assert.throws(() => recommendTechnicians({}, null), /technicians must be an array/);
 });
 
 test("execution validation always blocks autonomous operational changes", () => {
