@@ -87,3 +87,5 @@ The output is a ranked explanation only. Every candidate includes `advisoryOnly:
 - architecture, data contract, and safety boundary documented;
 - draft pull request opened into `main`;
 - no changes merged into RC1 or production without owner approval.
+
+The foundation remains a draft until CI is green and the feature-flagged owner UI is reviewed.
