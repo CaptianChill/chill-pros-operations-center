@@ -105,8 +105,42 @@ test("technician recommendations favor skills, service area, availability, and l
 
   assert.equal(recommendations[0].technicianId, "qualified");
   assert.deepEqual(recommendations[0].matchedSkills, ["refrigeration", "r290"]);
+  assert.equal(recommendations[0].qualified, true);
+  assert.equal(recommendations[0].serviceAreaConfirmed, true);
+  assert.equal(recommendations[0].confidence, "high");
+  assert.equal(recommendations[0].requiresQualificationOverride, false);
   assert.equal(recommendations[0].requiresHumanApproval, true);
   assert.equal(recommendations[0].advisoryOnly, true);
+});
+
+test("fully qualified technicians rank above higher-scoring partial matches", () => {
+  const recommendations = recommendTechnicians({
+    requiredSkills: ["hvac", "controls"],
+    serviceArea: "San Antonio"
+  }, [
+    {
+      id: "qualified",
+      name: "Qualified Tech",
+      skills: ["hvac", "controls"],
+      serviceAreas: [],
+      available: true,
+      activeJobCount: 5
+    },
+    {
+      id: "partial",
+      name: "Partial Tech",
+      skills: ["hvac"],
+      serviceAreas: ["San Antonio"],
+      available: true,
+      activeJobCount: 0
+    }
+  ]);
+
+  assert.equal(recommendations[0].technicianId, "qualified");
+  assert.equal(recommendations[0].qualified, true);
+  assert.equal(recommendations[1].qualified, false);
+  assert.equal(recommendations[1].confidence, "low");
+  assert.equal(recommendations[1].requiresQualificationOverride, true);
 });
 
 test("unavailable and inactive technicians are excluded by default", () => {
