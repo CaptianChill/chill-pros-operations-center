@@ -15,6 +15,9 @@
     "seedPhrase"
   ]);
 
+  const MIN_RETENTION_DAYS = 1;
+  const MAX_RETENTION_DAYS = 3650;
+
   function sanitize(value, depth = 0) {
     if (depth > 5) return "[MAX_DEPTH]";
     if (Array.isArray(value)) return value.map((item) => sanitize(item, depth + 1));
@@ -33,14 +36,26 @@
     return normalized || fallback;
   }
 
+  function parseDate(value, fieldName) {
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) throw new TypeError(`${fieldName} must be a valid datetime`);
+    return parsed;
+  }
+
+  function normalizeRetentionDays(value) {
+    const days = Number(value);
+    if (!Number.isInteger(days) || days < MIN_RETENTION_DAYS || days > MAX_RETENTION_DAYS) {
+      throw new RangeError(`retentionDays must be an integer between ${MIN_RETENTION_DAYS} and ${MAX_RETENTION_DAYS}`);
+    }
+    return days;
+  }
+
   function createAuditRecord(recommendation, context = {}, options = {}) {
     if (!recommendation || typeof recommendation !== "object") {
       throw new TypeError("recommendation must be an object");
     }
 
-    const now = options.now || new Date().toISOString();
-    const parsed = new Date(now);
-    if (Number.isNaN(parsed.getTime())) throw new TypeError("now must be a valid datetime");
+    const parsed = parseDate(options.now || new Date().toISOString(), "now");
 
     return Object.freeze({
       schemaVersion: 1,
@@ -66,8 +81,27 @@
     return Object.freeze(recommendations.map((item) => createAuditRecord(item, context, options)));
   }
 
+  function applyRetentionPolicy(records, options = {}) {
+    if (!Array.isArray(records)) throw new TypeError("records must be an array");
+
+    const retentionDays = normalizeRetentionDays(options.retentionDays);
+    const now = parseDate(options.now || new Date().toISOString(), "now");
+    const cutoff = now.getTime() - retentionDays * 24 * 60 * 60 * 1000;
+
+    const retained = records.filter((record) => {
+      if (!record || typeof record !== "object") throw new TypeError("each audit record must be an object");
+      if (record.schemaVersion !== 1) throw new TypeError("each audit record must use schemaVersion 1");
+      return parseDate(record.recordedAt, "recordedAt").getTime() >= cutoff;
+    });
+
+    return Object.freeze(retained.slice());
+  }
+
   return Object.freeze({
+    MAX_RETENTION_DAYS,
+    MIN_RETENTION_DAYS,
     REDACTED_KEYS,
+    applyRetentionPolicy,
     createAuditBatch,
     createAuditRecord,
     sanitize
