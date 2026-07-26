@@ -9,6 +9,7 @@ on:
       - "tests/ai-dispatch-capacity-policy.test.js"
       - "tests/ai-approval-policy.test.js"
       - "tests/ai-recommendation-audit.test.js"
+      - "tests/ai-data-minimization-policy.test.js"
       - "firebase-config.js"
       - "docs/AI_OPERATIONS_ENGINE.md"
       - ".github/workflows/ai-operations-engine.yml"
@@ -22,6 +23,7 @@ on:
       - "tests/ai-dispatch-capacity-policy.test.js"
       - "tests/ai-approval-policy.test.js"
       - "tests/ai-recommendation-audit.test.js"
+      - "tests/ai-data-minimization-policy.test.js"
       - "firebase-config.js"
       - "docs/AI_OPERATIONS_ENGINE.md"
       - ".github/workflows/ai-operations-engine.yml"
@@ -45,6 +47,7 @@ jobs:
           node --check ai/dispatch-capacity-policy.js
           node --check ai/approval-policy.js
           node --check ai/recommendation-audit.js
+          node --check ai/data-minimization-policy.js
           node --check firebase-config.js
       - name: Run AI operations tests
-        run: node --test tests/ai-operations-engine.test.js tests/ai-daily-operations-brief.test.js tests/ai-dispatch-capacity-policy.test.js tests/ai-approval-policy.test.js tests/ai-recommendation-audit.test.js
+        run: node --test tests/ai-operations-engine.test.js tests/ai-daily-operations-brief.test.js tests/ai-dispatch-capacity-policy.test.js tests/ai-approval-policy.test.js tests/ai-recommendation-audit.test.js tests/ai-data-minimization-policy.test.js
