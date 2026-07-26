@@ -11,6 +11,7 @@ const requiredFiles = [
   "firebase-config.js",
   "tenant-config.js",
   "v1-access.js",
+  "production-reset.js",
   "functions/index.js",
   "functions/package.json",
   "firebase.json",
@@ -58,7 +59,26 @@ if (fs.existsSync(indexPath)) {
   ];
   for (const [pattern, label] of placeholderPatterns) {
     if (pattern.test(html)) {
-      warnings.push(`Replace hard-coded ${label} before RC1 approval`);
+      warnings.push(`Source markup still contains hard-coded ${label}; production-reset.js must neutralize it`);
+    }
+  }
+}
+
+const resetPath = path.join(root, "production-reset.js");
+if (fs.existsSync(resetPath)) {
+  const reset = fs.readFileSync(resetPath, "utf8");
+  const requiredResetPatterns = [
+    [/setText\("pmCount",\s*"0"\)/, "zero PM count"],
+    [/setText\("partsCount",\s*"0"\)/, "zero parts count"],
+    [/setText\("revenueCount",\s*"\$0"\)/, "zero revenue"],
+    [/renderEmptyState\("scheduleList",\s*"No upcoming jobs"/, "empty schedule state"],
+    [/renderEmptyState\("activityList",\s*"No recent activity"/, "empty activity state"],
+    [/Live weather can be enabled later/, "weather-not-connected state"],
+    [/getElementById\("addSampleJob"\)\?\.remove\(\)/, "sample-job control removal"],
+  ];
+  for (const [pattern, label] of requiredResetPatterns) {
+    if (!pattern.test(reset)) {
+      failures.push(`production-reset.js is missing ${label}`);
     }
   }
 }
@@ -143,4 +163,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log("RC1 structural, security, technician-access, and recovery smoke checks passed.");
+console.log("RC1 structural, production-empty-state, security, technician-access, and recovery smoke checks passed.");
