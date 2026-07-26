@@ -17,6 +17,7 @@ on:
       - "tests/ai-operations-engine.test.js"
       - "tests/ai-daily-operations-brief.test.js"
       - "firebase-config.js"
+      - "docs/AI_OPERATIONS_ENGINE.md"
       - ".github/workflows/ai-operations-engine.yml"
 
 permissions:
