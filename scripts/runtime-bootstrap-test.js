@@ -11,13 +11,15 @@ function read(relativePath) {
 }
 
 const firebaseConfig = read("firebase-config.js");
-for (const [pattern, label] of [
-  [/\["v1-access\.js",\s*"production-reset\.js"\]/, "ordered RC1 runtime list"],
-  [/document\.querySelector\(`script\[src\^=\\"\$\{runtimeScript\}\\"\]`\)/, "duplicate-script protection"],
-  [/script\.async\s*=\s*false/, "ordered dynamic script execution"],
-  [/document\.head\.appendChild\(script\)/, "runtime script injection"],
+for (const [requiredText, label] of [
+  ['["v1-access.js", "production-reset.js"]', "ordered RC1 runtime list"],
+  ['document.querySelector(`script[src^="${runtimeScript}"]`)', "duplicate-script protection"],
+  ["script.async = false", "ordered dynamic script execution"],
+  ["document.head.appendChild(script)", "runtime script injection"],
 ]) {
-  if (!pattern.test(firebaseConfig)) failures.push(`firebase-config.js is missing ${label}`);
+  if (!firebaseConfig.includes(requiredText)) {
+    failures.push(`firebase-config.js is missing ${label}`);
+  }
 }
 
 const index = read("index.html");
