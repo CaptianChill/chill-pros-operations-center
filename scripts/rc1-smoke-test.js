@@ -113,6 +113,32 @@ if (fs.existsSync(rulesPath)) {
   }
 }
 
+const functionsPath = path.join(root, "functions/index.js");
+if (fs.existsSync(functionsPath)) {
+  const functionsSource = fs.readFileSync(functionsPath, "utf8");
+  const requiredFunctionPatterns = [
+    [/defineSecret\("JOBBER_CLIENT_ID"\)/, "Jobber client ID secret"],
+    [/defineSecret\("JOBBER_CLIENT_SECRET"\)/, "Jobber client secret"],
+    [/defineSecret\("JOBBER_CALLBACK_URL"\)/, "Jobber callback URL secret"],
+    [/verifyIdToken\([^,]+,\s*true\)/, "revocation-aware Firebase token verification"],
+    [/role\s*!==\s*"owner"/, "owner-role enforcement"],
+    [/crypto\.randomBytes\(32\)/, "OAuth state entropy"],
+    [/expiresAt:\s*Timestamp\.fromMillis\(Date\.now\(\)\s*\+\s*10\s*\*\s*60\s*\*\s*1000\)/, "expiring OAuth state"],
+    [/refreshTokensIfNeeded\(\)/, "Jobber token refresh path"],
+    [/app\.post\("\/sync\/clients",\s*requireOwner/, "owner-protected client sync"],
+    [/Content-Security-Policy/, "backend security headers"],
+  ];
+  for (const [pattern, label] of requiredFunctionPatterns) {
+    if (!pattern.test(functionsSource)) {
+      failures.push(`functions/index.js is missing ${label}`);
+    }
+  }
+
+  if (/client_secret\s*:\s*["'][^"']+["']/.test(functionsSource)) {
+    failures.push("functions/index.js appears to contain a hard-coded OAuth client secret");
+  }
+}
+
 const accessPath = path.join(root, "v1-access.js");
 if (fs.existsSync(accessPath)) {
   const access = fs.readFileSync(accessPath, "utf8");
@@ -163,4 +189,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log("RC1 structural, production-empty-state, security, technician-access, and recovery smoke checks passed.");
+console.log("RC1 structural, production-empty-state, security, Jobber-backend, technician-access, and recovery smoke checks passed.");
