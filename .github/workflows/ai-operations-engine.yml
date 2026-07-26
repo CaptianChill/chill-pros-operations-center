@@ -5,6 +5,8 @@ on:
     paths:
       - "ai/**"
       - "tests/ai-operations-engine.test.js"
+      - "tests/ai-daily-operations-brief.test.js"
+      - "firebase-config.js"
       - "docs/AI_OPERATIONS_ENGINE.md"
       - ".github/workflows/ai-operations-engine.yml"
   push:
@@ -13,6 +15,8 @@ on:
     paths:
       - "ai/**"
       - "tests/ai-operations-engine.test.js"
+      - "tests/ai-daily-operations-brief.test.js"
+      - "firebase-config.js"
       - ".github/workflows/ai-operations-engine.yml"
 
 permissions:
@@ -28,6 +32,9 @@ jobs:
         with:
           node-version: 20
       - name: Check syntax
-        run: node --check ai/operations-engine.js
+        run: |
+          node --check ai/operations-engine.js
+          node --check ai/daily-operations-brief.js
+          node --check firebase-config.js
       - name: Run AI operations tests
-        run: node --test tests/ai-operations-engine.test.js
+        run: node --test tests/ai-operations-engine.test.js tests/ai-daily-operations-brief.test.js
