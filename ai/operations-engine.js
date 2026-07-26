@@ -130,6 +130,13 @@
     return "Review job status and next operational step";
   }
 
+  function recommendationConfidence(score, qualified, serviceAreaConfirmed) {
+    if (!qualified) return "low";
+    if (score >= 85 && serviceAreaConfirmed) return "high";
+    if (score >= 55) return "medium";
+    return "low";
+  }
+
   function recommendTechnicians(job, technicians, options) {
     if (!job || typeof job !== "object") throw new TypeError("job must be an object");
     if (!Array.isArray(technicians)) throw new TypeError("technicians must be an array");
@@ -150,6 +157,8 @@
         const missingSkills = requiredSkills.filter((skill) => !skills.includes(skill));
         const workload = Math.max(0, finiteNumber(technician.activeJobCount, 0));
         const available = technician.available !== false;
+        const qualified = requiredSkills.length === 0 || missingSkills.length === 0;
+        const serviceAreaConfirmed = !serviceArea || serviceAreas.includes(serviceArea);
         let score = 0;
         const reasons = [];
 
@@ -162,7 +171,7 @@
 
         if (missingSkills.length > 0) reasons.push(`Missing skills: ${missingSkills.join(", ")}`);
 
-        if (serviceArea && serviceAreas.includes(serviceArea)) {
+        if (serviceAreaConfirmed && serviceArea) {
           score += 25;
           reasons.push(`Covers service area: ${serviceArea}`);
         } else if (serviceArea) {
@@ -189,6 +198,10 @@
           technicianId: text(technician.id || technician.firestoreId),
           technicianName: text(technician.name) || "Unnamed technician",
           score,
+          confidence: recommendationConfidence(score, qualified, serviceAreaConfirmed),
+          qualified,
+          serviceAreaConfirmed,
+          requiresQualificationOverride: !qualified,
           available,
           matchedSkills,
           missingSkills,
@@ -197,7 +210,11 @@
           requiresHumanApproval: true
         };
       })
-      .sort((a, b) => b.score - a.score || a.technicianName.localeCompare(b.technicianName));
+      .sort((a, b) =>
+        Number(b.qualified) - Number(a.qualified) ||
+        b.score - a.score ||
+        a.technicianName.localeCompare(b.technicianName)
+      );
   }
 
   function buildOperationsBrief(records, options) {
