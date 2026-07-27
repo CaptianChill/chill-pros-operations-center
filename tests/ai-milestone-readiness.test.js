@@ -4,18 +4,23 @@ const readiness = require("../ai/milestone-readiness");
 
 const evaluatedAt = "2026-07-27T06:00:00.000Z";
 
-const completeDecisions = Object.freeze({
+const approvedPolicy = Object.freeze({
   provider: "openai",
   monthlyBudgetUsd: 100,
   privacyPolicy: "minimum-required-data",
   retentionDays: 30,
   auditStorage: "firestore",
-  approvalPolicy: "human-approval-required",
+  approvalPolicy: "human-approval-required"
+});
+
+const completeDecisions = Object.freeze({
+  ...approvedPolicy,
   ownerApproved: true,
   ownerApprovalRecord: Object.freeze({
     approverId: "owner:captianchill",
     approvedAt: "2026-07-27T04:00:00.000Z",
-    policyVersion: "ai-integration-policy-v1"
+    policyVersion: "ai-integration-policy-v1",
+    approvedPolicy
   })
 });
 
@@ -51,7 +56,7 @@ test("requires explicit true evidence rather than truthy values", () => {
 test("rejects blank decisions and non-positive budgets", () => {
   const decisions = { ...completeDecisions, provider: "  ", monthlyBudgetUsd: 0 };
   const result = evaluate(decisions);
-  assert.deepEqual(result.missingDecisions, ["provider", "monthlyBudgetUsd"]);
+  assert.deepEqual(result.missingDecisions, ["provider", "monthlyBudgetUsd", "ownerApprovalRecord"]);
 });
 
 test("rejects providers and audit stores unsupported by the integration policy", () => {
@@ -62,7 +67,7 @@ test("rejects providers and audit stores unsupported by the integration policy",
   };
   const result = evaluate(decisions);
   assert.equal(result.ready, false);
-  assert.deepEqual(result.missingDecisions, ["provider", "auditStorage"]);
+  assert.deepEqual(result.missingDecisions, ["provider", "auditStorage", "ownerApprovalRecord"]);
 });
 
 test("normalizes supported provider and audit-storage decision text", () => {
@@ -79,16 +84,16 @@ test("rejects policy numbers outside integration-policy bounds", () => {
     ...completeDecisions,
     monthlyBudgetUsd: readiness.MAX_MONTHLY_BUDGET_USD + 0.01
   });
-  assert.deepEqual(invalidBudget.missingDecisions, ["monthlyBudgetUsd"]);
+  assert.deepEqual(invalidBudget.missingDecisions, ["monthlyBudgetUsd", "ownerApprovalRecord"]);
 
   const fractionalRetention = evaluate({ ...completeDecisions, retentionDays: 30.5 });
-  assert.deepEqual(fractionalRetention.missingDecisions, ["retentionDays"]);
+  assert.deepEqual(fractionalRetention.missingDecisions, ["retentionDays", "ownerApprovalRecord"]);
 
   const excessiveRetention = evaluate({
     ...completeDecisions,
     retentionDays: readiness.MAX_RETENTION_DAYS + 1
   });
-  assert.deepEqual(excessiveRetention.missingDecisions, ["retentionDays"]);
+  assert.deepEqual(excessiveRetention.missingDecisions, ["retentionDays", "ownerApprovalRecord"]);
 });
 
 test("requires explicit owner approval even when all policy fields are populated", () => {
@@ -105,13 +110,62 @@ test("requires an auditable owner approval record", () => {
   assert.deepEqual(result.missingDecisions, ["ownerApprovalRecord"]);
 });
 
+test("requires approval evidence to include the exact approved policy snapshot", () => {
+  const decisions = {
+    ...completeDecisions,
+    ownerApprovalRecord: {
+      ...completeDecisions.ownerApprovalRecord,
+      approvedPolicy: null
+    }
+  };
+  assert.deepEqual(evaluate(decisions).missingDecisions, ["ownerApprovalRecord"]);
+});
+
+test("invalidates approval when a policy decision changes after approval", () => {
+  for (const [key, value] of [
+    ["provider", "anthropic"],
+    ["monthlyBudgetUsd", 250],
+    ["privacyPolicy", "expanded-data"],
+    ["retentionDays", 60],
+    ["auditStorage", "cloud-logging"],
+    ["approvalPolicy", "office-review-only"]
+  ]) {
+    const decisions = { ...completeDecisions, [key]: value };
+    const result = evaluate(decisions);
+    assert.equal(result.ready, false, key);
+    assert.deepEqual(result.missingDecisions, ["ownerApprovalRecord"], key);
+  }
+});
+
+test("normalizes approved policy text before comparison", () => {
+  const decisions = {
+    ...completeDecisions,
+    ownerApprovalRecord: {
+      ...completeDecisions.ownerApprovalRecord,
+      approvedPolicy: {
+        ...approvedPolicy,
+        provider: " OpenAI ",
+        privacyPolicy: " MINIMUM-REQUIRED-DATA ",
+        auditStorage: " FIRESTORE ",
+        approvalPolicy: " HUMAN-APPROVAL-REQUIRED "
+      }
+    }
+  };
+  assert.equal(evaluate(decisions).ready, true);
+});
+
+test("returns an immutable normalized policy snapshot", () => {
+  const snapshot = readiness.normalizePolicySnapshot(completeDecisions);
+  assert.equal(Object.isFrozen(snapshot), true);
+  assert.deepEqual(snapshot, approvedPolicy);
+});
+
 test("rejects malformed or non-canonical approval timestamps", () => {
   const decisions = {
     ...completeDecisions,
     ownerApprovalRecord: {
-      approverId: "owner:captianchill",
-      approvedAt: "July 27, 2026",
-      policyVersion: "ai-integration-policy-v1"
+      ...completeDecisions.ownerApprovalRecord,
+      approvedAt: "July 27, 2026"
     }
   };
   const result = evaluate(decisions);
@@ -122,8 +176,8 @@ test("requires approver identity and policy version in approval evidence", () =>
   const decisions = {
     ...completeDecisions,
     ownerApprovalRecord: {
+      ...completeDecisions.ownerApprovalRecord,
       approverId: " ",
-      approvedAt: "2026-07-27T04:00:00.000Z",
       policyVersion: ""
     }
   };
