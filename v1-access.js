@@ -80,30 +80,46 @@
   }
 
   async function getUserProfile(user) {
-    const fallbackRole = OWNER_EMAILS.has(String(user.email || "").toLowerCase()) ? "owner" : "technician";
-    const fallback = {
+    const normalizedEmail = String(user.email || "").toLowerCase();
+    const isOwner = OWNER_EMAILS.has(normalizedEmail);
+    const ownerFallback = {
       uid: user.uid,
       email: user.email || "",
-      displayName: user.displayName || user.email || "User",
-      role: fallbackRole,
-      technicianName: user.displayName || ""
+      displayName: user.displayName || user.email || "Owner",
+      role: "owner",
+      technicianName: ""
     };
 
     try {
       const snapshot = await window.chillProsDb.collection("Users").doc(user.uid).get();
-      if (!snapshot.exists) return fallback;
+      if (!snapshot.exists) {
+        if (isOwner) return ownerFallback;
+        throw new Error("profile-required");
+      }
       const data = snapshot.data() || {};
-      const role = ["owner", "office", "technician"].includes(data.role) ? data.role : fallbackRole;
-      return { ...fallback, ...data, role };
+      if (!["owner", "office", "technician"].includes(data.role)) {
+        throw new Error("invalid-role-profile");
+      }
+      return {
+        uid: user.uid,
+        email: user.email || "",
+        displayName: user.displayName || user.email || "User",
+        technicianName: "",
+        ...data,
+        role: data.role
+      };
     } catch (error) {
-      console.warn("Unable to read user profile; using fallback role:", error);
-      return fallback;
+      if (isOwner && error?.message !== "invalid-role-profile") {
+        console.warn("Unable to read owner profile; using the authorized owner fallback:", error);
+        return ownerFallback;
+      }
+      throw error;
     }
   }
 
   function applyRole(profile) {
     window.CHILL_PROS_SESSION = profile;
-    const allowed = new Set(ROLE_VIEWS[profile.role] || ROLE_VIEWS.technician);
+    const allowed = new Set(ROLE_VIEWS[profile.role] || []);
 
     document.querySelectorAll(".side-link").forEach((button) => {
       button.classList.toggle("role-hidden", !allowed.has(button.dataset.view));
@@ -219,12 +235,25 @@
           return;
         }
 
-        currentProfile = await getUserProfile(user);
-        patchTechnicianPersistence();
-        applyRole(currentProfile);
-        startRealtimeListeners();
-        showSessionBar(user, currentProfile);
-        setGateVisible(false);
+        try {
+          currentProfile = await getUserProfile(user);
+          patchTechnicianPersistence();
+          applyRole(currentProfile);
+          startRealtimeListeners();
+          showSessionBar(user, currentProfile);
+          setGateVisible(false);
+        } catch (error) {
+          console.error("Authenticated user is not authorized for an application role:", error);
+          currentProfile = null;
+          window.CHILL_PROS_SESSION = null;
+          unsubscribeCustomers?.();
+          unsubscribeTechnicians?.();
+          document.getElementById("sessionBar")?.remove();
+          await auth.signOut();
+          setGateVisible(true);
+          const errorBox = document.getElementById("authError");
+          if (errorBox) errorBox.textContent = "This account has not been activated. Ask the owner to create its user profile.";
+        }
       });
     } catch (error) {
       console.error("Authentication SDK failed to load:", error);
