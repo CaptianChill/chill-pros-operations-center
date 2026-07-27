@@ -4,24 +4,8 @@ on:
   pull_request:
     paths:
       - "ai/**"
+      - "tests/ai-*.test.js"
       - "tests/fixtures/ai-operations-evaluation.json"
-      - "tests/ai-operations-engine.test.js"
-      - "tests/ai-daily-operations-brief.test.js"
-      - "tests/ai-dispatch-capacity-policy.test.js"
-      - "tests/ai-approval-policy.test.js"
-      - "tests/ai-recommendation-audit.test.js"
-      - "tests/ai-data-minimization-policy.test.js"
-      - "tests/ai-technician-data-adapter.test.js"
-      - "tests/ai-job-data-adapter.test.js"
-      - "tests/ai-follow-up-flags.test.js"
-      - "tests/ai-advisory-review-queue.test.js"
-      - "tests/ai-advisory-review-panel.test.js"
-      - "tests/ai-model-response-validator.test.js"
-      - "tests/ai-advisory-pipeline.test.js"
-      - "tests/ai-evaluation-fixtures.test.js"
-      - "tests/ai-evaluation-report.test.js"
-      - "tests/ai-milestone-readiness.test.js"
-      - "tests/ai-integration-policy.test.js"
       - "firebase-config.js"
       - "docs/AI_OPERATIONS_ENGINE.md"
       - ".github/workflows/ai-operations-engine.yml"
@@ -30,24 +14,8 @@ on:
       - "feature/ai-operations-engine-foundation"
     paths:
       - "ai/**"
+      - "tests/ai-*.test.js"
       - "tests/fixtures/ai-operations-evaluation.json"
-      - "tests/ai-operations-engine.test.js"
-      - "tests/ai-daily-operations-brief.test.js"
-      - "tests/ai-dispatch-capacity-policy.test.js"
-      - "tests/ai-approval-policy.test.js"
-      - "tests/ai-recommendation-audit.test.js"
-      - "tests/ai-data-minimization-policy.test.js"
-      - "tests/ai-technician-data-adapter.test.js"
-      - "tests/ai-job-data-adapter.test.js"
-      - "tests/ai-follow-up-flags.test.js"
-      - "tests/ai-advisory-review-queue.test.js"
-      - "tests/ai-advisory-review-panel.test.js"
-      - "tests/ai-model-response-validator.test.js"
-      - "tests/ai-advisory-pipeline.test.js"
-      - "tests/ai-evaluation-fixtures.test.js"
-      - "tests/ai-evaluation-report.test.js"
-      - "tests/ai-milestone-readiness.test.js"
-      - "tests/ai-integration-policy.test.js"
       - "firebase-config.js"
       - "docs/AI_OPERATIONS_ENGINE.md"
       - ".github/workflows/ai-operations-engine.yml"
@@ -64,29 +32,26 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Check syntax
+      - name: Check AI JavaScript syntax
+        shell: bash
         run: |
-          node --check ai/operations-engine.js
-          node --check ai/daily-operations-brief.js
-          node --check ai/dispatch-capacity-policy.js
-          node --check ai/approval-policy.js
-          node --check ai/recommendation-audit.js
-          node --check ai/data-minimization-policy.js
-          node --check ai/technician-data-adapter.js
-          node --check ai/job-data-adapter.js
-          node --check ai/follow-up-flags.js
-          node --check ai/advisory-review-queue.js
-          node --check ai/advisory-review-panel.js
-          node --check ai/model-response-validator.js
-          node --check ai/advisory-pipeline.js
-          node --check ai/evaluation-report.js
-          node --check ai/milestone-readiness.js
-          node --check ai/integration-policy.js
-          node --check tests/ai-advisory-review-panel.test.js
-          node --check tests/ai-evaluation-fixtures.test.js
-          node --check tests/ai-evaluation-report.test.js
-          node --check tests/ai-milestone-readiness.test.js
-          node --check tests/ai-integration-policy.test.js
+          set -euo pipefail
+          while IFS= read -r -d '' file; do
+            node --check "$file"
+          done < <(find ai -type f -name '*.js' -print0 | sort -z)
+
+          while IFS= read -r -d '' file; do
+            node --check "$file"
+          done < <(find tests -maxdepth 1 -type f -name 'ai-*.test.js' -print0 | sort -z)
+
           node --check firebase-config.js
       - name: Run AI operations tests
-        run: node --test tests/ai-operations-engine.test.js tests/ai-daily-operations-brief.test.js tests/ai-dispatch-capacity-policy.test.js tests/ai-approval-policy.test.js tests/ai-recommendation-audit.test.js tests/ai-data-minimization-policy.test.js tests/ai-technician-data-adapter.test.js tests/ai-job-data-adapter.test.js tests/ai-follow-up-flags.test.js tests/ai-advisory-review-queue.test.js tests/ai-advisory-review-panel.test.js tests/ai-model-response-validator.test.js tests/ai-advisory-pipeline.test.js tests/ai-evaluation-fixtures.test.js tests/ai-evaluation-report.test.js tests/ai-milestone-readiness.test.js tests/ai-integration-policy.test.js
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -d '' test_files < <(find tests -maxdepth 1 -type f -name 'ai-*.test.js' -print0 | sort -z)
+          if (( ${#test_files[@]} == 0 )); then
+            echo "No AI test files found." >&2
+            exit 1
+          fi
+          node --test "${test_files[@]}"
