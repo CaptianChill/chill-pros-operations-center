@@ -32,6 +32,7 @@ jobs:
           node --check scripts/rc1-smoke-test.js
           node --check scripts/runtime-bootstrap-test.js
           node --check scripts/firestore-security-test.js
+          node --check scripts/technician-role-regression-test.js
 
       - name: Run RC1 smoke checks
         run: node scripts/rc1-smoke-test.js
@@ -41,6 +42,9 @@ jobs:
 
       - name: Verify Firestore technician isolation
         run: node scripts/firestore-security-test.js
+
+      - name: Verify technician role routing and assigned-job query
+        run: node scripts/technician-role-regression-test.js
 
       - name: Validate Firebase Functions dependencies
         working-directory: functions
