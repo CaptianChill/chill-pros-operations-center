@@ -22,6 +22,22 @@ for (const [requiredText, label] of [
   }
 }
 
+const accessRuntime = read("v1-access.js");
+for (const [requiredText, label] of [
+  ['throw new Error("profile-required")', "fail-closed missing-profile handling"],
+  ['throw new Error("invalid-role-profile")', "invalid-role rejection"],
+  ['window.CHILL_PROS_SESSION = null', "session clearing after authorization failure"],
+  ['This account has not been activated.', "clear inactive-account message"],
+]) {
+  if (!accessRuntime.includes(requiredText)) {
+    failures.push(`v1-access.js is missing ${label}`);
+  }
+}
+
+if (accessRuntime.includes('fallbackRole = OWNER_EMAILS.has') || accessRuntime.includes('fallbackRole,\n      technicianName')) {
+  failures.push("v1-access.js must not grant technician access through a fallback role");
+}
+
 const index = read("index.html");
 for (const requiredScript of ["firebase-config.js", "app.js"]) {
   if (!index.includes(`src="${requiredScript}"`)) {
@@ -44,4 +60,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log("All supported entry points resolve to the shared application and bootstrap RC1 access controls.");
+console.log("All supported entry points resolve to the shared application and bootstrap fail-closed RC1 access controls.");
