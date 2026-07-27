@@ -78,3 +78,36 @@ test("trims otherwise valid approval identity fields", () => {
   });
   assert.equal(result.ready, true);
 });
+
+test("rejects inherited decision and evidence properties", () => {
+  const decisions = Object.create(decisionsWithApproval());
+  const evidence = Object.create(completeEvidence);
+  const result = readiness.evaluateMilestoneReadiness({ decisions, evidence, evaluatedAt });
+
+  assert.equal(result.ready, false);
+  assert.deepEqual(result.missingDecisions, readiness.REQUIRED_DECISIONS);
+  assert.deepEqual(result.missingEvidence, readiness.REQUIRED_EVIDENCE);
+});
+
+test("rejects inherited approval-record properties", () => {
+  const inheritedRecord = Object.create(decisionsWithApproval().ownerApprovalRecord);
+  const decisions = decisionsWithApproval({});
+  decisions.ownerApprovalRecord = inheritedRecord;
+
+  const result = readiness.evaluateMilestoneReadiness({
+    decisions,
+    evidence: completeEvidence,
+    evaluatedAt
+  });
+
+  assert.equal(result.ready, false);
+  assert.deepEqual(result.missingDecisions, ["ownerApprovalRecord"]);
+});
+
+test("rejects inherited approved-policy properties", () => {
+  const inheritedPolicy = Object.create(approvedPolicy);
+  const result = evaluate({ approvedPolicy: inheritedPolicy });
+
+  assert.equal(result.ready, false);
+  assert.deepEqual(result.missingDecisions, ["ownerApprovalRecord"]);
+});
