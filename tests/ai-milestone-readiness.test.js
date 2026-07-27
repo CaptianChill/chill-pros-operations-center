@@ -2,6 +2,8 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const readiness = require("../ai/milestone-readiness");
 
+const evaluatedAt = "2026-07-27T06:00:00.000Z";
+
 const completeDecisions = Object.freeze({
   provider: "approved-provider",
   monthlyBudgetUsd: 100,
@@ -26,8 +28,12 @@ const completeEvidence = Object.freeze({
   integrationPolicyValidated: true
 });
 
+function evaluate(decisions = completeDecisions, evidence = completeEvidence, timestamp = evaluatedAt) {
+  return readiness.evaluateMilestoneReadiness({ decisions, evidence, evaluatedAt: timestamp });
+}
+
 test("reports every missing owner decision and validation item", () => {
-  const result = readiness.evaluateMilestoneReadiness({ decisions: {}, evidence: {} });
+  const result = evaluate({}, {});
   assert.equal(result.ready, false);
   assert.deepEqual(result.missingDecisions, [...readiness.REQUIRED_DECISIONS]);
   assert.deepEqual(result.missingEvidence, [...readiness.REQUIRED_EVIDENCE]);
@@ -37,27 +43,27 @@ test("reports every missing owner decision and validation item", () => {
 
 test("requires explicit true evidence rather than truthy values", () => {
   const evidence = { ...completeEvidence, ciPassed: "yes" };
-  const result = readiness.evaluateMilestoneReadiness({ decisions: completeDecisions, evidence });
+  const result = evaluate(completeDecisions, evidence);
   assert.equal(result.ready, false);
   assert.deepEqual(result.missingEvidence, ["ciPassed"]);
 });
 
 test("rejects blank decisions and non-positive budgets", () => {
   const decisions = { ...completeDecisions, provider: "  ", monthlyBudgetUsd: 0 };
-  const result = readiness.evaluateMilestoneReadiness({ decisions, evidence: completeEvidence });
+  const result = evaluate(decisions);
   assert.deepEqual(result.missingDecisions, ["provider", "monthlyBudgetUsd"]);
 });
 
 test("requires explicit owner approval even when all policy fields are populated", () => {
   const decisions = { ...completeDecisions, ownerApproved: "yes" };
-  const result = readiness.evaluateMilestoneReadiness({ decisions, evidence: completeEvidence });
+  const result = evaluate(decisions);
   assert.equal(result.ready, false);
   assert.deepEqual(result.missingDecisions, ["ownerApproved"]);
 });
 
 test("requires an auditable owner approval record", () => {
   const decisions = { ...completeDecisions, ownerApprovalRecord: null };
-  const result = readiness.evaluateMilestoneReadiness({ decisions, evidence: completeEvidence });
+  const result = evaluate(decisions);
   assert.equal(result.ready, false);
   assert.deepEqual(result.missingDecisions, ["ownerApprovalRecord"]);
 });
@@ -71,7 +77,7 @@ test("rejects malformed or non-canonical approval timestamps", () => {
       policyVersion: "ai-integration-policy-v1"
     }
   };
-  const result = readiness.evaluateMilestoneReadiness({ decisions, evidence: completeEvidence });
+  const result = evaluate(decisions);
   assert.deepEqual(result.missingDecisions, ["ownerApprovalRecord"]);
 });
 
@@ -84,33 +90,60 @@ test("requires approver identity and policy version in approval evidence", () =>
       policyVersion: ""
     }
   };
-  const result = readiness.evaluateMilestoneReadiness({ decisions, evidence: completeEvidence });
+  const result = evaluate(decisions);
   assert.deepEqual(result.missingDecisions, ["ownerApprovalRecord"]);
+});
+
+test("rejects approval records too far in the future", () => {
+  const decisions = {
+    ...completeDecisions,
+    ownerApprovalRecord: {
+      ...completeDecisions.ownerApprovalRecord,
+      approvedAt: "2026-07-27T06:05:00.001Z"
+    }
+  };
+  const result = evaluate(decisions);
+  assert.equal(result.ready, false);
+  assert.deepEqual(result.missingDecisions, ["ownerApprovalRecord"]);
+});
+
+test("permits only the bounded clock-skew allowance", () => {
+  const decisions = {
+    ...completeDecisions,
+    ownerApprovalRecord: {
+      ...completeDecisions.ownerApprovalRecord,
+      approvedAt: "2026-07-27T06:05:00.000Z"
+    }
+  };
+  const result = evaluate(decisions);
+  assert.equal(result.ready, true);
+});
+
+test("rejects malformed evaluation timestamps", () => {
+  assert.throws(
+    () => evaluate(completeDecisions, completeEvidence, "2026-07-27 06:00:00"),
+    /evaluatedAt must be a canonical UTC timestamp/
+  );
 });
 
 test("requires successful integration-policy validation evidence", () => {
   const evidence = { ...completeEvidence, integrationPolicyValidated: false };
-  const result = readiness.evaluateMilestoneReadiness({ decisions: completeDecisions, evidence });
+  const result = evaluate(completeDecisions, evidence);
   assert.equal(result.ready, false);
   assert.deepEqual(result.missingEvidence, ["integrationPolicyValidated"]);
 });
 
 test("returns ready only when all decisions, approval, and evidence are explicit", () => {
-  const result = readiness.evaluateMilestoneReadiness({
-    decisions: completeDecisions,
-    evidence: completeEvidence
-  });
+  const result = evaluate();
   assert.equal(result.ready, true);
   assert.equal(result.status, "ready-for-owner-approved-integration");
+  assert.equal(result.evaluatedAt, evaluatedAt);
   assert.deepEqual(result.missingDecisions, []);
   assert.deepEqual(result.missingEvidence, []);
 });
 
 test("returns immutable readiness output", () => {
-  const result = readiness.evaluateMilestoneReadiness({
-    decisions: completeDecisions,
-    evidence: completeEvidence
-  });
+  const result = evaluate();
   assert.equal(Object.isFrozen(result), true);
   assert.equal(Object.isFrozen(result.missingDecisions), true);
   assert.equal(Object.isFrozen(result.missingEvidence), true);
