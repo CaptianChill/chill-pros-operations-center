@@ -3,19 +3,19 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
-  <meta name="theme-color" content="#02070c">
+  <meta name="theme-color" content="#071018">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Chill Pros Owner">
   <title>Chill Pros — Owner Mobile</title>
   <style>
-    html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02070c}
-    #phoneApp{display:block;width:100%;height:100dvh;border:0;background:#02070c}
-    #loading{position:fixed;inset:0;display:grid;place-items:center;background:#02070c;color:#7edbff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-weight:800;letter-spacing:.08em;z-index:2}
+    html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#071018}
+    #phoneApp{display:block;width:100%;height:100dvh;border:0;background:#071018}
+    #loading{position:fixed;inset:0;display:grid;place-items:center;background:#071018;color:#72d7ff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:.78rem;font-weight:800;letter-spacing:.08em;z-index:2}
   </style>
 </head>
 <body>
-  <div id="loading">LOADING OWNER CONSOLE…</div>
+  <div id="loading" role="status" aria-live="polite">LOADING CHILL PROS…</div>
   <iframe id="phoneApp" src="index.html" title="Chill Pros Owner Mobile Console"></iframe>
   <script>
     const frame = document.getElementById('phoneApp');
@@ -28,10 +28,12 @@
       doc.body.classList.add('iphone-field-mode','iphone-owner-mode');
       doc.title = 'Chill Pros — Owner Mobile';
 
-      const stylesheet = doc.createElement('link');
-      stylesheet.rel = 'stylesheet';
-      stylesheet.href = 'iphone.css';
-      doc.head.appendChild(stylesheet);
+      ['iphone.css', 'iphone-polish.css'].forEach(href => {
+        const stylesheet = doc.createElement('link');
+        stylesheet.rel = 'stylesheet';
+        stylesheet.href = href;
+        doc.head.appendChild(stylesheet);
+      });
 
       const labels = ['Home','Intake','Queue','Jobs','Techs'];
       doc.querySelectorAll('.side-link').forEach((button,index) => {
