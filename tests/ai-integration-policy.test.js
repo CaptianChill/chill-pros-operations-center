@@ -50,6 +50,24 @@ test("rejects invalid budget and retention boundaries", () => {
   assert.throws(() => validateIntegrationPolicy(validPolicy({ retentionDays: 3651 })), /retentionDays/);
 });
 
+test("rejects coercible or non-finite numeric policy values", () => {
+  for (const monthlyBudgetUsd of ["100", true, null, NaN, Infinity, -Infinity]) {
+    assert.throws(
+      () => validateIntegrationPolicy(validPolicy({ monthlyBudgetUsd })),
+      /monthlyBudgetUsd/,
+      String(monthlyBudgetUsd)
+    );
+  }
+
+  for (const retentionDays of ["30", true, null, NaN, Infinity, -Infinity]) {
+    assert.throws(
+      () => validateIntegrationPolicy(validPolicy({ retentionDays })),
+      /retentionDays/,
+      String(retentionDays)
+    );
+  }
+});
+
 test("requires every protected action to remain human-approved", () => {
   const approvalActions = REQUIRED_APPROVAL_ACTIONS.filter((action) => action !== "parts-purchasing");
   assert.throws(() => validateIntegrationPolicy(validPolicy({ approvalActions })), /parts-purchasing/);
