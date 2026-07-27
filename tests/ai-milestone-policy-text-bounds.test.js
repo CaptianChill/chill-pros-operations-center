@@ -61,6 +61,30 @@ test("accepts bounded multiline privacy policy text and normalizes it determinis
   assert.equal(Object.isFrozen(snapshot), true);
 });
 
+test("matches approved policy text across harmless case and outer-whitespace differences", () => {
+  const current = decisions({ privacyPolicy: "  Minimum Necessary Data\nNo Credentials  " });
+  current.ownerApprovalRecord.approvedPolicy = {
+    ...current.ownerApprovalRecord.approvedPolicy,
+    privacyPolicy: "minimum necessary data\nno credentials"
+  };
+
+  const result = readiness.evaluateMilestoneReadiness({ decisions: current, evidence, evaluatedAt });
+  assert.equal(result.ready, true);
+  assert.deepEqual(result.missingDecisions, []);
+});
+
+test("invalidates owner approval when multiline policy line endings drift", () => {
+  const current = decisions({ privacyPolicy: "Minimum Necessary Data\nNo Credentials" });
+  current.ownerApprovalRecord.approvedPolicy = {
+    ...current.ownerApprovalRecord.approvedPolicy,
+    privacyPolicy: "Minimum Necessary Data\r\nNo Credentials"
+  };
+
+  const result = readiness.evaluateMilestoneReadiness({ decisions: current, evidence, evaluatedAt });
+  assert.equal(result.ready, false);
+  assert.deepEqual(result.missingDecisions, ["ownerApprovalRecord"]);
+});
+
 test("readiness remains advisory-only and cannot authorize integration", () => {
   const result = evaluate();
   assert.equal(result.executable, false);
