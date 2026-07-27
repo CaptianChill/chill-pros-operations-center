@@ -25,6 +25,15 @@
     "integrationPolicyValidated"
   ]);
 
+  const POLICY_DECISION_KEYS = Object.freeze([
+    "provider",
+    "monthlyBudgetUsd",
+    "privacyPolicy",
+    "retentionDays",
+    "auditStorage",
+    "approvalPolicy"
+  ]);
+
   const ALLOWED_PROVIDERS = Object.freeze(["openai", "anthropic", "google", "azure-openai", "other"]);
   const ALLOWED_AUDIT_STORAGE = Object.freeze(["firestore", "cloud-logging", "database", "other"]);
   const MAX_MONTHLY_BUDGET_USD = 10000;
@@ -46,6 +55,27 @@
     return typeof value === "string" ? value.trim().toLowerCase() : "";
   }
 
+  function normalizePolicySnapshot(decisions) {
+    if (!isObject(decisions)) return null;
+    const snapshot = {
+      provider: normalizeDecisionText(decisions.provider),
+      monthlyBudgetUsd: decisions.monthlyBudgetUsd,
+      privacyPolicy: normalizeDecisionText(decisions.privacyPolicy),
+      retentionDays: decisions.retentionDays,
+      auditStorage: normalizeDecisionText(decisions.auditStorage),
+      approvalPolicy: normalizeDecisionText(decisions.approvalPolicy)
+    };
+    return Object.freeze(snapshot);
+  }
+
+  function policySnapshotsMatch(approvedPolicy, decisions) {
+    if (!isObject(approvedPolicy)) return false;
+    const current = normalizePolicySnapshot(decisions);
+    const approved = normalizePolicySnapshot(approvedPolicy);
+    if (!current || !approved) return false;
+    return POLICY_DECISION_KEYS.every((key) => approved[key] === current[key]);
+  }
+
   function resolveEvaluationTimestamp(value) {
     if (value === undefined) return new Date().toISOString();
     const normalized = normalizeUtcTimestamp(value);
@@ -53,21 +83,22 @@
     return normalized;
   }
 
-  function approvalRecordPresent(value, evaluatedAt) {
+  function approvalRecordPresent(value, decisions, evaluatedAt) {
     if (!isObject(value)) return false;
     const approverId = typeof value.approverId === "string" ? value.approverId.trim() : "";
     const approvedAt = normalizeUtcTimestamp(value.approvedAt);
     const policyVersion = typeof value.policyVersion === "string" ? value.policyVersion.trim() : "";
     if (!approverId || !approvedAt || !policyVersion) return false;
+    if (!policySnapshotsMatch(value.approvedPolicy, decisions)) return false;
 
     const approvalTime = new Date(approvedAt).getTime();
     const evaluationTime = new Date(evaluatedAt).getTime();
     return approvalTime <= evaluationTime + MAX_APPROVAL_CLOCK_SKEW_MS;
   }
 
-  function decisionPresent(key, value, evaluatedAt) {
+  function decisionPresent(key, value, decisions, evaluatedAt) {
     if (key === "ownerApproved") return value === true;
-    if (key === "ownerApprovalRecord") return approvalRecordPresent(value, evaluatedAt);
+    if (key === "ownerApprovalRecord") return approvalRecordPresent(value, decisions, evaluatedAt);
     if (key === "provider") return ALLOWED_PROVIDERS.includes(normalizeDecisionText(value));
     if (key === "auditStorage") return ALLOWED_AUDIT_STORAGE.includes(normalizeDecisionText(value));
     if (key === "monthlyBudgetUsd") {
@@ -87,7 +118,7 @@
     const decisions = isObject(input.decisions) ? input.decisions : {};
     const evidence = isObject(input.evidence) ? input.evidence : {};
     const missingDecisions = REQUIRED_DECISIONS.filter(
-      (key) => !decisionPresent(key, decisions[key], evaluatedAt)
+      (key) => !decisionPresent(key, decisions[key], decisions, evaluatedAt)
     );
     const missingEvidence = REQUIRED_EVIDENCE.filter((key) => evidence[key] !== true);
     const ready = missingDecisions.length === 0 && missingEvidence.length === 0;
@@ -118,11 +149,13 @@
   return Object.freeze({
     REQUIRED_DECISIONS,
     REQUIRED_EVIDENCE,
+    POLICY_DECISION_KEYS,
     ALLOWED_PROVIDERS,
     ALLOWED_AUDIT_STORAGE,
     MAX_MONTHLY_BUDGET_USD,
     MAX_RETENTION_DAYS,
     MAX_APPROVAL_CLOCK_SKEW_MS,
+    normalizePolicySnapshot,
     evaluateMilestoneReadiness,
     authorizeIntegration
   });
