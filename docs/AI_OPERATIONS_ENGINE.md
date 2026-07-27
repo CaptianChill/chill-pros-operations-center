@@ -147,6 +147,12 @@ The fixture suite verifies:
 
 Real customer records must not be committed as test fixtures. Any future production-derived evaluation case must be manually de-identified before it enters the repository.
 
+## External-model readiness evidence
+
+`ai/milestone-readiness.js` evaluates whether the policy decisions and technical evidence required for a separate external-model integration workstream are complete. It never authorizes integration or production execution.
+
+Owner approval evidence must include a nonblank approver identity, a policy version, and a canonical UTC approval timestamp. The evaluator rejects malformed timestamps and approval records dated more than five minutes after the assessment time. Tests may pass an explicit canonical `evaluatedAt` timestamp so clock-skew behavior remains deterministic. The returned assessment records its evaluation timestamp and remains immutable, advisory-only, and non-executable.
+
 ## Next milestones
 
 1. Connect the read-only normalized technician adapter to an authenticated Firebase technician reader after RC1 data access is validated.
