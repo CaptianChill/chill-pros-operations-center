@@ -11,7 +11,8 @@
     "privacyPolicy",
     "retentionDays",
     "auditStorage",
-    "approvalPolicy"
+    "approvalPolicy",
+    "ownerApproved"
   ]);
 
   const REQUIRED_EVIDENCE = Object.freeze([
@@ -19,17 +20,19 @@
     "advisoryPipelineTested",
     "executionGuardTested",
     "dataMinimizationTested",
-    "auditRedactionTested"
+    "auditRedactionTested",
+    "integrationPolicyValidated"
   ]);
 
   function isObject(value) {
     return Boolean(value) && typeof value === "object" && !Array.isArray(value);
   }
 
-  function present(value) {
+  function decisionPresent(key, value) {
+    if (key === "ownerApproved") return value === true;
     if (typeof value === "string") return value.trim().length > 0;
-    if (typeof value === "number") return Number.isFinite(value) && value >= 0;
-    return value === true;
+    if (typeof value === "number") return Number.isFinite(value) && value > 0;
+    return false;
   }
 
   function evaluateMilestoneReadiness(input = {}) {
@@ -37,7 +40,7 @@
 
     const decisions = isObject(input.decisions) ? input.decisions : {};
     const evidence = isObject(input.evidence) ? input.evidence : {};
-    const missingDecisions = REQUIRED_DECISIONS.filter((key) => !present(decisions[key]));
+    const missingDecisions = REQUIRED_DECISIONS.filter((key) => !decisionPresent(key, decisions[key]));
     const missingEvidence = REQUIRED_EVIDENCE.filter((key) => evidence[key] !== true);
     const ready = missingDecisions.length === 0 && missingEvidence.length === 0;
 
