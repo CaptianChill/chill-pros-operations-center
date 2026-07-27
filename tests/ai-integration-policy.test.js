@@ -78,6 +78,22 @@ test("requires every prohibited data category", () => {
   assert.throws(() => validateIntegrationPolicy(validPolicy({ prohibitedData })), /access-tokens/);
 });
 
+test("rejects unsupported control characters in policy text and arrays", () => {
+  assert.throws(
+    () => validateIntegrationPolicy(validPolicy({ privacyPolicy: "minimum necessary\u0000data" })),
+    /privacyPolicy contains unsupported control characters/
+  );
+  assert.throws(
+    () => validateIntegrationPolicy(validPolicy({ approvalActions: [...REQUIRED_APPROVAL_ACTIONS, "custom\u0007action"] })),
+    /approvalActions contains unsupported control characters/
+  );
+});
+
+test("allows readable multiline privacy policy text", () => {
+  const result = validateIntegrationPolicy(validPolicy({ privacyPolicy: "Minimum necessary data.\nHuman approval is required." }));
+  assert.equal(result.privacyPolicy, "Minimum necessary data.\nHuman approval is required.");
+});
+
 test("rejects duplicates, unsupported options, and malformed input", () => {
   assert.throws(() => validateIntegrationPolicy(null), /must be an object/);
   assert.throws(() => validateIntegrationPolicy(validPolicy({ provider: "unknown-provider" })), /provider is unsupported/);
