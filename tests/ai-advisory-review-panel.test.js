@@ -5,8 +5,10 @@ const test = require("node:test");
 const {
   bindRefreshHandler,
   buildPanelModel,
+  normalizeQueue,
   readJobs,
   renderPanelMarkup,
+  safeCount,
   storageKeyFromConfig
 } = require("../ai/advisory-review-panel");
 const pipeline = require("../ai/advisory-pipeline");
@@ -73,6 +75,37 @@ test("empty queue renders a safe informational state", () => {
   const markup = renderPanelMarkup({ totals: {}, queue: [] });
   assert.ok(markup.includes("No advisory items"));
   assert.ok(markup.includes("cannot approve, execute, or persist"));
+});
+
+test("malformed queue entries are excluded and cannot break rendering", () => {
+  const queue = normalizeQueue([
+    null,
+    "not-an-object",
+    { id: "missing-summary", level: "office-review", score: 20 },
+    { id: "bad-level", summary: "Unsafe", level: "execute-now", score: 20 },
+    { id: "valid", summary: "Review service notes", level: "office-review", score: "not-a-number", reasons: "not-an-array" }
+  ]);
+
+  assert.equal(queue.length, 1);
+  assert.equal(queue[0].id, "valid");
+  assert.equal(queue[0].score, 0);
+  assert.deepEqual(queue[0].reasons, []);
+  assert.throws(() => queue.push({}), TypeError);
+
+  const markup = renderPanelMarkup({
+    totals: { total: "invalid", ownerApproval: -5, officeReview: Infinity, prohibited: 0 },
+    queue
+  });
+  assert.equal(markup.includes("NaN"), false);
+  assert.equal(markup.includes("Infinity"), false);
+  assert.ok(markup.includes("Review service notes"));
+});
+
+test("metric totals fail closed to bounded non-negative integers", () => {
+  assert.equal(safeCount("4.9"), 4);
+  assert.equal(safeCount(-1), 0);
+  assert.equal(safeCount("invalid"), 0);
+  assert.equal(safeCount(Infinity), 0);
 });
 
 test("refresh binding replaces the prior listener instead of stacking callbacks", () => {
