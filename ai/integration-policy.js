@@ -35,6 +35,9 @@
     const normalized = String(value ?? "").trim();
     if (!normalized) throw new TypeError(`${field} is required`);
     if (normalized.length > maxLength) throw new RangeError(`${field} exceeds ${maxLength} characters`);
+    if (/[^\P{Cc}\t\n\r]/u.test(normalized)) {
+      throw new TypeError(`${field} contains unsupported control characters`);
+    }
     return normalized;
   }
 
