@@ -53,6 +53,21 @@ test("rejects control characters in policy decisions and approved snapshots", ()
   assert.deepEqual(evaluate({ approvalPolicy: "human\u001fapproval" }).missingDecisions, ["approvalPolicy", "ownerApprovalRecord"]);
 });
 
+test("rejects invisible Unicode formatting characters in approval evidence", () => {
+  assert.deepEqual(evaluate({ privacyPolicy: "minimum\u200brequired" }).missingDecisions, ["privacyPolicy", "ownerApprovalRecord"]);
+  assert.deepEqual(evaluate({ approvalPolicy: "human\u202eapproval" }).missingDecisions, ["approvalPolicy", "ownerApprovalRecord"]);
+
+  const current = decisions();
+  current.ownerApprovalRecord.approverId = "owner:\u2066captianchill";
+  let result = readiness.evaluateMilestoneReadiness({ decisions: current, evidence, evaluatedAt });
+  assert.deepEqual(result.missingDecisions, ["ownerApprovalRecord"]);
+
+  current.ownerApprovalRecord.approverId = "owner:captianchill";
+  current.ownerApprovalRecord.policyVersion = "ai-policy-\ufeffv1";
+  result = readiness.evaluateMilestoneReadiness({ decisions: current, evidence, evaluatedAt });
+  assert.deepEqual(result.missingDecisions, ["ownerApprovalRecord"]);
+});
+
 test("accepts bounded multiline privacy policy text and normalizes it deterministically", () => {
   const result = evaluate({ privacyPolicy: "  Minimum Necessary Data\nNo Credentials  " });
   assert.equal(result.ready, true);
