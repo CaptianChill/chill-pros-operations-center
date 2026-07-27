@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#02070c">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Chill Pros">
-  <title>Chill Pros — iPhone Field Service</title>
+  <meta name="apple-mobile-web-app-title" content="Chill Pros Owner">
+  <title>Chill Pros — Owner Mobile</title>
   <style>
     html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02070c}
     #phoneApp{display:block;width:100%;height:100dvh;border:0;background:#02070c}
@@ -15,15 +15,19 @@
   </style>
 </head>
 <body>
-  <div id="loading">LOADING FIELD SERVICE…</div>
-  <iframe id="phoneApp" src="index.html" title="Chill Pros iPhone Field Service"></iframe>
+  <div id="loading">LOADING OWNER CONSOLE…</div>
+  <iframe id="phoneApp" src="index.html" title="Chill Pros Owner Mobile Console"></iframe>
   <script>
     const frame = document.getElementById('phoneApp');
     const loading = document.getElementById('loading');
+
     frame.addEventListener('load', () => {
       const doc = frame.contentDocument;
       if (!doc) return;
-      doc.body.classList.add('iphone-field-mode');
+
+      doc.body.classList.add('iphone-field-mode','iphone-owner-mode');
+      doc.title = 'Chill Pros — Owner Mobile';
+
       const stylesheet = doc.createElement('link');
       stylesheet.rel = 'stylesheet';
       stylesheet.href = 'iphone.css';
@@ -32,6 +36,47 @@
       const labels = ['Home','Intake','Queue','Jobs','Techs'];
       doc.querySelectorAll('.side-link').forEach((button,index) => {
         if (labels[index]) button.dataset.mobileLabel = labels[index];
+      });
+
+      const ownerStrip = doc.createElement('div');
+      ownerStrip.className = 'owner-mobile-strip';
+      ownerStrip.innerHTML = '<strong>OWNER MOBILE</strong><span>Full administrative access</span><button type="button" id="ownerMoreButton" aria-expanded="false">MORE</button>';
+      doc.querySelector('.main-panel')?.prepend(ownerStrip);
+
+      const ownerMenu = doc.createElement('div');
+      ownerMenu.className = 'owner-mobile-menu';
+      ownerMenu.setAttribute('aria-hidden','true');
+      ownerMenu.innerHTML = `
+        <button data-owner-view="maintenance">Maintenance</button>
+        <button data-owner-view="equipment">Equipment</button>
+        <button data-owner-view="parts">Parts</button>
+        <button data-owner-view="ai">AI Diagnostics</button>
+        <button data-owner-view="reports">Reports</button>
+        <button data-owner-view="settings">Settings</button>`;
+      doc.body.appendChild(ownerMenu);
+
+      const moreButton = doc.getElementById('ownerMoreButton');
+      const closeMenu = () => {
+        ownerMenu.classList.remove('open');
+        ownerMenu.setAttribute('aria-hidden','true');
+        moreButton?.setAttribute('aria-expanded','false');
+      };
+      moreButton?.addEventListener('click', () => {
+        const opening = !ownerMenu.classList.contains('open');
+        ownerMenu.classList.toggle('open', opening);
+        ownerMenu.setAttribute('aria-hidden', String(!opening));
+        moreButton.setAttribute('aria-expanded', String(opening));
+      });
+      ownerMenu.querySelectorAll('[data-owner-view]').forEach(button => {
+        button.addEventListener('click', () => {
+          const target = button.dataset.ownerView;
+          doc.querySelector(`.side-link[data-view="${target}"]`)?.click();
+          closeMenu();
+          doc.defaultView?.scrollTo({top:0,behavior:'smooth'});
+        });
+      });
+      doc.addEventListener('click', event => {
+        if (!ownerMenu.contains(event.target) && event.target !== moreButton) closeMenu();
       });
 
       loading.remove();
