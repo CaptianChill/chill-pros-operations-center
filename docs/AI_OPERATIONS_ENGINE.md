@@ -151,7 +151,7 @@ Real customer records must not be committed as test fixtures. Any future product
 
 `ai/milestone-readiness.js` evaluates whether the policy decisions and technical evidence required for a separate external-model integration workstream are complete. It never authorizes integration or production execution.
 
-Owner approval evidence must include a nonblank approver identity, a policy version, and a canonical UTC approval timestamp. The evaluator rejects malformed timestamps and approval records dated more than five minutes after the assessment time. Tests may pass an explicit canonical `evaluatedAt` timestamp so clock-skew behavior remains deterministic. The returned assessment records its evaluation timestamp and remains immutable, advisory-only, and non-executable.
+Owner approval evidence must include a nonblank approver identity, a policy version, a canonical UTC approval timestamp, and an `approvedPolicy` snapshot containing the provider, monthly budget, privacy policy, retention period, audit storage, and human-approval policy that the owner actually approved. The evaluator normalizes policy text and compares every approved policy field against the current decision set. Any later policy change invalidates the approval record and requires fresh owner approval. It also rejects malformed timestamps and approval records dated more than five minutes after the assessment time. Tests may pass an explicit canonical `evaluatedAt` timestamp so clock-skew behavior remains deterministic. The returned assessment records its evaluation timestamp and remains immutable, advisory-only, and non-executable.
 
 ## Next milestones
 
