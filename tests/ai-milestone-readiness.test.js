@@ -5,11 +5,11 @@ const readiness = require("../ai/milestone-readiness");
 const evaluatedAt = "2026-07-27T06:00:00.000Z";
 
 const completeDecisions = Object.freeze({
-  provider: "approved-provider",
+  provider: "openai",
   monthlyBudgetUsd: 100,
   privacyPolicy: "minimum-required-data",
   retentionDays: 30,
-  auditStorage: "restricted-admin-store",
+  auditStorage: "firestore",
   approvalPolicy: "human-approval-required",
   ownerApproved: true,
   ownerApprovalRecord: Object.freeze({
@@ -52,6 +52,43 @@ test("rejects blank decisions and non-positive budgets", () => {
   const decisions = { ...completeDecisions, provider: "  ", monthlyBudgetUsd: 0 };
   const result = evaluate(decisions);
   assert.deepEqual(result.missingDecisions, ["provider", "monthlyBudgetUsd"]);
+});
+
+test("rejects providers and audit stores unsupported by the integration policy", () => {
+  const decisions = {
+    ...completeDecisions,
+    provider: "unvalidated-provider",
+    auditStorage: "public-browser-storage"
+  };
+  const result = evaluate(decisions);
+  assert.equal(result.ready, false);
+  assert.deepEqual(result.missingDecisions, ["provider", "auditStorage"]);
+});
+
+test("normalizes supported provider and audit-storage decision text", () => {
+  const decisions = {
+    ...completeDecisions,
+    provider: " OpenAI ",
+    auditStorage: " FIRESTORE "
+  };
+  assert.equal(evaluate(decisions).ready, true);
+});
+
+test("rejects policy numbers outside integration-policy bounds", () => {
+  const invalidBudget = evaluate({
+    ...completeDecisions,
+    monthlyBudgetUsd: readiness.MAX_MONTHLY_BUDGET_USD + 0.01
+  });
+  assert.deepEqual(invalidBudget.missingDecisions, ["monthlyBudgetUsd"]);
+
+  const fractionalRetention = evaluate({ ...completeDecisions, retentionDays: 30.5 });
+  assert.deepEqual(fractionalRetention.missingDecisions, ["retentionDays"]);
+
+  const excessiveRetention = evaluate({
+    ...completeDecisions,
+    retentionDays: readiness.MAX_RETENTION_DAYS + 1
+  });
+  assert.deepEqual(excessiveRetention.missingDecisions, ["retentionDays"]);
 });
 
 test("requires explicit owner approval even when all policy fields are populated", () => {
