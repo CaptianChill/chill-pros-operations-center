@@ -21,6 +21,7 @@ on:
       - "tests/ai-evaluation-fixtures.test.js"
       - "tests/ai-evaluation-report.test.js"
       - "tests/ai-milestone-readiness.test.js"
+      - "tests/ai-integration-policy.test.js"
       - "firebase-config.js"
       - "docs/AI_OPERATIONS_ENGINE.md"
       - ".github/workflows/ai-operations-engine.yml"
@@ -46,6 +47,7 @@ on:
       - "tests/ai-evaluation-fixtures.test.js"
       - "tests/ai-evaluation-report.test.js"
       - "tests/ai-milestone-readiness.test.js"
+      - "tests/ai-integration-policy.test.js"
       - "firebase-config.js"
       - "docs/AI_OPERATIONS_ENGINE.md"
       - ".github/workflows/ai-operations-engine.yml"
@@ -79,10 +81,12 @@ jobs:
           node --check ai/advisory-pipeline.js
           node --check ai/evaluation-report.js
           node --check ai/milestone-readiness.js
+          node --check ai/integration-policy.js
           node --check tests/ai-advisory-review-panel.test.js
           node --check tests/ai-evaluation-fixtures.test.js
           node --check tests/ai-evaluation-report.test.js
           node --check tests/ai-milestone-readiness.test.js
+          node --check tests/ai-integration-policy.test.js
           node --check firebase-config.js
       - name: Run AI operations tests
-        run: node --test tests/ai-operations-engine.test.js tests/ai-daily-operations-brief.test.js tests/ai-dispatch-capacity-policy.test.js tests/ai-approval-policy.test.js tests/ai-recommendation-audit.test.js tests/ai-data-minimization-policy.test.js tests/ai-technician-data-adapter.test.js tests/ai-job-data-adapter.test.js tests/ai-follow-up-flags.test.js tests/ai-advisory-review-queue.test.js tests/ai-advisory-review-panel.test.js tests/ai-model-response-validator.test.js tests/ai-advisory-pipeline.test.js tests/ai-evaluation-fixtures.test.js tests/ai-evaluation-report.test.js tests/ai-milestone-readiness.test.js
+        run: node --test tests/ai-operations-engine.test.js tests/ai-daily-operations-brief.test.js tests/ai-dispatch-capacity-policy.test.js tests/ai-approval-policy.test.js tests/ai-recommendation-audit.test.js tests/ai-data-minimization-policy.test.js tests/ai-technician-data-adapter.test.js tests/ai-job-data-adapter.test.js tests/ai-follow-up-flags.test.js tests/ai-advisory-review-queue.test.js tests/ai-advisory-review-panel.test.js tests/ai-model-response-validator.test.js tests/ai-advisory-pipeline.test.js tests/ai-evaluation-fixtures.test.js tests/ai-evaluation-report.test.js tests/ai-milestone-readiness.test.js tests/ai-integration-policy.test.js
