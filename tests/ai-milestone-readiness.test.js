@@ -8,7 +8,8 @@ const completeDecisions = Object.freeze({
   privacyPolicy: "minimum-required-data",
   retentionDays: 30,
   auditStorage: "restricted-admin-store",
-  approvalPolicy: "human-approval-required"
+  approvalPolicy: "human-approval-required",
+  ownerApproved: true
 });
 
 const completeEvidence = Object.freeze({
@@ -16,7 +17,8 @@ const completeEvidence = Object.freeze({
   advisoryPipelineTested: true,
   executionGuardTested: true,
   dataMinimizationTested: true,
-  auditRedactionTested: true
+  auditRedactionTested: true,
+  integrationPolicyValidated: true
 });
 
 test("reports every missing owner decision and validation item", () => {
@@ -35,13 +37,27 @@ test("requires explicit true evidence rather than truthy values", () => {
   assert.deepEqual(result.missingEvidence, ["ciPassed"]);
 });
 
-test("rejects blank decisions and invalid budgets", () => {
-  const decisions = { ...completeDecisions, provider: "  ", monthlyBudgetUsd: Number.NaN };
+test("rejects blank decisions and non-positive budgets", () => {
+  const decisions = { ...completeDecisions, provider: "  ", monthlyBudgetUsd: 0 };
   const result = readiness.evaluateMilestoneReadiness({ decisions, evidence: completeEvidence });
   assert.deepEqual(result.missingDecisions, ["provider", "monthlyBudgetUsd"]);
 });
 
-test("returns ready only when all decisions and evidence are explicit", () => {
+test("requires explicit owner approval even when all policy fields are populated", () => {
+  const decisions = { ...completeDecisions, ownerApproved: "yes" };
+  const result = readiness.evaluateMilestoneReadiness({ decisions, evidence: completeEvidence });
+  assert.equal(result.ready, false);
+  assert.deepEqual(result.missingDecisions, ["ownerApproved"]);
+});
+
+test("requires successful integration-policy validation evidence", () => {
+  const evidence = { ...completeEvidence, integrationPolicyValidated: false };
+  const result = readiness.evaluateMilestoneReadiness({ decisions: completeDecisions, evidence });
+  assert.equal(result.ready, false);
+  assert.deepEqual(result.missingEvidence, ["integrationPolicyValidated"]);
+});
+
+test("returns ready only when all decisions, approval, and evidence are explicit", () => {
   const result = readiness.evaluateMilestoneReadiness({
     decisions: completeDecisions,
     evidence: completeEvidence
