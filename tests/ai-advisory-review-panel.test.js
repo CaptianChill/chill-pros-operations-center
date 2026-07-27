@@ -3,6 +3,7 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 const {
+  MAX_RENDERED_ITEMS,
   bindRefreshHandler,
   buildPanelModel,
   normalizeQueue,
@@ -106,6 +107,47 @@ test("metric totals fail closed to bounded non-negative integers", () => {
   assert.equal(safeCount(-1), 0);
   assert.equal(safeCount("invalid"), 0);
   assert.equal(safeCount(Infinity), 0);
+});
+
+test("rendering is bounded and announces hidden advisory items", () => {
+  const queue = Array.from({ length: MAX_RENDERED_ITEMS + 3 }, (_, index) => ({
+    id: `review-${index}`,
+    summary: `Recommendation ${index}`,
+    level: "office-review",
+    score: index,
+    reasons: ["Review required"]
+  }));
+
+  const markup = renderPanelMarkup({ totals: { total: queue.length }, queue });
+  const renderedItems = (markup.match(/class="queue-item ai-review-item"/g) || []).length;
+  assert.equal(renderedItems, MAX_RENDERED_ITEMS);
+  assert.ok(markup.includes(`Showing ${MAX_RENDERED_ITEMS} of ${queue.length} advisory items`));
+  assert.ok(markup.includes("3 additional items remain available"));
+});
+
+test("rendered panel includes accessible status and list semantics", () => {
+  const markup = renderPanelMarkup({
+    totals: { total: 1 },
+    queue: [{
+      id: "blocked-1",
+      summary: "Credential request blocked",
+      level: "prohibited",
+      score: 100,
+      reasons: ["Prohibited action"],
+      prohibited: true
+    }]
+  });
+
+  assert.ok(markup.includes('aria-label="AI advisory review totals"'));
+  assert.ok(markup.includes('role="list" aria-label="AI advisory recommendations"'));
+  assert.ok(markup.includes('aria-label="Prohibited recommendation"'));
+});
+
+test("error state is announced without exposing unsafe controls", () => {
+  const markup = renderPanelMarkup({ error: '<script>alert("x")</script>' });
+  assert.ok(markup.includes('role="status" aria-live="polite"'));
+  assert.ok(markup.includes("&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;"));
+  assert.equal(markup.includes("<script>"), false);
 });
 
 test("refresh binding replaces the prior listener instead of stacking callbacks", () => {
