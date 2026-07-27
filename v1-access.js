@@ -3,7 +3,7 @@
   const ROLE_VIEWS = {
     owner: ["dashboard", "new-customer", "office-queue", "today-jobs", "technicians", "maintenance", "equipment", "parts", "ai", "reports", "settings"],
     office: ["dashboard", "new-customer", "office-queue", "today-jobs", "technicians", "maintenance", "equipment", "parts"],
-    technician: ["today-jobs", "technicians", "equipment", "ai"]
+    technician: ["today-jobs", "equipment", "ai"]
   };
 
   let auth = null;
@@ -79,8 +79,12 @@
     return String(value || "").replace(/[&<>"']/g, (character) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[character]));
   }
 
+  function normalizedIdentity(value) {
+    return String(value || "").trim().toLowerCase();
+  }
+
   async function getUserProfile(user) {
-    const normalizedEmail = String(user.email || "").toLowerCase();
+    const normalizedEmail = normalizedIdentity(user.email);
     const isOwner = OWNER_EMAILS.has(normalizedEmail);
     const ownerFallback = {
       uid: user.uid,
@@ -100,6 +104,9 @@
       if (!["owner", "office", "technician"].includes(data.role)) {
         throw new Error("invalid-role-profile");
       }
+      if (data.role === "technician" && !String(data.technicianName || "").trim()) {
+        throw new Error("technician-name-required");
+      }
       return {
         uid: user.uid,
         email: user.email || "",
@@ -117,9 +124,30 @@
     }
   }
 
+  function updateRoleBranding(profile) {
+    document.body.dataset.role = profile.role;
+    const profileBox = document.querySelector(".profile-box");
+    if (!profileBox) return;
+    const title = profileBox.querySelector("strong");
+    const avatar = profileBox.querySelector(".avatar");
+    if (title) {
+      title.textContent = profile.role === "technician"
+        ? "Technician Workspace"
+        : profile.role === "office"
+          ? "Office Console"
+          : "Owner Console";
+    }
+    if (avatar) {
+      const label = profile.displayName || profile.technicianName || profile.email || profile.role;
+      const initials = String(label).split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
+      avatar.textContent = initials || "CP";
+    }
+  }
+
   function applyRole(profile) {
     window.CHILL_PROS_SESSION = profile;
     const allowed = new Set(ROLE_VIEWS[profile.role] || []);
+    updateRoleBranding(profile);
 
     document.querySelectorAll(".side-link").forEach((button) => {
       button.classList.toggle("role-hidden", !allowed.has(button.dataset.view));
@@ -147,14 +175,25 @@
     }
   }
 
+  function technicianOwnsRecord(record, profile) {
+    const technicianName = profile.technicianName || profile.displayName || "";
+    if (record.assignedTechnician === technicianName) return true;
+    if (profile.technicianId && record.assignedTechnicianId) {
+      return String(record.assignedTechnicianId) === String(profile.technicianId);
+    }
+    if (profile.email && record.assignedTechnicianEmail) {
+      return normalizedIdentity(record.assignedTechnicianEmail) === normalizedIdentity(profile.email);
+    }
+    return normalizedIdentity(record.assignedTechnician) === normalizedIdentity(technicianName);
+  }
+
   function installTechnicianJobFilter(profile) {
     if (originalRenderTodayJobs || typeof renderTodayJobs !== "function") return;
     originalRenderTodayJobs = renderTodayJobs;
     renderTodayJobs = function roleFilteredTodayJobs() {
       if (window.CHILL_PROS_SESSION?.role !== "technician") return originalRenderTodayJobs();
-      const technicianName = profile.technicianName || profile.displayName || "";
       const originalQueue = queue;
-      queue = originalQueue.filter((record) => record.assignedTechnician === technicianName);
+      queue = originalQueue.filter((record) => technicianOwnsRecord(record, profile));
       try {
         return originalRenderTodayJobs();
       } finally {
@@ -167,7 +206,12 @@
     unsubscribeCustomers?.();
     unsubscribeTechnicians?.();
 
-    unsubscribeCustomers = window.chillProsDb.collection("Customers").onSnapshot((snapshot) => {
+    let customersQuery = window.chillProsDb.collection("Customers");
+    if (currentProfile?.role === "technician") {
+      customersQuery = customersQuery.where("assignedTechnician", "==", currentProfile.technicianName);
+    }
+
+    unsubscribeCustomers = customersQuery.onSnapshot((snapshot) => {
       queue = snapshot.docs.map((documentSnapshot) => normalizeRecord(documentSnapshot.data(), documentSnapshot.id));
       localStorage.setItem(STORAGE_KEY, JSON.stringify(queue));
       updateCounts();
@@ -175,6 +219,12 @@
       renderTodayJobs();
       renderTechnicianDashboard();
     }, (error) => console.error("Customer realtime listener failed:", error));
+
+    if (currentProfile?.role === "technician") {
+      technicians = [];
+      renderTodayJobs();
+      return;
+    }
 
     unsubscribeTechnicians = window.chillProsDb.collection("Technicians").onSnapshot((snapshot) => {
       technicians = snapshot.docs.map((documentSnapshot) => ({ id: documentSnapshot.id, ...documentSnapshot.data() }));
@@ -228,6 +278,8 @@
       auth.onAuthStateChanged(async (user) => {
         if (!user) {
           currentProfile = null;
+          window.CHILL_PROS_SESSION = null;
+          delete document.body.dataset.role;
           unsubscribeCustomers?.();
           unsubscribeTechnicians?.();
           document.getElementById("sessionBar")?.remove();
@@ -246,6 +298,7 @@
           console.error("Authenticated user is not authorized for an application role:", error);
           currentProfile = null;
           window.CHILL_PROS_SESSION = null;
+          delete document.body.dataset.role;
           unsubscribeCustomers?.();
           unsubscribeTechnicians?.();
           document.getElementById("sessionBar")?.remove();
