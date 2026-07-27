@@ -12,7 +12,7 @@ function read(relativePath) {
 
 const firebaseConfig = read("firebase-config.js");
 for (const [requiredText, label] of [
-  ['["v1-access.js", "production-reset.js"]', "ordered RC1 runtime list"],
+  ['["v1-access.js", "role-ui-patch.js", "production-reset.js"]', "ordered RC1 runtime list"],
   ['document.querySelector(`script[src^="${runtimeScript}"]`)', "duplicate-script protection"],
   ["script.async = false", "ordered dynamic script execution"],
   ["document.head.appendChild(script)", "runtime script injection"],
@@ -38,6 +38,17 @@ if (accessRuntime.includes('fallbackRole = OWNER_EMAILS.has') || accessRuntime.i
   failures.push("v1-access.js must not grant technician access through a fallback role");
 }
 
+const roleUiPatch = read("role-ui-patch.js");
+for (const [requiredText, label] of [
+  ['title: "Technician Workspace"', "technician mobile title"],
+  ['status: "Assigned work only"', "technician access description"],
+  ['document.body?.dataset?.role', "authenticated role source"],
+]) {
+  if (!roleUiPatch.includes(requiredText)) {
+    failures.push(`role-ui-patch.js is missing ${label}`);
+  }
+}
+
 const index = read("index.html");
 for (const requiredScript of ["firebase-config.js", "app.js"]) {
   if (!index.includes(`src="${requiredScript}"`)) {
@@ -60,4 +71,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log("All supported entry points resolve to the shared application and bootstrap fail-closed RC1 access controls.");
+console.log("All supported entry points bootstrap fail-closed access controls and role-specific mobile labels.");
