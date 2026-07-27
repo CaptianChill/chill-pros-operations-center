@@ -9,7 +9,12 @@ const completeDecisions = Object.freeze({
   retentionDays: 30,
   auditStorage: "restricted-admin-store",
   approvalPolicy: "human-approval-required",
-  ownerApproved: true
+  ownerApproved: true,
+  ownerApprovalRecord: Object.freeze({
+    approverId: "owner:captianchill",
+    approvedAt: "2026-07-27T04:00:00.000Z",
+    policyVersion: "ai-integration-policy-v1"
+  })
 });
 
 const completeEvidence = Object.freeze({
@@ -48,6 +53,39 @@ test("requires explicit owner approval even when all policy fields are populated
   const result = readiness.evaluateMilestoneReadiness({ decisions, evidence: completeEvidence });
   assert.equal(result.ready, false);
   assert.deepEqual(result.missingDecisions, ["ownerApproved"]);
+});
+
+test("requires an auditable owner approval record", () => {
+  const decisions = { ...completeDecisions, ownerApprovalRecord: null };
+  const result = readiness.evaluateMilestoneReadiness({ decisions, evidence: completeEvidence });
+  assert.equal(result.ready, false);
+  assert.deepEqual(result.missingDecisions, ["ownerApprovalRecord"]);
+});
+
+test("rejects malformed or non-canonical approval timestamps", () => {
+  const decisions = {
+    ...completeDecisions,
+    ownerApprovalRecord: {
+      approverId: "owner:captianchill",
+      approvedAt: "July 27, 2026",
+      policyVersion: "ai-integration-policy-v1"
+    }
+  };
+  const result = readiness.evaluateMilestoneReadiness({ decisions, evidence: completeEvidence });
+  assert.deepEqual(result.missingDecisions, ["ownerApprovalRecord"]);
+});
+
+test("requires approver identity and policy version in approval evidence", () => {
+  const decisions = {
+    ...completeDecisions,
+    ownerApprovalRecord: {
+      approverId: " ",
+      approvedAt: "2026-07-27T04:00:00.000Z",
+      policyVersion: ""
+    }
+  };
+  const result = readiness.evaluateMilestoneReadiness({ decisions, evidence: completeEvidence });
+  assert.deepEqual(result.missingDecisions, ["ownerApprovalRecord"]);
 });
 
 test("requires successful integration-policy validation evidence", () => {
