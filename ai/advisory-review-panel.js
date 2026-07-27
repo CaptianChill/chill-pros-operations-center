@@ -8,6 +8,7 @@
   const FEATURE_FLAG = "chillProsFeatures:aiOperationsBrief";
   const DEFAULT_STORAGE_KEY = "fieldForged:chill-pros:operations-center:v3";
   const REFRESH_HANDLER_KEY = "__chillProsAiAdvisoryRefreshHandler";
+  const MAX_RENDERED_ITEMS = 12;
   const ALLOWED_LEVELS = new Set(["informational", "office-review", "owner-approval", "prohibited"]);
 
   function escapeHtml(value) {
@@ -83,32 +84,38 @@
 
   function renderPanelMarkup(model) {
     if (model?.error) {
-      return `<article class="queue-item"><div><h3>Review queue unavailable</h3><p class="queue-meta">${escapeHtml(model.error)}</p></div></article>`;
+      return `<article class="queue-item" role="status" aria-live="polite"><div><h3>Review queue unavailable</h3><p class="queue-meta">${escapeHtml(model.error)}</p></div></article>`;
     }
 
     const totals = model?.totals || {};
     const queue = normalizeQueue(model?.queue);
-    const items = queue.length
-      ? queue.slice(0, 12).map((item) => `
+    const visibleQueue = queue.slice(0, MAX_RENDERED_ITEMS);
+    const hiddenCount = Math.max(0, queue.length - visibleQueue.length);
+    const items = visibleQueue.length
+      ? visibleQueue.map((item) => `
         <article class="queue-item ai-review-item" data-recommendation-id="${escapeHtml(item.id)}">
           <div>
             <h3>${escapeHtml(item.summary)}</h3>
             <p class="queue-meta">${escapeHtml(item.level)} • score ${escapeHtml(item.score)}</p>
             <small>${escapeHtml(item.reasons.join(" • ") || "No additional reason supplied")}</small>
           </div>
-          <strong>${item.prohibited ? "BLOCKED" : "REVIEW"}</strong>
+          <strong aria-label="${item.prohibited ? "Prohibited recommendation" : "Human review required"}">${item.prohibited ? "BLOCKED" : "REVIEW"}</strong>
         </article>`).join("")
       : `<article class="queue-item"><div><h3>No advisory items</h3><p class="queue-meta">The review queue is currently empty.</p></div></article>`;
+    const truncationNotice = hiddenCount
+      ? `<p class="queue-meta" role="status">Showing ${visibleQueue.length} of ${queue.length} advisory items. ${hiddenCount} additional items remain available after refresh or filtering.</p>`
+      : "";
 
     return `
-      <div class="metrics-grid ai-review-metrics">
+      <div class="metrics-grid ai-review-metrics" aria-label="AI advisory review totals">
         <article class="metric-card"><div><span>Total</span><strong>${safeCount(totals.total)}</strong></div></article>
         <article class="metric-card"><div><span>Owner Approval</span><strong>${safeCount(totals.ownerApproval)}</strong></div></article>
         <article class="metric-card"><div><span>Office Review</span><strong>${safeCount(totals.officeReview)}</strong></div></article>
         <article class="metric-card"><div><span>Prohibited</span><strong>${safeCount(totals.prohibited)}</strong></div></article>
       </div>
       <p class="queue-meta">Read-only advisory queue. This panel cannot approve, execute, or persist operational changes.</p>
-      <div class="queue-list">${items}</div>`;
+      ${truncationNotice}
+      <div class="queue-list" role="list" aria-label="AI advisory recommendations">${items}</div>`;
   }
 
   function storageKeyFromConfig(config) {
@@ -142,7 +149,8 @@
       container = documentRef.createElement("section");
       container.id = "aiAdvisoryReviewPanel";
       container.className = "form-panel ai-advisory-review-panel";
-      container.innerHTML = `<div class="page-header"><div><p class="eyebrow">HUMAN REVIEW REQUIRED</p><h2>AI Advisory Review Queue</h2></div><button type="button" class="secondary-action" id="refreshAiAdvisoryReviewPanel">Refresh Queue</button></div><div id="aiAdvisoryReviewPanelContent"></div>`;
+      container.setAttribute("aria-labelledby", "aiAdvisoryReviewPanelTitle");
+      container.innerHTML = `<div class="page-header"><div><p class="eyebrow">HUMAN REVIEW REQUIRED</p><h2 id="aiAdvisoryReviewPanelTitle">AI Advisory Review Queue</h2></div><button type="button" class="secondary-action" id="refreshAiAdvisoryReviewPanel" aria-controls="aiAdvisoryReviewPanelContent">Refresh Queue</button></div><div id="aiAdvisoryReviewPanelContent" role="status" aria-live="polite" aria-atomic="true"></div>`;
       aiView.appendChild(container);
     }
 
@@ -170,6 +178,7 @@
   return Object.freeze({
     FEATURE_FLAG,
     DEFAULT_STORAGE_KEY,
+    MAX_RENDERED_ITEMS,
     bindRefreshHandler,
     buildPanelModel,
     escapeHtml,
