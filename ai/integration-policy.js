@@ -45,18 +45,25 @@
     return Object.freeze(normalized);
   }
 
+  function strictFiniteNumber(value, field) {
+    if (typeof value !== "number" || !Number.isFinite(value)) {
+      throw new TypeError(`${field} must be a finite number`);
+    }
+    return value;
+  }
+
   function validateIntegrationPolicy(input) {
     if (!isObject(input)) throw new TypeError("integration policy must be an object");
 
     const provider = boundedText(input.provider, "provider", 80).toLowerCase();
     if (!ALLOWED_PROVIDERS.includes(provider)) throw new TypeError("provider is unsupported");
 
-    const monthlyBudgetUsd = Number(input.monthlyBudgetUsd);
-    if (!Number.isFinite(monthlyBudgetUsd) || monthlyBudgetUsd <= 0 || monthlyBudgetUsd > 10000) {
+    const monthlyBudgetUsd = strictFiniteNumber(input.monthlyBudgetUsd, "monthlyBudgetUsd");
+    if (monthlyBudgetUsd <= 0 || monthlyBudgetUsd > 10000) {
       throw new RangeError("monthlyBudgetUsd must be greater than 0 and no more than 10000");
     }
 
-    const retentionDays = Number(input.retentionDays);
+    const retentionDays = strictFiniteNumber(input.retentionDays, "retentionDays");
     if (!Number.isInteger(retentionDays) || retentionDays < 1 || retentionDays > 3650) {
       throw new RangeError("retentionDays must be an integer from 1 through 3650");
     }
