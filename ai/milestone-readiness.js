@@ -46,6 +46,7 @@
   const MAX_MONTHLY_BUDGET_USD = 10000;
   const MAX_RETENTION_DAYS = 3650;
   const MAX_APPROVAL_CLOCK_SKEW_MS = 5 * 60 * 1000;
+  const MAX_APPROVAL_AGE_MS = 90 * 24 * 60 * 60 * 1000;
   const MAX_APPROVER_ID_LENGTH = 160;
   const MAX_POLICY_VERSION_LENGTH = 120;
 
@@ -117,7 +118,8 @@
 
     const approvalTime = new Date(approvedAt).getTime();
     const evaluationTime = new Date(evaluatedAt).getTime();
-    return approvalTime <= evaluationTime + MAX_APPROVAL_CLOCK_SKEW_MS;
+    const approvalAge = evaluationTime - approvalTime;
+    return approvalAge >= -MAX_APPROVAL_CLOCK_SKEW_MS && approvalAge <= MAX_APPROVAL_AGE_MS;
   }
 
   function decisionPresent(key, value, decisions, evaluatedAt) {
@@ -182,6 +184,7 @@
     MAX_MONTHLY_BUDGET_USD,
     MAX_RETENTION_DAYS,
     MAX_APPROVAL_CLOCK_SKEW_MS,
+    MAX_APPROVAL_AGE_MS,
     MAX_APPROVER_ID_LENGTH,
     MAX_POLICY_VERSION_LENGTH,
     normalizePolicySnapshot,
