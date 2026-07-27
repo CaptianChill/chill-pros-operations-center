@@ -1,4 +1,4 @@
-/* Dedicated iPhone field-service presentation. Loaded only by iphone.html. */
+/* Dedicated iPhone owner presentation. Loaded only by iphone.html. */
 :root{--iphone-nav-height:78px;--iphone-safe-bottom:env(safe-area-inset-bottom,0px)}
 html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:100%;touch-action:manipulation}
 body.iphone-field-mode{padding-bottom:calc(var(--iphone-nav-height) + var(--iphone-safe-bottom));background:#02070c}
@@ -7,13 +7,20 @@ body.iphone-field-mode{padding-bottom:calc(var(--iphone-nav-height) + var(--ipho
 .iphone-field-mode .sidebar{position:fixed;z-index:100;left:0;right:0;bottom:0;top:auto;width:100%;height:calc(var(--iphone-nav-height) + var(--iphone-safe-bottom));padding:7px 8px var(--iphone-safe-bottom);border:0;border-top:1px solid #1e6a9c;background:rgba(2,7,12,.97);backdrop-filter:blur(16px);box-shadow:0 -8px 30px rgba(0,0,0,.55);overflow:visible}
 .iphone-field-mode .brand-block,.iphone-field-mode .ice-message{display:none}
 .iphone-field-mode .side-nav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;margin:0;height:64px}
-.iphone-field-mode .side-link{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:2px;min-width:0;height:62px;padding:5px 2px;border-radius:12px;font-size:0;color:#dff7ff;text-align:center}
+.iphone-field-mode .side-link{position:relative;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:2px;min-width:0;height:62px;padding:5px 2px;border-radius:12px;font-size:0;color:#dff7ff;text-align:center}
 .iphone-field-mode .side-link span{font-size:1.28rem;line-height:1}
 .iphone-field-mode .side-link::after{content:attr(data-mobile-label);font-size:.61rem;line-height:1.05;font-weight:800;white-space:nowrap}
 .iphone-field-mode .side-link b{position:absolute;right:6px;top:3px;margin:0;padding:1px 5px;font-size:.58rem}
 .iphone-field-mode .side-link:nth-child(n+6){display:none}
-.iphone-field-mode .hero-banner{min-height:112px;margin:0 -10px 10px;border-radius:0 0 18px 18px;border-left:0;border-right:0;background-position:center}
-.iphone-field-mode .hero-overlay{padding:14px 10px;text-align:center}
+.iphone-field-mode .owner-mobile-strip{position:sticky;top:0;z-index:80;display:grid;grid-template-columns:1fr auto;grid-template-areas:'title button' 'status button';align-items:center;gap:1px 10px;margin:0 -10px;padding:calc(8px + env(safe-area-inset-top,0px)) 12px 9px;background:rgba(2,7,12,.96);border-bottom:1px solid rgba(126,219,255,.35);backdrop-filter:blur(14px)}
+.iphone-field-mode .owner-mobile-strip strong{grid-area:title;color:#eafaff;font-size:.78rem;letter-spacing:.12em}
+.iphone-field-mode .owner-mobile-strip span{grid-area:status;color:#72d7ff;font-size:.64rem}
+.iphone-field-mode .owner-mobile-strip button{grid-area:button;min-height:36px;padding:7px 11px;border-radius:10px;border:1px solid #277eaf;background:#08243a;color:#eafaff;font-size:.68rem;font-weight:900;letter-spacing:.08em}
+.iphone-field-mode .owner-mobile-menu{position:fixed;z-index:160;left:10px;right:10px;bottom:calc(var(--iphone-nav-height) + var(--iphone-safe-bottom) + 10px);display:none;grid-template-columns:1fr 1fr;gap:8px;padding:12px;border:1px solid #287eae;border-radius:16px;background:rgba(3,13,22,.98);box-shadow:0 14px 44px rgba(0,0,0,.65);backdrop-filter:blur(18px)}
+.iphone-field-mode .owner-mobile-menu.open{display:grid}
+.iphone-field-mode .owner-mobile-menu button{min-height:48px;padding:10px;border:1px solid rgba(126,219,255,.28);border-radius:12px;background:#071d2d;color:#eafaff;font-size:.78rem;font-weight:800}
+.iphone-field-mode .hero-banner{min-height:106px;margin:0 -10px 10px;border-radius:0 0 18px 18px;border-left:0;border-right:0;background-position:center}
+.iphone-field-mode .hero-overlay{padding:13px 10px;text-align:center}
 .iphone-field-mode .hero-overlay h1{font-size:clamp(1.55rem,8vw,2.25rem);line-height:1.02}
 .iphone-field-mode .hero-overlay .eyebrow{margin:0 0 3px}
 .iphone-field-mode .tagline{font-size:.67rem;letter-spacing:.18em}
