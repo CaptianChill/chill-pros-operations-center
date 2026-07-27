@@ -49,6 +49,7 @@
   const MAX_APPROVAL_AGE_MS = 90 * 24 * 60 * 60 * 1000;
   const MAX_APPROVER_ID_LENGTH = 160;
   const MAX_POLICY_VERSION_LENGTH = 120;
+  const MAX_POLICY_TEXT_LENGTH = 1000;
 
   function isObject(value) {
     return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -73,23 +74,35 @@
     return typeof value === "string" ? value.trim().toLowerCase() : "";
   }
 
-  function boundedApprovalText(value, maxLength) {
+  function boundedText(value, maxLength, options = {}) {
     if (typeof value !== "string") return "";
     const normalized = value.trim();
     if (!normalized || normalized.length > maxLength) return "";
-    if (/[\u0000-\u001f\u007f]/.test(normalized)) return "";
-    return normalized;
+    if (/[^\P{Cc}\t\n\r]/u.test(normalized)) return "";
+    if (options.singleLine && /[\t\n\r]/.test(normalized)) return "";
+    return options.lowercase ? normalized.toLowerCase() : normalized;
+  }
+
+  function boundedApprovalText(value, maxLength) {
+    return boundedText(value, maxLength, { singleLine: true });
+  }
+
+  function boundedPolicyText(value) {
+    return boundedText(value, MAX_POLICY_TEXT_LENGTH, { lowercase: true });
   }
 
   function normalizePolicySnapshot(decisions) {
     if (!hasOwnKeys(decisions, POLICY_DECISION_KEYS)) return null;
+    const privacyPolicy = boundedPolicyText(decisions.privacyPolicy);
+    const approvalPolicy = boundedPolicyText(decisions.approvalPolicy);
+    if (!privacyPolicy || !approvalPolicy) return null;
     const snapshot = {
       provider: normalizeDecisionText(decisions.provider),
       monthlyBudgetUsd: decisions.monthlyBudgetUsd,
-      privacyPolicy: normalizeDecisionText(decisions.privacyPolicy),
+      privacyPolicy,
       retentionDays: decisions.retentionDays,
       auditStorage: normalizeDecisionText(decisions.auditStorage),
-      approvalPolicy: normalizeDecisionText(decisions.approvalPolicy)
+      approvalPolicy
     };
     return Object.freeze(snapshot);
   }
@@ -133,6 +146,7 @@
     if (key === "retentionDays") {
       return Number.isInteger(value) && value >= 1 && value <= MAX_RETENTION_DAYS;
     }
+    if (key === "privacyPolicy" || key === "approvalPolicy") return Boolean(boundedPolicyText(value));
     if (typeof value === "string") return value.trim().length > 0;
     return false;
   }
@@ -187,6 +201,7 @@
     MAX_APPROVAL_AGE_MS,
     MAX_APPROVER_ID_LENGTH,
     MAX_POLICY_VERSION_LENGTH,
+    MAX_POLICY_TEXT_LENGTH,
     normalizePolicySnapshot,
     evaluateMilestoneReadiness,
     authorizeIntegration
