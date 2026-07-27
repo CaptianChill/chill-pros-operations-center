@@ -90,6 +90,13 @@ if (fs.existsSync(firebaseConfigPath)) {
     if (firebaseConfig.firestore?.rules !== "firestore.rules") {
       failures.push("firebase.json must deploy firestore.rules");
     }
+    if (firebaseConfig.hosting?.public !== ".") {
+      failures.push('firebase.json hosting.public must be "."');
+    }
+    const hostingIgnore = firebaseConfig.hosting?.ignore;
+    if (!Array.isArray(hostingIgnore) || !hostingIgnore.includes("functions/**")) {
+      failures.push("firebase.json hosting.ignore must exclude functions/**");
+    }
   } catch (error) {
     failures.push(`firebase.json is invalid JSON: ${error.message}`);
   }
@@ -189,4 +196,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log("RC1 structural, production-empty-state, security, Jobber-backend, technician-access, and recovery smoke checks passed.");
+console.log("RC1 structural, production-empty-state, security, hosting, Jobber-backend, technician-access, and recovery smoke checks passed.");
