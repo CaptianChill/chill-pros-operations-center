@@ -25,6 +25,10 @@
     "integrationPolicyValidated"
   ]);
 
+  const ALLOWED_PROVIDERS = Object.freeze(["openai", "anthropic", "google", "azure-openai", "other"]);
+  const ALLOWED_AUDIT_STORAGE = Object.freeze(["firestore", "cloud-logging", "database", "other"]);
+  const MAX_MONTHLY_BUDGET_USD = 10000;
+  const MAX_RETENTION_DAYS = 3650;
   const MAX_APPROVAL_CLOCK_SKEW_MS = 5 * 60 * 1000;
 
   function isObject(value) {
@@ -36,6 +40,10 @@
     const parsed = new Date(value);
     if (Number.isNaN(parsed.getTime())) return "";
     return parsed.toISOString() === value ? value : "";
+  }
+
+  function normalizeDecisionText(value) {
+    return typeof value === "string" ? value.trim().toLowerCase() : "";
   }
 
   function resolveEvaluationTimestamp(value) {
@@ -60,8 +68,15 @@
   function decisionPresent(key, value, evaluatedAt) {
     if (key === "ownerApproved") return value === true;
     if (key === "ownerApprovalRecord") return approvalRecordPresent(value, evaluatedAt);
+    if (key === "provider") return ALLOWED_PROVIDERS.includes(normalizeDecisionText(value));
+    if (key === "auditStorage") return ALLOWED_AUDIT_STORAGE.includes(normalizeDecisionText(value));
+    if (key === "monthlyBudgetUsd") {
+      return typeof value === "number" && Number.isFinite(value) && value > 0 && value <= MAX_MONTHLY_BUDGET_USD;
+    }
+    if (key === "retentionDays") {
+      return Number.isInteger(value) && value >= 1 && value <= MAX_RETENTION_DAYS;
+    }
     if (typeof value === "string") return value.trim().length > 0;
-    if (typeof value === "number") return Number.isFinite(value) && value > 0;
     return false;
   }
 
@@ -103,6 +118,10 @@
   return Object.freeze({
     REQUIRED_DECISIONS,
     REQUIRED_EVIDENCE,
+    ALLOWED_PROVIDERS,
+    ALLOWED_AUDIT_STORAGE,
+    MAX_MONTHLY_BUDGET_USD,
+    MAX_RETENTION_DAYS,
     MAX_APPROVAL_CLOCK_SKEW_MS,
     evaluateMilestoneReadiness,
     authorizeIntegration
