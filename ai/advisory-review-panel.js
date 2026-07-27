@@ -8,6 +8,7 @@
   const FEATURE_FLAG = "chillProsFeatures:aiOperationsBrief";
   const DEFAULT_STORAGE_KEY = "fieldForged:chill-pros:operations-center:v3";
   const REFRESH_HANDLER_KEY = "__chillProsAiAdvisoryRefreshHandler";
+  const ALLOWED_LEVELS = new Set(["informational", "office-review", "owner-approval", "prohibited"]);
 
   function escapeHtml(value) {
     return String(value ?? "")
@@ -16,6 +17,40 @@
       .replaceAll(">", "&gt;")
       .replaceAll('"', "&quot;")
       .replaceAll("'", "&#039;");
+  }
+
+  function safeCount(value) {
+    const number = Number(value);
+    return Number.isFinite(number) && number >= 0 ? Math.floor(number) : 0;
+  }
+
+  function normalizeQueueItem(item) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return null;
+    const id = String(item.id ?? "").trim().slice(0, 160);
+    const summary = String(item.summary ?? "").trim().slice(0, 500);
+    if (!id || !summary || !ALLOWED_LEVELS.has(item.level)) return null;
+
+    const score = Number(item.score);
+    const reasons = Array.isArray(item.reasons)
+      ? item.reasons
+        .map((reason) => String(reason ?? "").trim().slice(0, 500))
+        .filter(Boolean)
+        .slice(0, 8)
+      : [];
+
+    return Object.freeze({
+      id,
+      summary,
+      level: item.level,
+      score: Number.isFinite(score) ? Math.max(0, Math.min(100, score)) : 0,
+      reasons: Object.freeze(reasons),
+      prohibited: item.prohibited === true || item.level === "prohibited"
+    });
+  }
+
+  function normalizeQueue(value) {
+    if (!Array.isArray(value)) return Object.freeze([]);
+    return Object.freeze(value.map(normalizeQueueItem).filter(Boolean));
   }
 
   function readJobs(storage, key = DEFAULT_STORAGE_KEY) {
@@ -52,14 +87,14 @@
     }
 
     const totals = model?.totals || {};
-    const queue = Array.isArray(model?.queue) ? model.queue : [];
+    const queue = normalizeQueue(model?.queue);
     const items = queue.length
       ? queue.slice(0, 12).map((item) => `
         <article class="queue-item ai-review-item" data-recommendation-id="${escapeHtml(item.id)}">
           <div>
             <h3>${escapeHtml(item.summary)}</h3>
             <p class="queue-meta">${escapeHtml(item.level)} • score ${escapeHtml(item.score)}</p>
-            <small>${escapeHtml((item.reasons || []).join(" • ") || "No additional reason supplied")}</small>
+            <small>${escapeHtml(item.reasons.join(" • ") || "No additional reason supplied")}</small>
           </div>
           <strong>${item.prohibited ? "BLOCKED" : "REVIEW"}</strong>
         </article>`).join("")
@@ -67,10 +102,10 @@
 
     return `
       <div class="metrics-grid ai-review-metrics">
-        <article class="metric-card"><div><span>Total</span><strong>${Number(totals.total || 0)}</strong></div></article>
-        <article class="metric-card"><div><span>Owner Approval</span><strong>${Number(totals.ownerApproval || 0)}</strong></div></article>
-        <article class="metric-card"><div><span>Office Review</span><strong>${Number(totals.officeReview || 0)}</strong></div></article>
-        <article class="metric-card"><div><span>Prohibited</span><strong>${Number(totals.prohibited || 0)}</strong></div></article>
+        <article class="metric-card"><div><span>Total</span><strong>${safeCount(totals.total)}</strong></div></article>
+        <article class="metric-card"><div><span>Owner Approval</span><strong>${safeCount(totals.ownerApproval)}</strong></div></article>
+        <article class="metric-card"><div><span>Office Review</span><strong>${safeCount(totals.officeReview)}</strong></div></article>
+        <article class="metric-card"><div><span>Prohibited</span><strong>${safeCount(totals.prohibited)}</strong></div></article>
       </div>
       <p class="queue-meta">Read-only advisory queue. This panel cannot approve, execute, or persist operational changes.</p>
       <div class="queue-list">${items}</div>`;
@@ -139,8 +174,11 @@
     buildPanelModel,
     escapeHtml,
     mount,
+    normalizeQueue,
+    normalizeQueueItem,
     readJobs,
     renderPanelMarkup,
+    safeCount,
     storageKeyFromConfig
   });
 });
