@@ -78,7 +78,7 @@
     if (typeof value !== "string") return "";
     const normalized = value.trim();
     if (!normalized || normalized.length > maxLength) return "";
-    if (/[^\P{Cc}\t\n\r]/u.test(normalized)) return "";
+    if (/[\p{Cc}\p{Cf}&&[^\t\n\r]]/u.test(normalized)) return "";
     if (options.singleLine && /[\t\n\r]/.test(normalized)) return "";
     return options.lowercase ? normalized.toLowerCase() : normalized;
   }
