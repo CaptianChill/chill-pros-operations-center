@@ -153,6 +153,8 @@ Real customer records must not be committed as test fixtures. Any future product
 
 Owner approval evidence must include a nonblank approver identity, a policy version, a canonical UTC approval timestamp, and an `approvedPolicy` snapshot containing the provider, monthly budget, privacy policy, retention period, audit storage, and human-approval policy that the owner actually approved. The evaluator normalizes policy text and compares every approved policy field against the current decision set. Any later policy change invalidates the approval record and requires fresh owner approval. It also rejects malformed timestamps and approval records dated more than five minutes after the assessment time. Tests may pass an explicit canonical `evaluatedAt` timestamp so clock-skew behavior remains deterministic. The returned assessment records its evaluation timestamp and remains immutable, advisory-only, and non-executable.
 
+The integration policy accepts budget and retention values only as explicit finite JavaScript numbers. Numeric strings, booleans, `null`, `NaN`, and infinities are rejected rather than coerced, keeping policy validation aligned with the readiness gate and preventing ambiguous configuration evidence.
+
 ## Next milestones
 
 1. Connect the read-only normalized technician adapter to an authenticated Firebase technician reader after RC1 data access is validated.
