@@ -12,7 +12,8 @@
     "retentionDays",
     "auditStorage",
     "approvalPolicy",
-    "ownerApproved"
+    "ownerApproved",
+    "ownerApprovalRecord"
   ]);
 
   const REQUIRED_EVIDENCE = Object.freeze([
@@ -28,8 +29,24 @@
     return Boolean(value) && typeof value === "object" && !Array.isArray(value);
   }
 
+  function normalizeUtcTimestamp(value) {
+    if (typeof value !== "string" || !value.trim()) return "";
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return "";
+    return parsed.toISOString() === value ? value : "";
+  }
+
+  function approvalRecordPresent(value) {
+    if (!isObject(value)) return false;
+    const approverId = typeof value.approverId === "string" ? value.approverId.trim() : "";
+    const approvedAt = normalizeUtcTimestamp(value.approvedAt);
+    const policyVersion = typeof value.policyVersion === "string" ? value.policyVersion.trim() : "";
+    return Boolean(approverId && approvedAt && policyVersion);
+  }
+
   function decisionPresent(key, value) {
     if (key === "ownerApproved") return value === true;
+    if (key === "ownerApprovalRecord") return approvalRecordPresent(value);
     if (typeof value === "string") return value.trim().length > 0;
     if (typeof value === "number") return Number.isFinite(value) && value > 0;
     return false;
