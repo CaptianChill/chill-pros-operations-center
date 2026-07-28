@@ -5,18 +5,24 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function hasUserProfile() {
+      return signedIn() && exists(/databases/$(database)/documents/Users/$(request.auth.uid));
+    }
+
     function userProfile() {
       return get(/databases/$(database)/documents/Users/$(request.auth.uid)).data;
     }
 
     function role() {
-      return signedIn() && exists(/databases/$(database)/documents/Users/$(request.auth.uid))
-        ? userProfile().role
-        : null;
+      return hasUserProfile() ? userProfile().role : null;
+    }
+
+    function technicianName() {
+      return hasUserProfile() ? userProfile().technicianName : null;
     }
 
     function isOwner() {
-      return signedIn() && (role() == 'owner' || request.auth.token.email == 'chillprostx@gmail.com');
+      return signedIn() && role() == 'owner';
     }
 
     function isOffice() {
@@ -24,7 +30,49 @@ service cloud.firestore {
     }
 
     function isTechnician() {
-      return signedIn() && role() == 'technician';
+      return signedIn()
+        && role() == 'technician'
+        && technicianName() is string
+        && technicianName().size() > 0;
+    }
+
+    function assignedToCurrentTechnician(data) {
+      return isTechnician()
+        && data.assignedTechnician is string
+        && data.assignedTechnician == technicianName();
+    }
+
+    function technicianUpdateFieldsAreSafe() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'officeStatus',
+        'statusUpdatedAt',
+        'completedAt',
+        'findings',
+        'recommendation',
+        'workNotes',
+        'partsUsed',
+        'laborTimeNotes',
+        'photoNotes',
+        'photoReferences'
+      ]);
+    }
+
+    function technicianStatusTransitionIsSafe() {
+      return request.resource.data.officeStatus == resource.data.officeStatus
+        || request.resource.data.officeStatus in [
+          'Dispatched',
+          'In Progress',
+          'Paused',
+          'Waiting on Parts',
+          'Ready to Invoice',
+          'Completed'
+        ];
+    }
+
+    function technicianCompletionStateIsSafe() {
+      return request.resource.data.officeStatus == 'Completed'
+        ? request.resource.data.completedAt is timestamp
+        : !('completedAt' in request.resource.data);
     }
 
     match /Users/{userId} {
@@ -33,13 +81,19 @@ service cloud.firestore {
     }
 
     match /Customers/{customerId} {
-      allow read: if signedIn();
-      allow create, update: if isOwner() || isOffice() || isTechnician();
+      allow read: if isOwner() || isOffice() || assignedToCurrentTechnician(resource.data);
+      allow create: if isOwner() || isOffice();
+      allow update: if isOwner() || isOffice()
+        || (assignedToCurrentTechnician(resource.data)
+          && request.resource.data.assignedTechnician == resource.data.assignedTechnician
+          && technicianUpdateFieldsAreSafe()
+          && technicianStatusTransitionIsSafe()
+          && technicianCompletionStateIsSafe());
       allow delete: if isOwner() || isOffice();
     }
 
     match /Technicians/{technicianId} {
-      allow read: if signedIn();
+      allow read: if isOwner() || isOffice() || isTechnician();
       allow create, update, delete: if isOwner() || isOffice();
     }
 
