@@ -50,13 +50,18 @@
     link.hidden = true;
 
     const parent = document.body || document.documentElement;
-    parent?.appendChild(link);
+    if (!parent) {
+      URL.revokeObjectURL(url);
+      throw new Error("Completed jobs export requires an attached document root");
+    }
+
+    parent.appendChild(link);
     link.click();
     link.remove();
 
-    // Safari can cancel a download when the object URL is revoked in the same task.
-    // Delay cleanup until the browser has accepted the navigation request.
-    globalScope.setTimeout(() => URL.revokeObjectURL(url), 0);
+    // WebKit may still be consuming the object URL after the click task completes.
+    // Keep it alive briefly so iPhone/iPad Safari can finish the download reliably.
+    globalScope.setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   const exportButton = document.getElementById("exportCompletedReports");
