@@ -47,8 +47,16 @@
     const link = document.createElement("a");
     link.href = url;
     link.download = `chill-pros-completed-jobs-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.hidden = true;
+
+    const parent = document.body || document.documentElement;
+    parent?.appendChild(link);
     link.click();
-    URL.revokeObjectURL(url);
+    link.remove();
+
+    // Safari can cancel a download when the object URL is revoked in the same task.
+    // Delay cleanup until the browser has accepted the navigation request.
+    globalScope.setTimeout(() => URL.revokeObjectURL(url), 0);
   }
 
   const exportButton = document.getElementById("exportCompletedReports");
