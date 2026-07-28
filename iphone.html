@@ -28,7 +28,7 @@
       doc.body.classList.add('iphone-field-mode','iphone-owner-mode');
       doc.title = 'Chill Pros — Owner Mobile';
 
-      ['iphone.css', 'iphone-polish.css', 'iphone-finish.css'].forEach(href => {
+      ['iphone.css', 'iphone-polish.css', 'iphone-finish.css', 'iphone-command.css'].forEach(href => {
         const stylesheet = doc.createElement('link');
         stylesheet.rel = 'stylesheet';
         stylesheet.href = href;
@@ -42,10 +42,12 @@
 
       const ownerStrip = doc.createElement('div');
       ownerStrip.className = 'owner-mobile-strip';
-      ownerStrip.innerHTML = '<strong>OWNER MOBILE</strong><span>Full administrative access</span><button type="button" id="ownerMoreButton" aria-expanded="false">MORE</button>';
+      ownerStrip.setAttribute('role','banner');
+      ownerStrip.innerHTML = '<strong>Chill Pros Command Center</strong><span>Owner workspace</span><button type="button" id="ownerMoreButton" aria-expanded="false" aria-controls="ownerMobileMenu">MORE</button>';
       doc.querySelector('.main-panel')?.prepend(ownerStrip);
 
       const ownerMenu = doc.createElement('div');
+      ownerMenu.id = 'ownerMobileMenu';
       ownerMenu.className = 'owner-mobile-menu';
       ownerMenu.setAttribute('aria-hidden','true');
       ownerMenu.innerHTML = `
@@ -79,6 +81,12 @@
       });
       doc.addEventListener('click', event => {
         if (!ownerMenu.contains(event.target) && event.target !== moreButton) closeMenu();
+      });
+      doc.addEventListener('keydown', event => {
+        if (event.key === 'Escape') {
+          closeMenu();
+          moreButton?.focus();
+        }
       });
 
       loading.remove();
