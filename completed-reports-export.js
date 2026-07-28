@@ -42,7 +42,9 @@
 
   function downloadCompletedJobsCsv(records) {
     const csv = buildCompletedJobsCsv(records);
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    // The UTF-8 BOM keeps customer names, notes, and equipment symbols readable
+    // when the downloaded CSV is opened directly in desktop Excel.
+    const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
