@@ -84,6 +84,26 @@ requireMatch(
 );
 requireMatch(
   commandCss,
+  'safe-area top padding must remain applied to the owner strip',
+  /owner-mobile-strip[\s\S]*?env\(safe-area-inset-top/,
+);
+requireMatch(
+  commandCss,
+  'KPI ribbon must retain contained horizontal scrolling',
+  /metrics-grid[\s\S]*?overflow-x:\s*auto[\s\S]*?scroll-snap-type:\s*x\s+proximity/,
+);
+requireMatch(
+  commandCss,
+  'keyboard users must retain a visible focus treatment',
+  /:focus-visible[\s\S]*?outline:\s*3px\s+solid/,
+);
+requireMatch(
+  commandCss,
+  'dense tables must remain horizontally contained on narrow screens',
+  /table-wrap[\s\S]*?overflow-x:\s*auto/,
+);
+requireMatch(
+  commandCss,
   'reduced-motion support must remain defined',
   /@media\(prefers-reduced-motion:reduce\)/,
 );
