@@ -19,6 +19,7 @@ assert.match(runtimeSource, /stopImmediatePropagation\(\)/, "runtime must suppre
 assert.match(runtimeSource, /capture:\s*true/, "secure export listener must run in the capture phase");
 assert.match(runtimeSource, /filteredCompletedJobs/, "runtime must export the currently filtered report dataset");
 assert.match(runtimeSource, /setTimeout\(\(\) => URL\.revokeObjectURL\(url\), 1000\)/, "object URL cleanup must allow Safari time to consume the download");
+assert.match(runtimeSource, /if \(!downloadStarted\)[\s\S]*URL\.revokeObjectURL\(url\)/, "failed clicks must revoke the object URL immediately");
 
 const capturedListeners = [];
 const downloads = [];
@@ -48,6 +49,7 @@ const body = {
 const context = {
   console,
   Blob: TestBlob,
+  throwOnClick: false,
   URL: {
     createObjectURL(blob) {
       context.lastBlob = blob;
@@ -72,6 +74,9 @@ const context = {
       assert.equal(tag, "a");
       return {
         click() {
+          if (context.throwOnClick) {
+            throw new Error("Download blocked");
+          }
           downloads.push({ href: this.href, download: this.download, hidden: this.hidden });
         },
         remove() {
@@ -129,5 +134,16 @@ assert.equal(revokedUrls.length, 0, "object URL must not be revoked in the click
 assert.equal(scheduledCallbacks.length, 1, "object URL cleanup must be scheduled");
 scheduledCallbacks[0]();
 assert.deepEqual(revokedUrls, ["blob:test"], "scheduled cleanup must revoke the generated object URL");
+
+context.throwOnClick = true;
+assert.throws(
+  () => context.ChillProsCompletedReportsExport.downloadCompletedJobsCsv(context.filteredCompletedJobs),
+  /Download blocked/,
+  "download failures must propagate to the caller"
+);
+assert.equal(appendedLinks.length, 2, "failed download link must still be attached before clicking");
+assert.equal(removedLinks.length, 2, "failed download link must be removed in finally cleanup");
+assert.deepEqual(revokedUrls, ["blob:test", "blob:test"], "failed downloads must revoke their object URL immediately");
+assert.equal(scheduledCallbacks.length, 1, "failed downloads must not schedule delayed cleanup");
 
 console.log("Completed reports secure CSV runtime contract passed.");
