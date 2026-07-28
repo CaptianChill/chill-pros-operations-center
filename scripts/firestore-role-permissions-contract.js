@@ -51,8 +51,8 @@ if (!allowlistMatch) {
 const forbiddenPatterns = [
   [/request\.auth\.token\.email\s*==/, "email-address owner bypass"],
   [/match\s+\/Customers\/\{customerId\}[\s\S]*allow\s+read:\s*if\s+signedIn\(\)/, "all-authenticated customer reads"],
-  [/allow\s+create,\s*update:\s*if[\s\S]*isTechnician\(\)/, "unrestricted technician customer writes"],
-  [/allow\s+create:\s*if[\s\S]*isTechnician\(\)/, "technician customer creation"]
+  [/allow\s+create,\s*update\s*:\s*if\s*[^;]*\bisTechnician\(\)/, "unrestricted technician customer writes"],
+  [/allow\s+create\s*:\s*if\s*[^;]*\bisTechnician\(\)/, "technician customer creation"]
 ];
 
 for (const [pattern, label] of forbiddenPatterns) {
