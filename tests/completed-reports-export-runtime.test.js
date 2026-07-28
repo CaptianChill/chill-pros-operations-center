@@ -17,9 +17,14 @@ assert.match(runtimeSource, /Secure CSV export utility is unavailable/, "runtime
 assert.match(runtimeSource, /stopImmediatePropagation\(\)/, "runtime must suppress the legacy export listener");
 assert.match(runtimeSource, /capture:\s*true/, "secure export listener must run in the capture phase");
 assert.match(runtimeSource, /filteredCompletedJobs/, "runtime must export the currently filtered report dataset");
+assert.match(runtimeSource, /setTimeout\(\(\) => URL\.revokeObjectURL\(url\), 0\)/, "object URL cleanup must be delayed for Safari compatibility");
 
 const capturedListeners = [];
 const downloads = [];
+const appendedLinks = [];
+const removedLinks = [];
+const revokedUrls = [];
+const scheduledCallbacks = [];
 const exportButton = {
   addEventListener(type, handler, options) {
     capturedListeners.push({ type, handler, options });
@@ -33,6 +38,12 @@ class TestBlob {
   }
 }
 
+const body = {
+  appendChild(node) {
+    appendedLinks.push(node);
+  }
+};
+
 const context = {
   console,
   Blob: TestBlob,
@@ -41,9 +52,18 @@ const context = {
       context.lastBlob = blob;
       return "blob:test";
     },
-    revokeObjectURL() {}
+    revokeObjectURL(url) {
+      revokedUrls.push(url);
+    }
+  },
+  setTimeout(callback, delay) {
+    assert.equal(delay, 0);
+    scheduledCallbacks.push(callback);
+    return scheduledCallbacks.length;
   },
   document: {
+    body,
+    documentElement: body,
     getElementById(id) {
       return id === "exportCompletedReports" ? exportButton : null;
     },
@@ -51,7 +71,10 @@ const context = {
       assert.equal(tag, "a");
       return {
         click() {
-          downloads.push({ href: this.href, download: this.download });
+          downloads.push({ href: this.href, download: this.download, hidden: this.hidden });
+        },
+        remove() {
+          removedLinks.push(this);
         }
       };
     }
@@ -96,7 +119,14 @@ capturedListeners[0].handler({
 assert.equal(prevented, true);
 assert.equal(stopped, true);
 assert.equal(downloads.length, 1, "secure handler must initiate one download");
+assert.equal(downloads[0].hidden, true, "temporary download link must remain hidden");
+assert.equal(appendedLinks.length, 1, "temporary link must be attached for Safari");
+assert.equal(removedLinks.length, 1, "temporary link must be removed after click");
 assert.equal(context.lastBlob.options.type, "text/csv;charset=utf-8;");
 assert.match(context.lastBlob.parts[0], /"'=HYPERLINK/);
+assert.equal(revokedUrls.length, 0, "object URL must not be revoked in the click task");
+assert.equal(scheduledCallbacks.length, 1, "object URL cleanup must be scheduled");
+scheduledCallbacks[0]();
+assert.deepEqual(revokedUrls, ["blob:test"], "scheduled cleanup must revoke the generated object URL");
 
 console.log("Completed reports secure CSV runtime contract passed.");
