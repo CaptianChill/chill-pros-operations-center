@@ -40,20 +40,33 @@
     return [headers.map(csvApi.asCsvCell).join(","), ...rows].join("\n");
   }
 
+  function assertDownloadRuntime() {
+    if (typeof globalScope.Blob !== "function") {
+      throw new Error("Completed jobs export requires Blob support");
+    }
+    if (!globalScope.URL || typeof globalScope.URL.createObjectURL !== "function" || typeof globalScope.URL.revokeObjectURL !== "function") {
+      throw new Error("Completed jobs export requires object URL support");
+    }
+    if (!globalScope.document || typeof globalScope.document.createElement !== "function") {
+      throw new Error("Completed jobs export requires a browser document");
+    }
+  }
+
   function downloadCompletedJobsCsv(records) {
+    assertDownloadRuntime();
     const csv = buildCompletedJobsCsv(records);
     // The UTF-8 BOM keeps customer names, notes, and equipment symbols readable
     // when the downloaded CSV is opened directly in desktop Excel.
-    const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
+    const blob = new globalScope.Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8;" });
+    const url = globalScope.URL.createObjectURL(blob);
+    const link = globalScope.document.createElement("a");
     link.href = url;
     link.download = `chill-pros-completed-jobs-${new Date().toISOString().slice(0, 10)}.csv`;
     link.hidden = true;
 
-    const parent = document.body || document.documentElement;
+    const parent = globalScope.document.body || globalScope.document.documentElement;
     if (!parent) {
-      URL.revokeObjectURL(url);
+      globalScope.URL.revokeObjectURL(url);
       throw new Error("Completed jobs export requires an attached document root");
     }
 
@@ -65,16 +78,16 @@
     } finally {
       link.remove();
       if (!downloadStarted) {
-        URL.revokeObjectURL(url);
+        globalScope.URL.revokeObjectURL(url);
       }
     }
 
     // WebKit may still be consuming the object URL after the click task completes.
     // Keep it alive briefly so iPhone/iPad Safari can finish the download reliably.
-    globalScope.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    globalScope.setTimeout(() => globalScope.URL.revokeObjectURL(url), 1000);
   }
 
-  const exportButton = document.getElementById("exportCompletedReports");
+  const exportButton = globalScope.document?.getElementById("exportCompletedReports");
   if (exportButton) {
     exportButton.addEventListener("click", (event) => {
       event.preventDefault();
