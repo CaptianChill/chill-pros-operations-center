@@ -40,7 +40,22 @@ requireMatch(
 requireMatch(
   html,
   'loading state must remain announced to assistive technology',
-  /id=["']loading["'][^>]*role=["']status["'][^>]*aria-live=["']polite["']/i,
+  /id=["']loading["'][^>]*role=["']status["'][^>]*aria-live=["']polite["'][^>]*aria-atomic=["']true["']/i,
+);
+requireMatch(
+  html,
+  'mobile shell must retain a visible retry control for load failures',
+  /id=["']retryLoad["'][^>]*hidden[\s\S]*?showLoadError/,
+);
+requireMatch(
+  html,
+  'mobile shell must retain a bounded load timeout',
+  /setTimeout\(\(\)\s*=>\s*showLoadError[\s\S]*?12000\)/,
+);
+requireMatch(
+  html,
+  'iframe failures must remain recoverable',
+  /frame\.addEventListener\(["']error["'][\s\S]*?showLoadError/,
 );
 requireMatch(
   html,
@@ -71,6 +86,11 @@ requireMatch(
   html,
   'owner tools must remain exposed as labeled navigation',
   /createElement\(["']nav["']\)[\s\S]*?aria-label["'],["']Owner tools["']/,
+);
+requireMatch(
+  html,
+  'closed owner tools must remain removed from keyboard navigation',
+  /ownerMenu\.inert\s*=\s*true[\s\S]*?ownerMenu\.inert\s*=\s*false/,
 );
 requireMatch(
   html,
