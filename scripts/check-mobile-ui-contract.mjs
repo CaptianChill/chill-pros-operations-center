@@ -62,8 +62,28 @@ requireMatch(
 );
 requireMatch(
   html,
+  'More button must announce that it opens additional controls',
+  /aria-haspopup="true"/,
+);
+requireMatch(
+  html,
+  'owner tools must remain exposed as labeled navigation',
+  /createElement\(["']nav["']\)[\s\S]*?aria-label["'],["']Owner tools["']/,
+);
+requireMatch(
+  html,
+  'owner menu must move focus into its first control when opened',
+  /menuButtons\[0\]\?\.focus\(\)/,
+);
+requireMatch(
+  html,
   'owner menu must retain Escape-key dismissal',
   /event\.key\s*===\s*["']Escape["']/,
+);
+requireMatch(
+  html,
+  'owner menu must retain keyboard focus containment',
+  /event\.key\s*!==\s*["']Tab["'][\s\S]*?lastButton\.focus\(\)[\s\S]*?firstButton\.focus\(\)/,
 );
 
 for (const stylesheet of ['iphone.css', 'iphone-polish.css', 'iphone-finish.css', 'iphone-command.css']) {
