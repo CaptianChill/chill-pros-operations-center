@@ -57,6 +57,25 @@ service cloud.firestore {
       ]);
     }
 
+    function optionalTextFieldIsSafe(fieldName) {
+      return !(fieldName in request.resource.data)
+        || (request.resource.data[fieldName] is string
+          && request.resource.data[fieldName].size() <= 20000);
+    }
+
+    function technicianWorkOrderValuesAreSafe() {
+      return request.resource.data.officeStatus is string
+        && optionalTextFieldIsSafe('findings')
+        && optionalTextFieldIsSafe('recommendation')
+        && optionalTextFieldIsSafe('workNotes')
+        && optionalTextFieldIsSafe('partsUsed')
+        && optionalTextFieldIsSafe('laborTimeNotes')
+        && optionalTextFieldIsSafe('photoNotes')
+        && (!('photoReferences' in request.resource.data)
+          || (request.resource.data.photoReferences is list
+            && request.resource.data.photoReferences.size() <= 50));
+    }
+
     function technicianStatusTransitionIsSafe() {
       return request.resource.data.officeStatus == resource.data.officeStatus
         || request.resource.data.officeStatus in [
@@ -95,6 +114,7 @@ service cloud.firestore {
         || (assignedToCurrentTechnician(resource.data)
           && request.resource.data.assignedTechnician == resource.data.assignedTechnician
           && technicianUpdateFieldsAreSafe()
+          && technicianWorkOrderValuesAreSafe()
           && technicianStatusTransitionIsSafe()
           && technicianStatusTimestampIsSafe()
           && technicianCompletionStateIsSafe());
