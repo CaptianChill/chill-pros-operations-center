@@ -61,7 +61,11 @@ async function main() {
         officeStatus: "Scheduled",
         statusUpdatedAt: Timestamp.fromMillis(1_700_000_000_000),
         estimatedAmount: 750,
+      });
+      await setDoc(doc(db, "Customers", assignedJobId, "Private", "pricing"), {
         internalCost: 200,
+        markup: 2.5,
+        supplierPrice: 185,
       });
       await setDoc(doc(db, "Customers", otherJobId), {
         customerName: "Other Customer",
@@ -77,6 +81,7 @@ async function main() {
     const otherTechDb = testEnv.authenticatedContext(otherTechUid).firestore();
     const missingProfileDb = testEnv.authenticatedContext(missingProfileUid).firestore();
     const anonymousDb = testEnv.unauthenticatedContext().firestore();
+    const privatePricingPath = ["Customers", assignedJobId, "Private", "pricing"];
 
     await assertSucceeds(getDoc(doc(ownerDb, "Customers", assignedJobId)));
     await assertSucceeds(getDoc(doc(officeDb, "Customers", assignedJobId)));
@@ -84,6 +89,13 @@ async function main() {
     await assertFails(getDoc(doc(otherTechDb, "Customers", assignedJobId)));
     await assertFails(getDoc(doc(missingProfileDb, "Customers", assignedJobId)));
     await assertFails(getDoc(doc(anonymousDb, "Customers", assignedJobId)));
+
+    await assertSucceeds(getDoc(doc(ownerDb, ...privatePricingPath)));
+    await assertSucceeds(getDoc(doc(officeDb, ...privatePricingPath)));
+    await assertFails(getDoc(doc(assignedTechDb, ...privatePricingPath)));
+    await assertFails(getDoc(doc(otherTechDb, ...privatePricingPath)));
+    await assertFails(getDoc(doc(missingProfileDb, ...privatePricingPath)));
+    await assertFails(getDoc(doc(anonymousDb, ...privatePricingPath)));
 
     await assertSucceeds(setDoc(doc(ownerDb, "Customers", "owner-created"), {
       customerName: "Owner Created",
@@ -126,17 +138,27 @@ async function main() {
     await assertFails(updateDoc(doc(otherTechDb, "Customers", assignedJobId), {
       workNotes: "Unauthorized edit",
     }));
+    await assertFails(updateDoc(doc(assignedTechDb, ...privatePricingPath), {
+      internalCost: 1,
+    }));
+    await assertFails(setDoc(doc(assignedTechDb, "Customers", assignedJobId, "Private", "technician-created"), {
+      internalCost: 1,
+    }));
+    await assertFails(deleteDoc(doc(assignedTechDb, ...privatePricingPath)));
 
-    await assertSucceeds(updateDoc(doc(ownerDb, "Customers", assignedJobId), {
+    await assertSucceeds(updateDoc(doc(ownerDb, ...privatePricingPath), {
       internalCost: 225,
     }));
     await assertSucceeds(updateDoc(doc(officeDb, "Customers", assignedJobId), {
       estimatedAmount: 800,
     }));
+    await assertSucceeds(updateDoc(doc(officeDb, ...privatePricingPath), {
+      supplierPrice: 190,
+    }));
     await assertSucceeds(deleteDoc(doc(ownerDb, "Customers", otherJobId)));
     await assertFails(deleteDoc(doc(assignedTechDb, "Customers", assignedJobId)));
 
-    console.log("Firestore emulator role-permission matrix passed.");
+    console.log("Firestore emulator role-permission and private-pricing matrix passed.");
   } finally {
     await testEnv.cleanup();
   }
