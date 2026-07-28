@@ -20,6 +20,7 @@ assert.match(runtimeSource, /capture:\s*true/, "secure export listener must run 
 assert.match(runtimeSource, /filteredCompletedJobs/, "runtime must export the currently filtered report dataset");
 assert.match(runtimeSource, /setTimeout\(\(\) => URL\.revokeObjectURL\(url\), 1000\)/, "object URL cleanup must allow Safari time to consume the download");
 assert.match(runtimeSource, /if \(!downloadStarted\)[\s\S]*URL\.revokeObjectURL\(url\)/, "failed clicks must revoke the object URL immediately");
+assert.match(runtimeSource, /new Blob\(\["\\uFEFF", csv\]/, "download must include a UTF-8 BOM for Excel compatibility");
 
 const capturedListeners = [];
 const downloads = [];
@@ -129,7 +130,8 @@ assert.equal(downloads[0].hidden, true, "temporary download link must remain hid
 assert.equal(appendedLinks.length, 1, "temporary link must be attached for Safari");
 assert.equal(removedLinks.length, 1, "temporary link must be removed after click");
 assert.equal(context.lastBlob.options.type, "text/csv;charset=utf-8;");
-assert.match(context.lastBlob.parts[0], /"'=HYPERLINK/);
+assert.equal(context.lastBlob.parts[0], "\uFEFF", "downloaded CSV must start with a UTF-8 BOM");
+assert.match(context.lastBlob.parts[1], /"'=HYPERLINK/);
 assert.equal(revokedUrls.length, 0, "object URL must not be revoked in the click task");
 assert.equal(scheduledCallbacks.length, 1, "object URL cleanup must be scheduled");
 scheduledCallbacks[0]();
