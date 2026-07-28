@@ -43,8 +43,69 @@
       const ownerStrip = doc.createElement('div');
       ownerStrip.className = 'owner-mobile-strip';
       ownerStrip.setAttribute('role','banner');
-      ownerStrip.innerHTML = '<strong>Chill Pros Command Center</strong><span>Owner workspace</span><button type="button" id="ownerMoreButton" aria-expanded="false" aria-controls="ownerMobileMenu" aria-haspopup="true">MORE</button>';
+      ownerStrip.innerHTML = '<div><strong>Chill Pros Command Center</strong><span>Owner operations workspace</span></div><button type="button" id="ownerMoreButton" aria-expanded="false" aria-controls="ownerMobileMenu" aria-haspopup="true">MORE</button>';
       doc.querySelector('.main-panel')?.prepend(ownerStrip);
+
+      const setupCommandDashboard = () => {
+        const dashboard = doc.getElementById('dashboard');
+        const metrics = dashboard?.querySelector('.metrics-grid');
+        const featureGrid = dashboard?.querySelector('.feature-grid');
+        const lowerGrid = dashboard?.querySelector('.lower-grid');
+        if (!dashboard || !metrics || !featureGrid) return;
+
+        dashboard.classList.add('mobile-command-dashboard');
+        metrics.setAttribute('aria-label','Owner operating metrics');
+
+        const commandHeader = doc.createElement('section');
+        commandHeader.className = 'mobile-command-intro';
+        commandHeader.setAttribute('aria-labelledby','mobileCommandTitle');
+        commandHeader.innerHTML = `
+          <div>
+            <p class="eyebrow">LIVE OPERATIONS</p>
+            <h2 id="mobileCommandTitle">Owner Command Center</h2>
+            <p>Jobs, office priorities, and business health in one view.</p>
+          </div>
+          <span class="mobile-live-chip"><i aria-hidden="true"></i> Live</span>`;
+        dashboard.insertBefore(commandHeader, metrics);
+
+        const cards = [...featureGrid.querySelectorAll('.feature-card')];
+        const findCard = label => cards.find(card => card.querySelector('h2')?.textContent.trim() === label);
+        const jobsCard = findCard("TODAY'S JOBS");
+        const queueCard = findCard('OFFICE QUEUE');
+        const intakeCard = findCard('NEW CUSTOMER');
+        const aiCard = findCard('AI DIAGNOSTICS');
+
+        const primaryZone = doc.createElement('section');
+        primaryZone.className = 'mobile-command-primary';
+        primaryZone.setAttribute('aria-label','Primary operations');
+        [jobsCard, queueCard].forEach((card, index) => {
+          if (!card) return;
+          card.classList.add('command-priority-card', index === 0 ? 'jobs-priority-card' : 'queue-priority-card');
+          const title = card.querySelector('h2');
+          if (title) title.insertAdjacentHTML('beforebegin', `<span class="command-card-kicker">${index === 0 ? 'FIELD' : 'OFFICE'}</span>`);
+          primaryZone.appendChild(card);
+        });
+
+        const sectionLabel = doc.createElement('div');
+        sectionLabel.className = 'mobile-section-heading';
+        sectionLabel.innerHTML = '<div><p class="eyebrow">QUICK ACTIONS</p><h3>Move work forward</h3></div>';
+        featureGrid.before(primaryZone, sectionLabel);
+
+        [intakeCard, aiCard].forEach(card => {
+          if (card) featureGrid.appendChild(card);
+        });
+        featureGrid.classList.add('mobile-quick-actions');
+
+        if (lowerGrid) {
+          const operationsLabel = doc.createElement('div');
+          operationsLabel.className = 'mobile-section-heading mobile-support-heading';
+          operationsLabel.innerHTML = '<div><p class="eyebrow">BUSINESS PULSE</p><h3>Schedule and recent activity</h3></div>';
+          lowerGrid.before(operationsLabel);
+          lowerGrid.classList.add('mobile-support-grid');
+          lowerGrid.querySelector('.weather-card')?.classList.add('mobile-secondary-card');
+        }
+      };
+      setupCommandDashboard();
 
       const ownerMenu = doc.createElement('nav');
       ownerMenu.id = 'ownerMobileMenu';
