@@ -8,7 +8,8 @@ on:
       - "iphone-polish.css"
       - "iphone-finish.css"
       - "iphone-command.css"
-      - "scripts/check-mobile-ui-contract.mjs"
+      - "iphone-command-structure.css"
+      - "scripts/check-mobile-ui-contract-v2.mjs"
       - ".github/workflows/mobile-ui-contract.yml"
   push:
     branches:
@@ -19,7 +20,8 @@ on:
       - "iphone-polish.css"
       - "iphone-finish.css"
       - "iphone-command.css"
-      - "scripts/check-mobile-ui-contract.mjs"
+      - "iphone-command-structure.css"
+      - "scripts/check-mobile-ui-contract-v2.mjs"
       - ".github/workflows/mobile-ui-contract.yml"
 
 permissions:
@@ -39,7 +41,7 @@ jobs:
           node-version: "20"
 
       - name: Check contract script syntax
-        run: node --check scripts/check-mobile-ui-contract.mjs
+        run: node --check scripts/check-mobile-ui-contract-v2.mjs
 
       - name: Verify iPhone presentation contract
-        run: node scripts/check-mobile-ui-contract.mjs
+        run: node scripts/check-mobile-ui-contract-v2.mjs
