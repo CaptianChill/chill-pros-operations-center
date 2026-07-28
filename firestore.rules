@@ -121,6 +121,12 @@ service cloud.firestore {
       allow delete: if isOwner() || isOffice();
     }
 
+    // Sensitive pricing and procurement data must live below this path instead
+    // of the technician-readable customer/job document.
+    match /Customers/{customerId}/Private/{privateDocumentId} {
+      allow read, create, update, delete: if isOwner() || isOffice();
+    }
+
     match /Technicians/{technicianId} {
       allow read: if isOwner() || isOffice() || isTechnician();
       allow create, update, delete: if isOwner() || isOffice();
