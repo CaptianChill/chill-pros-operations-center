@@ -255,7 +255,17 @@
 }
 
 .iphone-field-mode .side-link{
+  min-width:44px;
+  min-height:44px;
   border-radius:12px;
+}
+
+.iphone-field-mode .side-link span,
+.iphone-field-mode .side-link .label{
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
 }
 
 .iphone-field-mode .side-link.active,
@@ -289,6 +299,53 @@
   text-align:center;
 }
 
+/* Action and feedback states stay legible without introducing new behavior. */
+.iphone-field-mode button,
+.iphone-field-mode [role="button"]{
+  min-height:44px;
+}
+
+.iphone-field-mode :where(button,input,select,textarea):disabled,
+.iphone-field-mode [aria-disabled="true"]{
+  cursor:not-allowed;
+  opacity:.56;
+  filter:saturate(.55);
+}
+
+.iphone-field-mode :where(input,select,textarea)[aria-invalid="true"],
+.iphone-field-mode .field-error :where(input,select,textarea){
+  border-color:#ff8e98;
+  box-shadow:0 0 0 3px rgba(255,97,113,.11);
+}
+
+.iphone-field-mode :where(.error-message,.field-error-message,[role="alert"]){
+  color:#ffb5bc;
+  font-size:.74rem;
+  line-height:1.4;
+}
+
+.iphone-field-mode :where(.success-message,.status-success){
+  color:#8fe2bf;
+}
+
+.iphone-field-mode :where(.warning-message,.status-warning){
+  color:#ffd68a;
+}
+
+.iphone-field-mode :where(.badge,.status-badge,[class*="status-pill"]){
+  display:inline-flex;
+  align-items:center;
+  min-height:24px;
+  max-width:100%;
+  padding:3px 8px;
+  border:1px solid rgba(180,211,228,.14);
+  border-radius:999px;
+  font-size:.68rem;
+  font-weight:750;
+  line-height:1.2;
+  white-space:normal;
+}
+
 /* Consistent, high-visibility keyboard focus without persistent tap outlines. */
 .iphone-field-mode :where(a,button,input,select,textarea,[tabindex]):focus-visible{
   outline:3px solid rgba(114,215,255,.9);
@@ -304,6 +361,7 @@
 @media(max-width:374px){
   .iphone-field-mode .metrics-grid{grid-auto-columns:minmax(132px,74vw)}
   .iphone-field-mode .hero-overlay h1{font-size:1.08rem}
+  .iphone-field-mode .side-link{padding-inline:6px}
 }
 
 @media(prefers-reduced-motion:reduce){
@@ -330,5 +388,12 @@
   .iphone-field-mode :where(a,button,input,select,textarea,[tabindex]):focus-visible{
     outline:3px solid Highlight;
     box-shadow:none;
+  }
+
+  .iphone-field-mode :where(button,input,select,textarea):disabled,
+  .iphone-field-mode [aria-disabled="true"]{
+    opacity:1;
+    color:GrayText;
+    border-color:GrayText;
   }
 }
