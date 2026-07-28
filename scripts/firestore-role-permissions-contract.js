@@ -12,6 +12,8 @@ const requiredPatterns = [
   [/function\s+assignedToCurrentTechnician\(data\)/, "assignment helper"],
   [/data\.assignedTechnician\s*==\s*technicianName\(\)/, "server-side assignment match"],
   [/function\s+technicianUpdateFieldsAreSafe\(\)/, "technician field allowlist"],
+  [/function\s+optionalTextFieldIsSafe\(fieldName\)/, "optional text type and size guard"],
+  [/function\s+technicianWorkOrderValuesAreSafe\(\)/, "work-order value validation"],
   [/function\s+technicianStatusTransitionIsSafe\(\)/, "status transition guard"],
   [/function\s+technicianStatusTimestampIsSafe\(\)/, "status timestamp guard"],
   [/function\s+technicianCompletionStateIsSafe\(\)/, "completion timestamp guard"],
@@ -57,6 +59,28 @@ for (const [pattern, label] of forbiddenPatterns) {
   if (pattern.test(rules)) failures.push(`Forbidden rule detected: ${label}`);
 }
 
+const textFields = ["findings", "recommendation", "workNotes", "partsUsed", "laborTimeNotes", "photoNotes"];
+for (const field of textFields) {
+  if (!new RegExp(`optionalTextFieldIsSafe\\('${field}'\\)`).test(rules)) {
+    failures.push(`Missing text value guard for ${field}`);
+  }
+}
+if (!/request\.resource\.data\[fieldName\]\s+is\s+string/.test(rules)) {
+  failures.push("Technician text fields must be strings");
+}
+if (!/request\.resource\.data\[fieldName\]\.size\(\)\s*<=\s*20000/.test(rules)) {
+  failures.push("Technician text fields must have a bounded size");
+}
+if (!/request\.resource\.data\.photoReferences\s+is\s+list/.test(rules)) {
+  failures.push("Photo references must be a list when present");
+}
+if (!/request\.resource\.data\.photoReferences\.size\(\)\s*<=\s*50/.test(rules)) {
+  failures.push("Photo reference lists must have a bounded size");
+}
+if (!/request\.resource\.data\.officeStatus\s+is\s+string/.test(rules)) {
+  failures.push("Technician officeStatus must be a string");
+}
+
 if (!/request\.resource\.data\.officeStatus\s*==\s*resource\.data\.officeStatus/.test(rules)) {
   failures.push("Technicians cannot safely save notes without changing an existing status");
 }
@@ -75,8 +99,8 @@ if (!/request\.resource\.data\.completedAt\s*==\s*resource\.data\.completedAt/.t
 if (!/!\('completedAt'\s+in\s+request\.resource\.data\)/.test(rules)) {
   failures.push("Reopened work orders must remove completedAt");
 }
-if (!/technicianStatusTimestampIsSafe\(\)[\s\S]*technicianCompletionStateIsSafe\(\)/.test(rules)) {
-  failures.push("Technician updates must enforce both status and completion timestamp guards");
+if (!/technicianUpdateFieldsAreSafe\(\)[\s\S]*technicianWorkOrderValuesAreSafe\(\)[\s\S]*technicianStatusTimestampIsSafe\(\)[\s\S]*technicianCompletionStateIsSafe\(\)/.test(rules)) {
+  failures.push("Technician updates must enforce field, value, timestamp, and completion guards");
 }
 
 if (failures.length) {
@@ -84,4 +108,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log("Firestore owner, office, technician assignment, field, status, trusted timestamp, completion, and deny-by-default checks passed.");
+console.log("Firestore owner, office, technician assignment, field, bounded value, status, trusted timestamp, completion, and deny-by-default checks passed.");
