@@ -14,10 +14,11 @@ const runtimeLoaderIndex = tenantConfig.indexOf('completed-reports-export.js?v=2
 assert.ok(csvLoaderIndex >= 0, "tenant-config must load the spreadsheet-safe CSV utility");
 assert.ok(runtimeLoaderIndex > csvLoaderIndex, "completed reports runtime must load after csv-export.js");
 assert.match(runtimeSource, /Secure CSV export utility is unavailable/, "runtime must fail closed without the secure utility");
+assert.match(runtimeSource, /Completed jobs export requires an attached document root/, "runtime must fail closed without a document root");
 assert.match(runtimeSource, /stopImmediatePropagation\(\)/, "runtime must suppress the legacy export listener");
 assert.match(runtimeSource, /capture:\s*true/, "secure export listener must run in the capture phase");
 assert.match(runtimeSource, /filteredCompletedJobs/, "runtime must export the currently filtered report dataset");
-assert.match(runtimeSource, /setTimeout\(\(\) => URL\.revokeObjectURL\(url\), 0\)/, "object URL cleanup must be delayed for Safari compatibility");
+assert.match(runtimeSource, /setTimeout\(\(\) => URL\.revokeObjectURL\(url\), 1000\)/, "object URL cleanup must allow Safari time to consume the download");
 
 const capturedListeners = [];
 const downloads = [];
@@ -57,7 +58,7 @@ const context = {
     }
   },
   setTimeout(callback, delay) {
-    assert.equal(delay, 0);
+    assert.equal(delay, 1000);
     scheduledCallbacks.push(callback);
     return scheduledCallbacks.length;
   },
