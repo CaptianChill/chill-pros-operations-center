@@ -15,9 +15,11 @@ import { readFile } from 'node:fs/promises';
 
 const htmlPath = new URL('../iphone.html', import.meta.url);
 const commandCssPath = new URL('../iphone-command.css', import.meta.url);
-const [html, commandCss] = await Promise.all([
+const structureCssPath = new URL('../iphone-command-structure.css', import.meta.url);
+const [html, commandCss, structureCss] = await Promise.all([
   readFile(htmlPath, 'utf8'),
   readFile(commandCssPath, 'utf8'),
+  readFile(structureCssPath, 'utf8'),
 ]);
 const failures = [];
 
@@ -85,8 +87,23 @@ requireMatch(
   'owner menu must retain keyboard focus containment',
   /event\.key\s*!==\s*["']Tab["'][\s\S]*?lastButton\.focus\(\)[\s\S]*?firstButton\.focus\(\)/,
 );
+requireMatch(
+  html,
+  'Direction C owner command-center setup must remain present',
+  /setupCommandDashboard[\s\S]*?mobile-command-dashboard/,
+);
+requireMatch(
+  html,
+  'primary operations must retain Today’s Jobs and Office Queue ordering',
+  /\[jobsCard, queueCard\][\s\S]*?mobile-command-primary/,
+);
+requireMatch(
+  html,
+  'owner metrics must retain an accessible label',
+  /Owner operating metrics/,
+);
 
-for (const stylesheet of ['iphone.css', 'iphone-polish.css', 'iphone-finish.css', 'iphone-command.css']) {
+for (const stylesheet of ['iphone.css', 'iphone-polish.css', 'iphone-finish.css', 'iphone-command.css', 'iphone-command-structure.css']) {
   if (!html.includes(`'${stylesheet}'`) && !html.includes(`"${stylesheet}"`)) {
     failures.push(`${stylesheet} must remain loaded by iphone.html`);
   }
@@ -136,6 +153,26 @@ requireMatch(
   commandCss,
   'invalid form controls must retain a visible error state',
   /aria-invalid=["']true["']/,
+);
+requireMatch(
+  structureCss,
+  'primary mobile operations must remain a distinct command-center region',
+  /mobile-command-primary[\s\S]*?display:\s*grid/,
+);
+requireMatch(
+  structureCss,
+  'quick actions must retain a compact two-column mobile layout',
+  /mobile-quick-actions[\s\S]*?grid-template-columns:\s*1fr\s+1fr/,
+);
+requireMatch(
+  structureCss,
+  'Direction C structure must retain narrow-screen fallback behavior',
+  /@media\(max-width:359px\)[\s\S]*?grid-template-columns:\s*1fr/,
+);
+requireMatch(
+  structureCss,
+  'Direction C structure must retain forced-colors support',
+  /@media\(forced-colors:active\)/,
 );
 
 const ids = [...html.matchAll(/\bid=["']([^"']+)["']/g)].map((match) => match[1]);
