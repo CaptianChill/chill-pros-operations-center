@@ -19,6 +19,7 @@ const requiredPatterns = [
   [/function\s+technicianCompletionStateIsSafe\(\)/, "completion timestamp guard"],
   [/allow\s+read:\s*if\s+isOwner\(\)\s*\|\|\s*isOffice\(\)\s*\|\|\s*assignedToCurrentTechnician\(resource\.data\)/, "assigned-record read restriction"],
   [/allow\s+create:\s*if\s+isOwner\(\)\s*\|\|\s*isOffice\(\)/, "owner/office-only customer creation"],
+  [/match\s+\/Customers\/\{customerId\}\/Private\/\{privateDocumentId\}\s*\{[\s\S]*?allow\s+read,\s*create,\s*update,\s*delete:\s*if\s+isOwner\(\)\s*\|\|\s*isOffice\(\)/, "owner/office-only private customer data"],
   [/match\s+\/\{document=\*\*\}[\s\S]*allow\s+read,\s*write:\s*if\s+false/, "deny-by-default fallback"]
 ];
 
@@ -52,7 +53,8 @@ const forbiddenPatterns = [
   [/request\.auth\.token\.email\s*==/, "email-address owner bypass"],
   [/match\s+\/Customers\/\{customerId\}[\s\S]*allow\s+read:\s*if\s+signedIn\(\)/, "all-authenticated customer reads"],
   [/allow\s+create,\s*update\s*:\s*if\s*[^;]*\bisTechnician\(\)/, "unrestricted technician customer writes"],
-  [/allow\s+create\s*:\s*if\s*[^;]*\bisTechnician\(\)/, "technician customer creation"]
+  [/allow\s+create\s*:\s*if\s*[^;]*\bisTechnician\(\)/, "technician customer creation"],
+  [/match\s+\/Customers\/\{customerId\}\/Private\/\{privateDocumentId\}[\s\S]*?\bisTechnician\(\)/, "technician private-data access"]
 ];
 
 for (const [pattern, label] of forbiddenPatterns) {
@@ -108,4 +110,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log("Firestore owner, office, technician assignment, field, bounded value, status, trusted timestamp, completion, and deny-by-default checks passed.");
+console.log("Firestore owner, office, technician assignment, private pricing, field, bounded value, status, trusted timestamp, completion, and deny-by-default checks passed.");
