@@ -22,7 +22,8 @@ const activity = [
   { icon: "◒", title: "Parts Order Placed", detail: "True 842123 Door Gasket", time: "Yesterday" }
 ];
 
-const ACTIVE_JOB_STATUSES = new Set(["Scheduled", "Dispatched", "In Progress", "Paused"]);
+const ACTIVE_JOB_STATUSES = new Set(["Scheduled", "Dispatched", "In Progress", "Paused", "Waiting on Parts", "Ready to Invoice"]);
+const TECHNICIAN_WORK_ORDER_STATUSES = ["Scheduled", "Dispatched", "In Progress", "Paused", "Waiting on Parts", "Ready to Invoice", "Completed"];
 const STATUS_OPTIONS = [
   "Needs Review",
   "Needs Quote",
@@ -55,6 +56,12 @@ const addTechnicianButton = document.getElementById("addTechnicianButton");
 const technicianList = document.getElementById("technicianList");
 const technicianDashboardSelect = document.getElementById("technicianDashboardSelect");
 const technicianJobsList = document.getElementById("technicianJobsList");
+const reportsSearch = document.getElementById("reportsSearch");
+const reportsTechnicianFilter = document.getElementById("reportsTechnicianFilter");
+const exportCompletedReports = document.getElementById("exportCompletedReports");
+const completedReportsList = document.getElementById("completedReportsList");
+
+let filteredCompletedJobs = [];
 
 function readStoredArray(key) {
   try {
@@ -89,6 +96,7 @@ function showView(id) {
     renderTechnicians();
     renderTechnicianDashboard();
   }
+  if (id === "reports") renderReports();
 
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -99,6 +107,7 @@ function persistQueue() {
   renderQueue();
   renderTodayJobs();
   renderTechnicianDashboard();
+  renderReports();
 }
 
 function saveTechnicians() {
@@ -192,6 +201,25 @@ function buildStatusOptions(selectedStatus) {
     const selected = status === currentStatus ? " selected" : "";
     return `<option value="${escapeAttribute(status)}"${selected}>${escapeHtml(status)}</option>`;
   }).join("");
+}
+
+function buildWorkOrderStatusOptions(selectedStatus) {
+  const currentStatus = String(selectedStatus || "Scheduled").trim();
+  return TECHNICIAN_WORK_ORDER_STATUSES.map((status) => {
+    const selected = status === currentStatus ? " selected" : "";
+    return `<option value="${escapeAttribute(status)}"${selected}>${escapeHtml(status)}</option>`;
+  }).join("");
+}
+
+function getCompletionFields(record, nextStatus) {
+  const normalizedStatus = String(nextStatus || "").trim();
+  if (normalizedStatus === "Completed") {
+    return { completedAt: record.completedAt || new Date().toISOString() };
+  }
+  if (record.officeStatus === "Completed" && normalizedStatus !== "Completed") {
+    return { completedAt: "" };
+  }
+  return {};
 }
 
 async function loadCustomersFromFirebase() {
@@ -289,8 +317,16 @@ function renderQueue() {
     statusElement.innerHTML = buildStatusOptions(record.officeStatus);
     statusElement.value = record.officeStatus;
     statusElement.addEventListener("change", async () => {
-      const previousStatus = record.officeStatus;
-      const changes = { officeStatus: statusElement.value, statusUpdatedAt: new Date().toISOString() };
+      const previousValues = {
+        officeStatus: record.officeStatus,
+        completedAt: record.completedAt || "",
+        statusUpdatedAt: record.statusUpdatedAt || ""
+      };
+      const changes = {
+        officeStatus: statusElement.value,
+        statusUpdatedAt: new Date().toISOString(),
+        ...getCompletionFields(record, statusElement.value)
+      };
       Object.assign(record, changes);
       try {
         await updateCustomerInFirebase(record, changes);
@@ -298,8 +334,8 @@ function renderQueue() {
         toast(changes.officeStatus === "Scheduled" ? "Job added to Today's Jobs" : `Status changed to ${changes.officeStatus}`);
       } catch (error) {
         console.error("Status update failed:", error);
-        record.officeStatus = previousStatus;
-        statusElement.value = previousStatus;
+        Object.assign(record, previousValues);
+        statusElement.value = previousValues.officeStatus;
         toast("Status update failed");
       }
     });
@@ -357,12 +393,22 @@ function renderTodayJobs() {
       </div>`;
 
     article.querySelector(".save-job")?.addEventListener("click", async () => {
+      const nextStatus = article.querySelector(".job-status")?.value || record.officeStatus;
+      const previousValues = {
+        officeStatus: record.officeStatus,
+        assignedTechnician: record.assignedTechnician || "",
+        scheduledDate: record.scheduledDate || "",
+        scheduledTime: record.scheduledTime || "",
+        completedAt: record.completedAt || "",
+        statusUpdatedAt: record.statusUpdatedAt || ""
+      };
       const changes = {
-        officeStatus: article.querySelector(".job-status")?.value || record.officeStatus,
+        officeStatus: nextStatus,
         assignedTechnician: article.querySelector(".job-technician")?.value.trim() || "",
         scheduledDate: article.querySelector(".job-date")?.value || "",
         scheduledTime: article.querySelector(".job-time")?.value || "",
-        statusUpdatedAt: new Date().toISOString()
+        statusUpdatedAt: new Date().toISOString(),
+        ...getCompletionFields(record, nextStatus)
       };
       Object.assign(record, changes);
       try {
@@ -371,6 +417,8 @@ function renderTodayJobs() {
         toast("Job updated");
       } catch (error) {
         console.error(error);
+        Object.assign(record, previousValues);
+        persistQueue();
         toast("Job update failed");
       }
     });
@@ -418,7 +466,189 @@ function renderTechnicianDashboard() {
     return;
   }
 
-  technicianJobsList.innerHTML = assignedJobs.map((record) => `<article class="queue-item"><div><h3>${escapeHtml(record.customerName || "Unnamed Customer")}</h3><p class="queue-meta">${escapeHtml(record.officeStatus)} • ${escapeHtml(record.scheduledDate || "Date not set")} ${escapeHtml(record.scheduledTime || "")}</p><p>${escapeHtml(record.address || record.complaint || "No job details")}</p></div></article>`).join("");
+  technicianJobsList.innerHTML = assignedJobs.map((record) => `
+    <article class="queue-item">
+      <div>
+        <h3>${escapeHtml(record.customerName || "Unnamed Customer")}</h3>
+        <p class="queue-meta">${escapeHtml(record.officeStatus)} • ${escapeHtml(record.scheduledDate || "Date not set")} ${escapeHtml(record.scheduledTime || "")}</p>
+        <p>${escapeHtml(record.address || record.complaint || "No job details")}</p>
+      </div>
+      <div class="queue-actions">
+        <button type="button" class="secondary-action open-work-order" data-record-id="${escapeAttribute(record.id)}">Open Work Order</button>
+      </div>
+    </article>
+  `).join("");
+
+  technicianJobsList.querySelectorAll(".open-work-order").forEach((button) => {
+    button.addEventListener("click", () => renderTechnicianWorkOrder(button.dataset.recordId || ""));
+  });
+}
+
+function renderTechnicianWorkOrder(recordId) {
+  if (!technicianJobsList) return;
+  const selectedTechnician = technicianDashboardSelect?.value || "";
+  const record = queue.find((item) => item.id === recordId && item.assignedTechnician === selectedTechnician);
+  if (!record) {
+    toast("Work order no longer assigned to this technician");
+    renderTechnicianDashboard();
+    return;
+  }
+
+  technicianJobsList.innerHTML = `
+    <article class="queue-item technician-work-order">
+      <div>
+        <h3>Work Order • ${escapeHtml(record.customerName || "Unnamed Customer")}</h3>
+        <p class="queue-meta">${escapeHtml(record.officeStatus)} • ${escapeHtml(record.scheduledDate || "Date not set")} ${escapeHtml(record.scheduledTime || "")}</p>
+        <p><strong>Contact:</strong> ${escapeHtml(record.contactName || "-")} • ${escapeHtml(record.phone || record.email || "-")}</p>
+        <p><strong>Address:</strong> ${escapeHtml(record.address || "-")}</p>
+        <p><strong>Equipment:</strong> ${escapeHtml(record.equipmentType || "-")} • ${escapeHtml(record.manufacturer || "-")} • ${escapeHtml(record.modelNumber || "-")}</p>
+        <p><strong>Complaint:</strong> ${escapeHtml(record.complaint || "-")}</p>
+        <p><strong>Assigned Technician:</strong> ${escapeHtml(record.assignedTechnician || "-")}</p>
+      </div>
+      <form class="queue-tools technician-work-order-form" data-record-id="${escapeAttribute(record.id)}">
+        <label>Status<select name="officeStatus">${buildWorkOrderStatusOptions(record.officeStatus)}</select></label>
+        <label>Findings<textarea name="findings" rows="3">${escapeHtml(record.findings || "")}</textarea></label>
+        <label>Recommendation<textarea name="recommendation" rows="3">${escapeHtml(record.recommendation || "")}</textarea></label>
+        <label>Work Notes<textarea name="workNotes" rows="3">${escapeHtml(record.workNotes || "")}</textarea></label>
+        <label>Parts Used<textarea name="partsUsed" rows="3">${escapeHtml(record.partsUsed || "")}</textarea></label>
+        <label>Labor / Time Notes<textarea name="laborTimeNotes" rows="3">${escapeHtml(record.laborTimeNotes || "")}</textarea></label>
+        <label>Photo References<textarea name="photoNotes" rows="2">${escapeHtml(record.photoNotes || "")}</textarea></label>
+        <div class="form-actions">
+          <button type="submit" class="primary-action">Save Work Order</button>
+          <button type="button" class="secondary-action work-order-back">Back to Assigned Jobs</button>
+        </div>
+      </form>
+    </article>
+  `;
+
+  const workOrderForm = technicianJobsList.querySelector(".technician-work-order-form");
+  workOrderForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const formData = Object.fromEntries(new FormData(workOrderForm).entries());
+    const nextStatus = String(formData.officeStatus || record.officeStatus).trim();
+    const previousValues = {
+      officeStatus: record.officeStatus,
+      findings: record.findings || "",
+      recommendation: record.recommendation || "",
+      workNotes: record.workNotes || "",
+      partsUsed: record.partsUsed || "",
+      laborTimeNotes: record.laborTimeNotes || "",
+      photoNotes: record.photoNotes || "",
+      completedAt: record.completedAt || "",
+      statusUpdatedAt: record.statusUpdatedAt || ""
+    };
+    const changes = {
+      officeStatus: nextStatus,
+      findings: String(formData.findings || "").trim(),
+      recommendation: String(formData.recommendation || "").trim(),
+      workNotes: String(formData.workNotes || "").trim(),
+      partsUsed: String(formData.partsUsed || "").trim(),
+      laborTimeNotes: String(formData.laborTimeNotes || "").trim(),
+      photoNotes: String(formData.photoNotes || "").trim(),
+      statusUpdatedAt: new Date().toISOString(),
+      ...getCompletionFields(record, nextStatus)
+    };
+    Object.assign(record, changes);
+    try {
+      await updateCustomerInFirebase(record, changes);
+      persistQueue();
+      toast("Work order saved");
+      renderTechnicianDashboard();
+    } catch (error) {
+      console.error(error);
+      Object.assign(record, previousValues);
+      persistQueue();
+      toast("Work order save failed");
+    }
+  });
+
+  technicianJobsList.querySelector(".work-order-back")?.addEventListener("click", () => {
+    renderTechnicianDashboard();
+  });
+}
+
+function getCompletedJobs() {
+  return queue.filter((record) => record.officeStatus === "Completed");
+}
+
+function asCsvCell(value) {
+  return `"${String(value ?? "").replaceAll('"', '""')}"`;
+}
+
+function exportCompletedJobsCsv(records) {
+  const headers = [
+    "Customer",
+    "Completion Date",
+    "Technician",
+    "Equipment",
+    "Address",
+    "Findings",
+    "Recommendation",
+    "Estimated Amount"
+  ];
+  const rows = records.map((record) => {
+    const completionDate = record.completedAt || record.statusUpdatedAt || record.createdAt || "";
+    const equipment = [record.equipmentType, record.manufacturer, record.modelNumber].filter(Boolean).join(" • ");
+    return [
+      record.customerName || "",
+      completionDate,
+      record.assignedTechnician || "",
+      equipment,
+      record.address || "",
+      record.findings || "",
+      record.recommendation || "",
+      record.estimatedAmount || ""
+    ].map(asCsvCell).join(",");
+  });
+  return [headers.map(asCsvCell).join(","), ...rows].join("\n");
+}
+
+function renderReports() {
+  if (!completedReportsList) return;
+  const completedJobs = getCompletedJobs();
+  let selectedTechnician = reportsTechnicianFilter?.value || "";
+  const searchTerm = reportsSearch?.value.trim().toLowerCase() || "";
+
+  if (reportsTechnicianFilter) {
+    const previousSelection = selectedTechnician;
+    const techniciansInCompleted = new Set(
+      completedJobs.map((record) => record.assignedTechnician).filter(Boolean)
+    );
+    reportsTechnicianFilter.innerHTML = `<option value="">All technicians</option>${[...techniciansInCompleted].sort().map((technician) => `<option value="${escapeAttribute(technician)}">${escapeHtml(technician)}</option>`).join("")}`;
+    reportsTechnicianFilter.value = techniciansInCompleted.has(previousSelection) ? previousSelection : "";
+    selectedTechnician = reportsTechnicianFilter.value || "";
+  }
+
+  filteredCompletedJobs = completedJobs.filter((record) => {
+    const matchesTechnician = !selectedTechnician || record.assignedTechnician === selectedTechnician;
+    const matchesSearch = !searchTerm || JSON.stringify(record).toLowerCase().includes(searchTerm);
+    return matchesTechnician && matchesSearch;
+  });
+
+  if (!filteredCompletedJobs.length) {
+    completedReportsList.innerHTML = `<article class="queue-item"><div><h3>No completed jobs found</h3><p class="queue-meta">Update technician work orders to Completed to populate this report.</p></div></article>`;
+    return;
+  }
+
+  completedReportsList.innerHTML = filteredCompletedJobs.map((record) => {
+    const completionDateRaw = record.completedAt || record.statusUpdatedAt || record.createdAt;
+    const completionDate = completionDateRaw ? new Date(completionDateRaw).toLocaleString() : "Date not available";
+    const equipmentDetails = [record.equipmentType, record.manufacturer, record.modelNumber].filter(Boolean).join(" • ");
+    const estimatedAmount = record.estimatedAmount ? `$${Number(record.estimatedAmount).toFixed(2)}` : "-";
+    return `
+      <article class="queue-item">
+        <div>
+          <h3>${escapeHtml(record.customerName || "Unnamed Customer")}</h3>
+          <p class="queue-meta">${escapeHtml(completionDate)} • ${escapeHtml(record.assignedTechnician || "Technician not assigned")}</p>
+          <p><strong>Equipment:</strong> ${escapeHtml(equipmentDetails || "-")}</p>
+          <p><strong>Address:</strong> ${escapeHtml(record.address || "-")}</p>
+          <p><strong>Findings:</strong> ${escapeHtml(record.findings || "-")}</p>
+          <p><strong>Recommendation:</strong> ${escapeHtml(record.recommendation || "-")}</p>
+        </div>
+        <div class="queue-actions"><strong>${escapeHtml(estimatedAmount)}</strong></div>
+      </article>
+    `;
+  }).join("");
 }
 
 navButtons.forEach((button) => button.addEventListener("click", () => showView(button.dataset.view)));
@@ -456,6 +686,20 @@ refreshJobs?.addEventListener("click", async () => {
   toast("Jobs refreshed");
 });
 technicianDashboardSelect?.addEventListener("change", renderTechnicianDashboard);
+reportsSearch?.addEventListener("input", renderReports);
+reportsTechnicianFilter?.addEventListener("change", renderReports);
+
+exportCompletedReports?.addEventListener("click", () => {
+  const csv = exportCompletedJobsCsv(filteredCompletedJobs);
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `chill-pros-completed-jobs-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+  toast("Completed jobs CSV exported");
+});
 
 exportQueue?.addEventListener("click", () => {
   const payload = { platform: cfg.platform, tenant, exportedAt: new Date().toISOString(), queue };
@@ -498,4 +742,5 @@ renderActivity();
 renderTechnicians();
 renderTodayJobs();
 updateCounts();
+renderReports();
 loadCustomersFromFirebase();

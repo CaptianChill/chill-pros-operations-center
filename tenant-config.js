@@ -36,3 +36,7 @@ document.write('<script src="production-owner.js?v=20260722-16"><\/script>');
 document.write('<script src="production-reset.js?v=20260722-16"><\/script>');
 // Secure Jobber OAuth and synchronization controls.
 document.write('<script src="jobber-integration.js?v=20260722-16"><\/script>');
+// Spreadsheet-safe completed-job report export. Load before app.js so the
+// capture-phase handler can fail closed and supersede the legacy formatter.
+document.write('<script src="csv-export.js?v=20260728-1"><\/script>');
+document.write('<script src="completed-reports-export.js?v=20260728-1"><\/script>');

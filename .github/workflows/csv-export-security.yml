@@ -1,0 +1,42 @@
+name: CSV Export Security
+
+on:
+  pull_request:
+    paths:
+      - "csv-export.js"
+      - "completed-reports-export.js"
+      - "tenant-config.js"
+      - "tests/csv-export-security.test.js"
+      - "tests/completed-reports-export-runtime.test.js"
+      - ".github/workflows/csv-export-security.yml"
+  push:
+    branches:
+      - "copilot/featuretechnician-work-order-reports"
+    paths:
+      - "csv-export.js"
+      - "completed-reports-export.js"
+      - "tenant-config.js"
+      - "tests/csv-export-security.test.js"
+      - "tests/completed-reports-export-runtime.test.js"
+      - ".github/workflows/csv-export-security.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  csv-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Validate CSV runtime syntax
+        run: |
+          node --check csv-export.js
+          node --check completed-reports-export.js
+      - name: Run CSV security contract
+        run: node tests/csv-export-security.test.js
+      - name: Run completed reports runtime contract
+        run: node tests/completed-reports-export-runtime.test.js

@@ -1,0 +1,34 @@
+name: Work Order and Reports Contract
+
+on:
+  pull_request:
+    paths:
+      - "app.js"
+      - "index.html"
+      - "tests/work-order-reports-contract.test.js"
+      - ".github/workflows/work-order-reports-contract.yml"
+  push:
+    branches:
+      - "copilot/featuretechnician-work-order-reports"
+    paths:
+      - "app.js"
+      - "index.html"
+      - "tests/work-order-reports-contract.test.js"
+      - ".github/workflows/work-order-reports-contract.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Validate JavaScript syntax
+        run: node --check app.js
+      - name: Run work-order and reports contract
+        run: node tests/work-order-reports-contract.test.js
