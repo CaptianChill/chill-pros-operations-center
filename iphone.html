@@ -11,19 +11,57 @@
   <style>
     html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#071018}
     #phoneApp{display:block;width:100%;height:100dvh;border:0;background:#071018}
-    #loading{position:fixed;inset:0;display:grid;place-items:center;background:#071018;color:#72d7ff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:.78rem;font-weight:800;letter-spacing:.08em;z-index:2}
+    #loading{position:fixed;inset:0;display:grid;place-items:center;padding:24px;background:#071018;color:#72d7ff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;text-align:center;z-index:2}
+    #loading>div{display:grid;justify-items:center;gap:10px;max-width:28rem}
+    #loading strong{font-size:.78rem;font-weight:800;letter-spacing:.08em}
+    #loading span{color:#a9bbc6;font-size:.76rem;line-height:1.45}
+    #loading button{min-height:44px;padding:0 18px;border:1px solid rgba(114,215,255,.45);border-radius:12px;background:#72d7ff;color:#041019;font:800 .75rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:.04em}
+    #loading button[hidden]{display:none}
   </style>
 </head>
 <body>
-  <div id="loading" role="status" aria-live="polite">LOADING CHILL PROS…</div>
+  <div id="loading" role="status" aria-live="polite" aria-atomic="true">
+    <div>
+      <strong id="loadingTitle">LOADING CHILL PROS…</strong>
+      <span id="loadingDetail">Preparing the Owner Command Center.</span>
+      <button type="button" id="retryLoad" hidden>TRY AGAIN</button>
+    </div>
+  </div>
   <iframe id="phoneApp" src="index.html" title="Chill Pros Owner Mobile Console"></iframe>
   <script>
     const frame = document.getElementById('phoneApp');
     const loading = document.getElementById('loading');
+    const loadingTitle = document.getElementById('loadingTitle');
+    const loadingDetail = document.getElementById('loadingDetail');
+    const retryLoad = document.getElementById('retryLoad');
+    let loadTimer = window.setTimeout(() => showLoadError('The Command Center is taking longer than expected.'), 12000);
+
+    function showLoadError(message) {
+      window.clearTimeout(loadTimer);
+      loadingTitle.textContent = 'UNABLE TO LOAD';
+      loadingDetail.textContent = message;
+      retryLoad.hidden = false;
+      loading.setAttribute('role','alert');
+    }
+
+    retryLoad.addEventListener('click', () => {
+      retryLoad.hidden = true;
+      loading.setAttribute('role','status');
+      loadingTitle.textContent = 'LOADING CHILL PROS…';
+      loadingDetail.textContent = 'Preparing the Owner Command Center.';
+      frame.src = `index.html?retry=${Date.now()}`;
+      loadTimer = window.setTimeout(() => showLoadError('The Command Center still could not be reached. Check your connection and try again.'), 12000);
+    });
+
+    frame.addEventListener('error', () => showLoadError('The mobile application could not be reached. Check your connection and try again.'));
 
     frame.addEventListener('load', () => {
+      window.clearTimeout(loadTimer);
       const doc = frame.contentDocument;
-      if (!doc) return;
+      if (!doc) {
+        showLoadError('The mobile application loaded without accessible content. Try again.');
+        return;
+      }
 
       doc.body.classList.add('iphone-field-mode','iphone-owner-mode');
       doc.title = 'Chill Pros — Owner Mobile';
@@ -112,6 +150,7 @@
       ownerMenu.className = 'owner-mobile-menu';
       ownerMenu.setAttribute('aria-hidden','true');
       ownerMenu.setAttribute('aria-label','Owner tools');
+      ownerMenu.inert = true;
       ownerMenu.innerHTML = `
         <button data-owner-view="maintenance">Maintenance</button>
         <button data-owner-view="equipment">Equipment</button>
@@ -126,12 +165,14 @@
       const closeMenu = ({ restoreFocus = false } = {}) => {
         ownerMenu.classList.remove('open');
         ownerMenu.setAttribute('aria-hidden','true');
+        ownerMenu.inert = true;
         moreButton?.setAttribute('aria-expanded','false');
         if (restoreFocus) moreButton?.focus();
       };
       const openMenu = () => {
         ownerMenu.classList.add('open');
         ownerMenu.setAttribute('aria-hidden','false');
+        ownerMenu.inert = false;
         moreButton?.setAttribute('aria-expanded','true');
         menuButtons[0]?.focus();
       };
