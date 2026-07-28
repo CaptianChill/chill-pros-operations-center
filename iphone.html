@@ -43,13 +43,14 @@
       const ownerStrip = doc.createElement('div');
       ownerStrip.className = 'owner-mobile-strip';
       ownerStrip.setAttribute('role','banner');
-      ownerStrip.innerHTML = '<strong>Chill Pros Command Center</strong><span>Owner workspace</span><button type="button" id="ownerMoreButton" aria-expanded="false" aria-controls="ownerMobileMenu">MORE</button>';
+      ownerStrip.innerHTML = '<strong>Chill Pros Command Center</strong><span>Owner workspace</span><button type="button" id="ownerMoreButton" aria-expanded="false" aria-controls="ownerMobileMenu" aria-haspopup="true">MORE</button>';
       doc.querySelector('.main-panel')?.prepend(ownerStrip);
 
-      const ownerMenu = doc.createElement('div');
+      const ownerMenu = doc.createElement('nav');
       ownerMenu.id = 'ownerMobileMenu';
       ownerMenu.className = 'owner-mobile-menu';
       ownerMenu.setAttribute('aria-hidden','true');
+      ownerMenu.setAttribute('aria-label','Owner tools');
       ownerMenu.innerHTML = `
         <button data-owner-view="maintenance">Maintenance</button>
         <button data-owner-view="equipment">Equipment</button>
@@ -60,16 +61,22 @@
       doc.body.appendChild(ownerMenu);
 
       const moreButton = doc.getElementById('ownerMoreButton');
-      const closeMenu = () => {
+      const menuButtons = [...ownerMenu.querySelectorAll('button')];
+      const closeMenu = ({ restoreFocus = false } = {}) => {
         ownerMenu.classList.remove('open');
         ownerMenu.setAttribute('aria-hidden','true');
         moreButton?.setAttribute('aria-expanded','false');
+        if (restoreFocus) moreButton?.focus();
+      };
+      const openMenu = () => {
+        ownerMenu.classList.add('open');
+        ownerMenu.setAttribute('aria-hidden','false');
+        moreButton?.setAttribute('aria-expanded','true');
+        menuButtons[0]?.focus();
       };
       moreButton?.addEventListener('click', () => {
-        const opening = !ownerMenu.classList.contains('open');
-        ownerMenu.classList.toggle('open', opening);
-        ownerMenu.setAttribute('aria-hidden', String(!opening));
-        moreButton.setAttribute('aria-expanded', String(opening));
+        if (ownerMenu.classList.contains('open')) closeMenu();
+        else openMenu();
       });
       ownerMenu.querySelectorAll('[data-owner-view]').forEach(button => {
         button.addEventListener('click', () => {
@@ -83,9 +90,20 @@
         if (!ownerMenu.contains(event.target) && event.target !== moreButton) closeMenu();
       });
       doc.addEventListener('keydown', event => {
-        if (event.key === 'Escape') {
-          closeMenu();
-          moreButton?.focus();
+        if (event.key === 'Escape' && ownerMenu.classList.contains('open')) {
+          event.preventDefault();
+          closeMenu({ restoreFocus: true });
+          return;
+        }
+        if (event.key !== 'Tab' || !ownerMenu.classList.contains('open') || !menuButtons.length) return;
+        const firstButton = menuButtons[0];
+        const lastButton = menuButtons[menuButtons.length - 1];
+        if (event.shiftKey && doc.activeElement === firstButton) {
+          event.preventDefault();
+          lastButton.focus();
+        } else if (!event.shiftKey && doc.activeElement === lastButton) {
+          event.preventDefault();
+          firstButton.focus();
         }
       });
 
