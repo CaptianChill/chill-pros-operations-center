@@ -1,0 +1,31 @@
+name: Firestore Role Permissions
+
+on:
+  pull_request:
+    paths:
+      - "firestore.rules"
+      - "scripts/firestore-role-permissions-contract.js"
+      - ".github/workflows/firestore-role-permissions.yml"
+  push:
+    branches:
+      - "security/issue-34-role-permissions"
+    paths:
+      - "firestore.rules"
+      - "scripts/firestore-role-permissions-contract.js"
+      - ".github/workflows/firestore-role-permissions.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  role-permissions-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Check contract syntax
+        run: node --check scripts/firestore-role-permissions-contract.js
+      - name: Validate Firestore role permissions
+        run: node scripts/firestore-role-permissions-contract.js
