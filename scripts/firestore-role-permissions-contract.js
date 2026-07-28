@@ -13,6 +13,7 @@ const requiredPatterns = [
   [/data\.assignedTechnician\s*==\s*technicianName\(\)/, "server-side assignment match"],
   [/function\s+technicianUpdateFieldsAreSafe\(\)/, "technician field allowlist"],
   [/function\s+technicianStatusTransitionIsSafe\(\)/, "status transition guard"],
+  [/function\s+technicianStatusTimestampIsSafe\(\)/, "status timestamp guard"],
   [/function\s+technicianCompletionStateIsSafe\(\)/, "completion timestamp guard"],
   [/allow\s+read:\s*if\s+isOwner\(\)\s*\|\|\s*isOffice\(\)\s*\|\|\s*assignedToCurrentTechnician\(resource\.data\)/, "assigned-record read restriction"],
   [/allow\s+create:\s*if\s+isOwner\(\)\s*\|\|\s*isOffice\(\)/, "owner/office-only customer creation"],
@@ -59,11 +60,23 @@ for (const [pattern, label] of forbiddenPatterns) {
 if (!/request\.resource\.data\.officeStatus\s*==\s*resource\.data\.officeStatus/.test(rules)) {
   failures.push("Technicians cannot safely save notes without changing an existing status");
 }
-if (!/request\.resource\.data\.officeStatus\s*==\s*'Completed'[\s\S]*completedAt\s+is\s+timestamp/.test(rules)) {
-  failures.push("Completed work orders must require a timestamp");
+if (!/request\.resource\.data\.statusUpdatedAt\s*==\s*resource\.data\.statusUpdatedAt/.test(rules)) {
+  failures.push("Note-only technician updates must preserve statusUpdatedAt");
+}
+if (!/request\.resource\.data\.statusUpdatedAt\s*==\s*request\.time/.test(rules)) {
+  failures.push("Technician status changes must use the trusted request timestamp");
+}
+if (!/request\.resource\.data\.completedAt\s*==\s*request\.time/.test(rules)) {
+  failures.push("Newly completed work orders must use the trusted request timestamp");
+}
+if (!/request\.resource\.data\.completedAt\s*==\s*resource\.data\.completedAt/.test(rules)) {
+  failures.push("Completed work-order notes must preserve the original completedAt timestamp");
 }
 if (!/!\('completedAt'\s+in\s+request\.resource\.data\)/.test(rules)) {
   failures.push("Reopened work orders must remove completedAt");
+}
+if (!/technicianStatusTimestampIsSafe\(\)[\s\S]*technicianCompletionStateIsSafe\(\)/.test(rules)) {
+  failures.push("Technician updates must enforce both status and completion timestamp guards");
 }
 
 if (failures.length) {
@@ -71,4 +84,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log("Firestore owner, office, technician assignment, field, status, completion, and deny-by-default checks passed.");
+console.log("Firestore owner, office, technician assignment, field, status, trusted timestamp, completion, and deny-by-default checks passed.");
