@@ -41,8 +41,20 @@ requireMatch(
   'mobile mode class must still be applied to the embedded application',
   /classList\.add\([^)]*["']iphone-field-mode["']/,
 );
+requireMatch(
+  'owner command-center banner must remain a semantic banner',
+  /ownerStrip\.setAttribute\(["']role["'],["']banner["']\)/,
+);
+requireMatch(
+  'More button must remain connected to the owner menu',
+  /aria-controls=\"ownerMobileMenu\"/,
+);
+requireMatch(
+  'owner menu must retain Escape-key dismissal',
+  /event\.key\s*===\s*["']Escape["']/,
+);
 
-for (const stylesheet of ['iphone.css', 'iphone-polish.css', 'iphone-finish.css']) {
+for (const stylesheet of ['iphone.css', 'iphone-polish.css', 'iphone-finish.css', 'iphone-command.css']) {
   if (!html.includes(`'${stylesheet}'`) && !html.includes(`"${stylesheet}"`)) {
     failures.push(`${stylesheet} must remain loaded by iphone.html`);
   }
