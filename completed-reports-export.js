@@ -56,8 +56,16 @@
     }
 
     parent.appendChild(link);
-    link.click();
-    link.remove();
+    let downloadStarted = false;
+    try {
+      link.click();
+      downloadStarted = true;
+    } finally {
+      link.remove();
+      if (!downloadStarted) {
+        URL.revokeObjectURL(url);
+      }
+    }
 
     // WebKit may still be consuming the object URL after the click task completes.
     // Keep it alive briefly so iPhone/iPad Safari can finish the download reliably.
