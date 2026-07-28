@@ -69,9 +69,17 @@ service cloud.firestore {
         ];
     }
 
+    function technicianStatusTimestampIsSafe() {
+      return request.resource.data.officeStatus == resource.data.officeStatus
+        ? request.resource.data.statusUpdatedAt == resource.data.statusUpdatedAt
+        : request.resource.data.statusUpdatedAt == request.time;
+    }
+
     function technicianCompletionStateIsSafe() {
       return request.resource.data.officeStatus == 'Completed'
-        ? request.resource.data.completedAt is timestamp
+        ? (resource.data.officeStatus == 'Completed'
+          ? request.resource.data.completedAt == resource.data.completedAt
+          : request.resource.data.completedAt == request.time)
         : !('completedAt' in request.resource.data);
     }
 
@@ -88,6 +96,7 @@ service cloud.firestore {
           && request.resource.data.assignedTechnician == resource.data.assignedTechnician
           && technicianUpdateFieldsAreSafe()
           && technicianStatusTransitionIsSafe()
+          && technicianStatusTimestampIsSafe()
           && technicianCompletionStateIsSafe());
       allow delete: if isOwner() || isOffice();
     }
