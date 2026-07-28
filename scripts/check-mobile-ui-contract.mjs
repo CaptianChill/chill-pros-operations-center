@@ -14,42 +14,54 @@
 import { readFile } from 'node:fs/promises';
 
 const htmlPath = new URL('../iphone.html', import.meta.url);
-const html = await readFile(htmlPath, 'utf8');
+const commandCssPath = new URL('../iphone-command.css', import.meta.url);
+const [html, commandCss] = await Promise.all([
+  readFile(htmlPath, 'utf8'),
+  readFile(commandCssPath, 'utf8'),
+]);
 const failures = [];
 
-function requireMatch(description, pattern) {
-  if (!pattern.test(html)) failures.push(description);
+function requireMatch(source, description, pattern) {
+  if (!pattern.test(source)) failures.push(description);
 }
 
 requireMatch(
+  html,
   'viewport must retain viewport-fit=cover for iPhone safe areas',
   /<meta\s+name=["']viewport["'][^>]*content=["'][^"']*viewport-fit=cover/i,
 );
 requireMatch(
+  html,
   'mobile theme color must remain defined',
   /<meta\s+name=["']theme-color["'][^>]*content=["']#071018["']/i,
 );
 requireMatch(
+  html,
   'loading state must remain announced to assistive technology',
   /id=["']loading["'][^>]*role=["']status["'][^>]*aria-live=["']polite["']/i,
 );
 requireMatch(
+  html,
   'iframe must retain an accessible title',
   /<iframe\b[^>]*id=["']phoneApp["'][^>]*title=["'][^"']+["']/i,
 );
 requireMatch(
+  html,
   'mobile mode class must still be applied to the embedded application',
   /classList\.add\([^)]*["']iphone-field-mode["']/,
 );
 requireMatch(
+  html,
   'owner command-center banner must remain a semantic banner',
   /ownerStrip\.setAttribute\(["']role["'],["']banner["']\)/,
 );
 requireMatch(
+  html,
   'More button must remain connected to the owner menu',
-  /aria-controls=\"ownerMobileMenu\"/,
+  /aria-controls="ownerMobileMenu"/,
 );
 requireMatch(
+  html,
   'owner menu must retain Escape-key dismissal',
   /event\.key\s*===\s*["']Escape["']/,
 );
@@ -59,6 +71,32 @@ for (const stylesheet of ['iphone.css', 'iphone-polish.css', 'iphone-finish.css'
     failures.push(`${stylesheet} must remain loaded by iphone.html`);
   }
 }
+
+requireMatch(
+  commandCss,
+  'mobile controls must retain a minimum 44px touch target',
+  /button,[\s\S]*?\[role=["']button["']\][\s\S]*?min-height:\s*44px/,
+);
+requireMatch(
+  commandCss,
+  'mobile form controls must retain 16px text to avoid iOS focus zoom',
+  /input,[\s\S]*?select,[\s\S]*?textarea[\s\S]*?font-size:\s*16px/,
+);
+requireMatch(
+  commandCss,
+  'reduced-motion support must remain defined',
+  /@media\(prefers-reduced-motion:reduce\)/,
+);
+requireMatch(
+  commandCss,
+  'forced-colors support must remain defined',
+  /@media\(forced-colors:active\)/,
+);
+requireMatch(
+  commandCss,
+  'invalid form controls must retain a visible error state',
+  /aria-invalid=["']true["']/,
+);
 
 const ids = [...html.matchAll(/\bid=["']([^"']+)["']/g)].map((match) => match[1]);
 const duplicates = [...new Set(ids.filter((id, index) => ids.indexOf(id) !== index))];
