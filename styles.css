@@ -19,3 +19,5 @@
   background: rgba(66, 210, 255, 0.45);
   border-radius: 10px;
 }
+
+.technician-work-order{align-items:flex-start}.technician-work-order-form{grid-template-columns:1fr}.technician-work-order-form label{margin-bottom:0}.technician-work-order-form .form-actions{margin-top:0}
