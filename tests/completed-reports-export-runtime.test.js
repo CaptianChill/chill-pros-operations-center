@@ -15,12 +15,15 @@ assert.ok(csvLoaderIndex >= 0, "tenant-config must load the spreadsheet-safe CSV
 assert.ok(runtimeLoaderIndex > csvLoaderIndex, "completed reports runtime must load after csv-export.js");
 assert.match(runtimeSource, /Secure CSV export utility is unavailable/, "runtime must fail closed without the secure utility");
 assert.match(runtimeSource, /Completed jobs export requires an attached document root/, "runtime must fail closed without a document root");
+assert.match(runtimeSource, /Completed jobs export requires Blob support/, "runtime must fail closed without Blob support");
+assert.match(runtimeSource, /Completed jobs export requires object URL support/, "runtime must fail closed without object URL support");
+assert.match(runtimeSource, /Completed jobs export requires a browser document/, "runtime must fail closed without a browser document");
 assert.match(runtimeSource, /stopImmediatePropagation\(\)/, "runtime must suppress the legacy export listener");
 assert.match(runtimeSource, /capture:\s*true/, "secure export listener must run in the capture phase");
 assert.match(runtimeSource, /filteredCompletedJobs/, "runtime must export the currently filtered report dataset");
-assert.match(runtimeSource, /setTimeout\(\(\) => URL\.revokeObjectURL\(url\), 1000\)/, "object URL cleanup must allow Safari time to consume the download");
-assert.match(runtimeSource, /if \(!downloadStarted\)[\s\S]*URL\.revokeObjectURL\(url\)/, "failed clicks must revoke the object URL immediately");
-assert.match(runtimeSource, /new Blob\(\["\\uFEFF", csv\]/, "download must include a UTF-8 BOM for Excel compatibility");
+assert.match(runtimeSource, /setTimeout\(\(\) => globalScope\.URL\.revokeObjectURL\(url\), 1000\)/, "object URL cleanup must allow Safari time to consume the download");
+assert.match(runtimeSource, /if \(!downloadStarted\)[\s\S]*globalScope\.URL\.revokeObjectURL\(url\)/, "failed clicks must revoke the object URL immediately");
+assert.match(runtimeSource, /new globalScope\.Blob\(\["\\uFEFF", csv\]/, "download must include a UTF-8 BOM for Excel compatibility");
 
 const capturedListeners = [];
 const downloads = [];
@@ -147,5 +150,33 @@ assert.equal(appendedLinks.length, 2, "failed download link must still be attach
 assert.equal(removedLinks.length, 2, "failed download link must be removed in finally cleanup");
 assert.deepEqual(revokedUrls, ["blob:test", "blob:test"], "failed downloads must revoke their object URL immediately");
 assert.equal(scheduledCallbacks.length, 1, "failed downloads must not schedule delayed cleanup");
+
+context.throwOnClick = false;
+const originalBlob = context.Blob;
+context.Blob = undefined;
+assert.throws(
+  () => context.ChillProsCompletedReportsExport.downloadCompletedJobsCsv([]),
+  /requires Blob support/,
+  "missing Blob support must produce a controlled failure"
+);
+context.Blob = originalBlob;
+
+const originalCreateObjectURL = context.URL.createObjectURL;
+context.URL.createObjectURL = undefined;
+assert.throws(
+  () => context.ChillProsCompletedReportsExport.downloadCompletedJobsCsv([]),
+  /requires object URL support/,
+  "missing object URL support must produce a controlled failure"
+);
+context.URL.createObjectURL = originalCreateObjectURL;
+
+const originalCreateElement = context.document.createElement;
+context.document.createElement = undefined;
+assert.throws(
+  () => context.ChillProsCompletedReportsExport.downloadCompletedJobsCsv([]),
+  /requires a browser document/,
+  "missing document support must produce a controlled failure"
+);
+context.document.createElement = originalCreateElement;
 
 console.log("Completed reports secure CSV runtime contract passed.");
