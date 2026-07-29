@@ -14,6 +14,24 @@ const {
   snapshotChangedFields
 } = require("../app-audited-mutation-bridge.js");
 
+function makeGateway(calls, overrides = {}) {
+  return {
+    async createCustomer(record, options) {
+      calls.push(["create", record, options]);
+      return "customer-created";
+    },
+    async updateCustomer(record, changes, options) {
+      calls.push(["update", record, changes, options]);
+      return "audit-update";
+    },
+    async deleteCustomer(record, options) {
+      calls.push(["delete", record, options]);
+      return "audit-delete";
+    },
+    ...overrides
+  };
+}
+
 async function run() {
   assert.equal(classifyUpdateAction({ officeStatus: "Scheduled" }), "customer.status.updated");
   assert.equal(classifyUpdateAction({ assignedTechnician: "Brae" }), "customer.schedule.updated");
@@ -21,6 +39,10 @@ async function run() {
   assert.equal(classifyUpdateAction({ findings: "Failed relay" }), "customer.updated");
 
   assert.throws(() => requireGateway({}), /gateway is unavailable/);
+  assert.throws(
+    () => requireGateway({ chillProsCustomerMutations: { updateCustomer() {}, deleteCustomer() {} } }),
+    /gateway is unavailable/
+  );
   assert.equal(getQueueStorageKey({ FIELD_FORGED_CONFIG: { tenant: { id: "chill-pros" } } }), "fieldForged:chill-pros:operations-center:v3");
   assert.equal(getQueueStorageKey({}), "");
   assert.equal(reconcileRollback({}), false);
@@ -35,15 +57,9 @@ async function run() {
         return JSON.stringify([{ id: "customer-1", officeStatus: "Needs Review" }]);
       }
     },
-    chillProsCustomerMutations: {
-      async updateCustomer(record, changes, options) {
-        calls.push(["update", record, changes, options]);
-        return "audit-update";
-      },
-      async deleteCustomer(record, options) {
-        calls.push(["delete", record, options]);
-        return "audit-delete";
-      }
+    chillProsCustomerMutations: makeGateway(calls),
+    async saveCustomerToFirebase() {
+      calls.push(["legacy-create"]);
     },
     async updateCustomerInFirebase() {
       calls.push(["legacy-update"]);
@@ -54,20 +70,34 @@ async function run() {
   };
 
   const firstInstall = installBridge(scope);
+  const wrappedCreate = scope.saveCustomerToFirebase;
   const wrappedUpdate = scope.updateCustomerInFirebase;
   const wrappedDelete = scope.deleteCustomerFromFirebase;
   const secondInstall = installBridge(scope);
   assert.equal(secondInstall, firstInstall);
+  assert.equal(scope.saveCustomerToFirebase, wrappedCreate);
   assert.equal(scope.updateCustomerInFirebase, wrappedUpdate);
   assert.equal(scope.deleteCustomerFromFirebase, wrappedDelete);
   assert.equal(scope[INSTALL_MARKER], firstInstall);
   assert.equal(Object.isFrozen(firstInstall), true);
 
+  const intakeRecord = { id: "local-customer-1", customerName: "Tony's Pizza" };
+  assert.equal(await scope.saveCustomerToFirebase(intakeRecord), "customer-created");
+  assert.deepEqual(calls[0], [
+    "create",
+    intakeRecord,
+    {
+      action: "customer.created",
+      source: "operations-center-app",
+      metadata: { workflow: "customer-intake" }
+    }
+  ]);
+
   const record = { id: "customer-1", officeStatus: "Scheduled" };
   const changes = { officeStatus: "Scheduled", statusUpdatedAt: "2026-07-29T15:00:00.000Z" };
   assert.equal(await scope.updateCustomerInFirebase(record, changes), "audit-update");
   assert.equal(await scope.deleteCustomerFromFirebase(record), "audit-delete");
-  assert.deepEqual(calls[0], [
+  assert.deepEqual(calls[1], [
     "update",
     record,
     changes,
@@ -77,7 +107,7 @@ async function run() {
       metadata: { workflow: "office-queue" }
     }
   ]);
-  assert.deepEqual(calls[1], [
+  assert.deepEqual(calls[2], [
     "delete",
     record,
     {
@@ -131,12 +161,12 @@ async function run() {
     dispatchEvent(event) {
       rollbackEvents.push(event);
     },
-    chillProsCustomerMutations: {
+    chillProsCustomerMutations: makeGateway([], {
       async updateCustomer() {
         throw new Error("batch commit rejected");
-      },
-      async deleteCustomer() {}
-    },
+      }
+    }),
+    async saveCustomerToFirebase() {},
     async updateCustomerInFirebase() {},
     async deleteCustomerFromFirebase() {}
   };
@@ -164,6 +194,23 @@ async function run() {
   assert.deepEqual(rollbackEvents[0].detail.changedFields, ["officeStatus", "assignedTechnician", "statusUpdatedAt"]);
   assert.equal(rollbackEvents[0].detail.error, "batch commit rejected");
 
+  const createFailureScope = {
+    chillProsDb: {},
+    chillProsCustomerMutations: makeGateway([], {
+      async createCustomer() {
+        throw new Error("create batch rejected");
+      }
+    }),
+    async saveCustomerToFirebase() {},
+    async updateCustomerInFirebase() {},
+    async deleteCustomerFromFirebase() {}
+  };
+  installBridge(createFailureScope);
+  await assert.rejects(
+    createFailureScope.saveCustomerToFirebase({ id: "local-intake" }),
+    /create batch rejected/
+  );
+
   const reconciliationError = console.error;
   const reconciliationLogs = [];
   console.error = (...args) => reconciliationLogs.push(args);
@@ -184,6 +231,10 @@ async function run() {
   const localCalls = [];
   const localScope = {
     chillProsDb: null,
+    async saveCustomerToFirebase(recordValue) {
+      localCalls.push(["create", recordValue]);
+      return "local-create";
+    },
     async updateCustomerInFirebase(recordValue, changesValue) {
       localCalls.push(["update", recordValue, changesValue]);
       return "local-update";
@@ -194,9 +245,10 @@ async function run() {
     }
   };
   installBridge(localScope);
+  assert.equal(await localScope.saveCustomerToFirebase(intakeRecord), "local-create");
   assert.equal(await localScope.updateCustomerInFirebase(record, changes), "local-update");
   assert.equal(await localScope.deleteCustomerFromFirebase(record), "local-delete");
-  assert.equal(localCalls.length, 2);
+  assert.equal(localCalls.length, 3);
 
   let listener;
   const eventScope = {
@@ -206,12 +258,14 @@ async function run() {
       assert.deepEqual(options, { once: true });
       listener = callback;
     },
+    async saveCustomerToFirebase() {},
     async updateCustomerInFirebase() {},
     async deleteCustomerFromFirebase() {}
   };
   assert.equal(installAfterAppLoads(eventScope), null);
   assert.equal(typeof listener, "function");
   listener();
+  assert.notEqual(eventScope.saveCustomerToFirebase.name, "saveCustomerToFirebase");
   assert.notEqual(eventScope.updateCustomerInFirebase.name, "updateCustomerInFirebase");
 
   let lateListenerRegistered = false;
@@ -220,6 +274,7 @@ async function run() {
     addEventListener() {
       lateListenerRegistered = true;
     },
+    async saveCustomerToFirebase() {},
     async updateCustomerInFirebase() {},
     async deleteCustomerFromFirebase() {}
   };
