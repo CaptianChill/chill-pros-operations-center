@@ -35,6 +35,12 @@
     const mutations = factory({ db, auth, serverTimestamp });
 
     return {
+      async createCustomer(record, options = {}) {
+        const documentId = await mutations.createCustomer(record, options);
+        if (record && documentId) record.firestoreId = documentId;
+        return documentId;
+      },
+
       async updateCustomer(record, changes, options = {}) {
         const documentId = record?.firestoreId || record?.id;
         const auditId = await mutations.updateCustomer(documentId, changes, options);
