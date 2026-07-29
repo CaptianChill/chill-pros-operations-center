@@ -3,9 +3,13 @@
 const assert = require("node:assert/strict");
 const {
   classifyUpdateAction,
+  getQueueStorageKey,
   installAfterAppLoads,
   installBridge,
-  requireGateway
+  readStoredRecord,
+  requireGateway,
+  restoreChangedFields,
+  snapshotChangedFields
 } = require("../app-audited-mutation-bridge.js");
 
 async function run() {
@@ -15,10 +19,19 @@ async function run() {
   assert.equal(classifyUpdateAction({ findings: "Failed relay" }), "customer.updated");
 
   assert.throws(() => requireGateway({}), /gateway is unavailable/);
+  assert.equal(getQueueStorageKey({ FIELD_FORGED_CONFIG: { tenant: { id: "chill-pros" } } }), "fieldForged:chill-pros:operations-center:v3");
+  assert.equal(getQueueStorageKey({}), "");
 
   const calls = [];
   const scope = {
     chillProsDb: {},
+    FIELD_FORGED_CONFIG: { tenant: { id: "chill-pros" } },
+    localStorage: {
+      getItem(key) {
+        assert.equal(key, "fieldForged:chill-pros:operations-center:v3");
+        return JSON.stringify([{ id: "customer-1", officeStatus: "Needs Review" }]);
+      }
+    },
     chillProsCustomerMutations: {
       async updateCustomer(record, changes, options) {
         calls.push(["update", record, changes, options]);
@@ -38,7 +51,7 @@ async function run() {
   };
 
   installBridge(scope);
-  const record = { id: "customer-1" };
+  const record = { id: "customer-1", officeStatus: "Scheduled" };
   const changes = { officeStatus: "Scheduled", statusUpdatedAt: "2026-07-29T15:00:00.000Z" };
   assert.equal(await scope.updateCustomerInFirebase(record, changes), "audit-update");
   assert.equal(await scope.deleteCustomerFromFirebase(record), "audit-delete");
@@ -60,6 +73,81 @@ async function run() {
       metadata: { workflow: "office-queue" }
     }
   ]);
+
+  const storedRecord = readStoredRecord(scope, record);
+  assert.deepEqual(storedRecord, { id: "customer-1", officeStatus: "Needs Review" });
+  const snapshot = snapshotChangedFields(scope, record, changes);
+  assert.deepEqual(snapshot, {
+    officeStatus: { existed: true, value: "Needs Review" },
+    statusUpdatedAt: { existed: false, value: undefined }
+  });
+  const restoreTarget = { officeStatus: "Scheduled", statusUpdatedAt: "new", untouched: true };
+  restoreChangedFields(restoreTarget, snapshot);
+  assert.deepEqual(restoreTarget, { officeStatus: "Needs Review", untouched: true });
+
+  const rollbackEvents = [];
+  class TestCustomEvent {
+    constructor(name, options) {
+      this.type = name;
+      this.detail = options.detail;
+    }
+  }
+  const failingRecord = {
+    id: "customer-1",
+    officeStatus: "Dispatched",
+    assignedTechnician: "Brae",
+    statusUpdatedAt: "new-value"
+  };
+  const failingScope = {
+    chillProsDb: {},
+    FIELD_FORGED_CONFIG: { tenant: { id: "chill-pros" } },
+    localStorage: {
+      getItem() {
+        return JSON.stringify([{
+          id: "customer-1",
+          officeStatus: "Scheduled",
+          assignedTechnician: "",
+          scheduledDate: "2026-07-29"
+        }]);
+      }
+    },
+    CustomEvent: TestCustomEvent,
+    dispatchEvent(event) {
+      rollbackEvents.push(event);
+    },
+    chillProsCustomerMutations: {
+      async updateCustomer() {
+        throw new Error("batch commit rejected");
+      },
+      async deleteCustomer() {}
+    },
+    async updateCustomerInFirebase() {},
+    async deleteCustomerFromFirebase() {}
+  };
+  installBridge(failingScope);
+  await assert.rejects(
+    failingScope.updateCustomerInFirebase(failingRecord, {
+      officeStatus: "Dispatched",
+      assignedTechnician: "Brae",
+      statusUpdatedAt: "new-value"
+    }),
+    /batch commit rejected/
+  );
+  assert.deepEqual(failingRecord, {
+    id: "customer-1",
+    officeStatus: "Scheduled",
+    assignedTechnician: ""
+  });
+  assert.equal(rollbackEvents.length, 1);
+  assert.equal(rollbackEvents[0].type, "chillpros:customer-mutation-rollback");
+  assert.deepEqual(rollbackEvents[0].detail.changedFields, ["officeStatus", "assignedTechnician", "statusUpdatedAt"]);
+  assert.equal(rollbackEvents[0].detail.error, "batch commit rejected");
+
+  const malformedScope = {
+    FIELD_FORGED_CONFIG: { tenant: { id: "chill-pros" } },
+    localStorage: { getItem: () => "not-json" }
+  };
+  assert.equal(readStoredRecord(malformedScope, { id: "customer-1" }), null);
 
   const localCalls = [];
   const localScope = {
