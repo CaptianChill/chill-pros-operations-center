@@ -59,10 +59,29 @@ Recommended shape:
 
 Only write fields that exist on the source record. Do not manufacture zero values for unknown data in the production migration.
 
+## Inventory dry run
+
+The repository includes a read-only inventory utility. It scans the parent `Customers` collection and reports records containing known sensitive fields. It never writes or deletes Firestore data.
+
+Authenticate with an administrative service account or Application Default Credentials, then run:
+
+```bash
+npm --prefix functions ci
+npm --prefix functions run inventory:private-data -- --project chill-pros-ice-stream --output summary
+```
+
+Use `--output json` to create a machine-readable review artifact:
+
+```bash
+npm --prefix functions run inventory:private-data -- --project chill-pros-ice-stream --output json > private-data-inventory.json
+```
+
+Review the output before implementing or authorizing any mutation. The JSON report intentionally contains document paths and field names only, not sensitive values.
+
 ## Safe migration sequence
 
 1. Export or back up the `Customers` collection.
-2. Inventory source records containing sensitive fields.
+2. Run the read-only inventory and retain its output with the release evidence.
 3. Run the migration with an administrative server credential, never from a technician client.
 4. For each source record, write the private document first using merge semantics.
 5. Read the private document back and compare every migrated value with the source.
