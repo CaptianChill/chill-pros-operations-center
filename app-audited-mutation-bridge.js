@@ -1,6 +1,8 @@
 (function initAppAuditedMutationBridge(globalScope) {
   "use strict";
 
+  const INSTALL_MARKER = "__chillProsAuditedMutationBridgeInstalled";
+
   function requireGateway(scope) {
     const gateway = scope?.chillProsCustomerMutations;
     if (!gateway || typeof gateway.updateCustomer !== "function" || typeof gateway.deleteCustomer !== "function") {
@@ -74,6 +76,7 @@
 
   function installBridge(scope = globalScope) {
     if (!scope || typeof scope !== "object") throw new Error("Browser scope is required");
+    if (scope[INSTALL_MARKER]) return scope[INSTALL_MARKER];
 
     const legacyUpdate = scope.updateCustomerInFirebase;
     const legacyDelete = scope.deleteCustomerFromFirebase;
@@ -105,14 +108,25 @@
       });
     };
 
-    return {
+    const installed = Object.freeze({
       updateCustomerInFirebase: scope.updateCustomerInFirebase,
       deleteCustomerFromFirebase: scope.deleteCustomerFromFirebase
-    };
+    });
+    Object.defineProperty(scope, INSTALL_MARKER, {
+      configurable: false,
+      enumerable: false,
+      writable: false,
+      value: installed
+    });
+    return installed;
   }
 
   function installAfterAppLoads(scope = globalScope) {
-    if (!scope || typeof scope.addEventListener !== "function") {
+    if (!scope || typeof scope !== "object") throw new Error("Browser scope is required");
+    if (scope.document?.readyState && scope.document.readyState !== "loading") {
+      return installBridge(scope);
+    }
+    if (typeof scope.addEventListener !== "function") {
       throw new Error("Browser event target is required");
     }
     scope.addEventListener("DOMContentLoaded", () => {
@@ -122,9 +136,11 @@
         console.error("Unable to install audited customer mutation bridge:", error);
       }
     }, { once: true });
+    return null;
   }
 
   const api = {
+    INSTALL_MARKER,
     classifyUpdateAction,
     emitRollback,
     getQueueStorageKey,
