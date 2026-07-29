@@ -24,9 +24,30 @@ const SENSITIVE_FIELDS = Object.freeze([
   "priceOverrideApprovedAt",
 ]);
 
-function findSensitiveFields(record) {
-  if (!record || typeof record !== "object" || Array.isArray(record)) return [];
-  return SENSITIVE_FIELDS.filter((field) => Object.prototype.hasOwnProperty.call(record, field));
+const SENSITIVE_FIELD_SET = new Set(SENSITIVE_FIELDS);
+
+function findSensitiveFields(record, prefix = "", visited = new WeakSet()) {
+  if (!record || typeof record !== "object") return [];
+  if (visited.has(record)) return [];
+  visited.add(record);
+
+  const matches = [];
+  Object.entries(record).forEach(([field, value]) => {
+    const path = prefix ? `${prefix}.${field}` : field;
+    if (SENSITIVE_FIELD_SET.has(field)) matches.push(path);
+
+    if (value && typeof value === "object") {
+      if (Array.isArray(value)) {
+        value.forEach((item, index) => {
+          matches.push(...findSensitiveFields(item, `${path}[${index}]`, visited));
+        });
+      } else if (!(value instanceof Date)) {
+        matches.push(...findSensitiveFields(value, path, visited));
+      }
+    }
+  });
+
+  return matches;
 }
 
 function parseArgs(argv) {
