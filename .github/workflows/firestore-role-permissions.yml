@@ -20,6 +20,7 @@ on:
       - "scripts/customer-mutation-integration.test.js"
       - "scripts/security-runtime-bootstrap.test.js"
       - "scripts/app-audited-mutation-bridge.test.js"
+      - "scripts/app-audited-mutation-classification.test.js"
       - "scripts/firestore-role-permissions-contract.js"
       - "scripts/firestore-role-permissions-emulator.test.js"
       - "functions/package.json"
@@ -48,6 +49,7 @@ on:
       - "scripts/customer-mutation-integration.test.js"
       - "scripts/security-runtime-bootstrap.test.js"
       - "scripts/app-audited-mutation-bridge.test.js"
+      - "scripts/app-audited-mutation-classification.test.js"
       - "scripts/firestore-role-permissions-contract.js"
       - "scripts/firestore-role-permissions-emulator.test.js"
       - "functions/package.json"
@@ -101,6 +103,8 @@ jobs:
         run: node --check app-audited-mutation-bridge.js
       - name: Test app audited mutation bridge
         run: node scripts/app-audited-mutation-bridge.test.js
+      - name: Test sensitive audit action classification
+        run: node scripts/app-audited-mutation-classification.test.js
 
   private-data-inventory:
     runs-on: ubuntu-latest
