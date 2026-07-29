@@ -50,7 +50,7 @@ jobs:
         with:
           node-version: "20"
       - name: Install backend dependencies
-        run: npm --prefix functions ci
+        run: npm --prefix functions install --no-audit --no-fund
       - name: Check inventory utility syntax
         run: node --check functions/scripts/inventory-private-customer-data.js
       - name: Test private-data inventory helpers
