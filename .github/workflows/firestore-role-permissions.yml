@@ -23,6 +23,7 @@ on:
       - "scripts/app-audited-mutation-classification.test.js"
       - "scripts/firestore-role-permissions-contract.js"
       - "scripts/firestore-role-permissions-emulator.test.js"
+      - "scripts/firestore-role-profile-escalation-emulator.test.js"
       - "functions/package.json"
       - "functions/package-lock.json"
       - "functions/scripts/inventory-private-customer-data.js"
@@ -52,6 +53,7 @@ on:
       - "scripts/app-audited-mutation-classification.test.js"
       - "scripts/firestore-role-permissions-contract.js"
       - "scripts/firestore-role-permissions-emulator.test.js"
+      - "scripts/firestore-role-profile-escalation-emulator.test.js"
       - "functions/package.json"
       - "functions/package-lock.json"
       - "functions/scripts/inventory-private-customer-data.js"
@@ -131,5 +133,9 @@ jobs:
         run: npm install --no-save firebase@12.1.0 @firebase/rules-unit-testing@5.0.0 firebase-tools@14.12.0
       - name: Check emulator test syntax
         run: node --check scripts/firestore-role-permissions-emulator.test.js
+      - name: Check role-profile escalation test syntax
+        run: node --check scripts/firestore-role-profile-escalation-emulator.test.js
       - name: Run Firestore emulator permission matrix
         run: npx firebase emulators:exec --only firestore --project demo-chill-pros-role-permissions --config firebase.emulator.json "node scripts/firestore-role-permissions-emulator.test.js"
+      - name: Run role-profile escalation matrix
+        run: npx firebase emulators:exec --only firestore --project demo-chill-pros-role-profile-escalation --config firebase.emulator.json "node scripts/firestore-role-profile-escalation-emulator.test.js"
