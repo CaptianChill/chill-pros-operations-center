@@ -9,10 +9,12 @@ on:
       - "audit-events.js"
       - "audited-customer-mutations.js"
       - "customer-mutation-adapter.js"
+      - "customer-mutation-integration.js"
       - "scripts/firebase-config-auth.test.js"
       - "scripts/audit-events.test.js"
       - "scripts/audited-customer-mutations.test.js"
       - "scripts/customer-mutation-adapter.test.js"
+      - "scripts/customer-mutation-integration.test.js"
       - "scripts/firestore-role-permissions-contract.js"
       - "scripts/firestore-role-permissions-emulator.test.js"
       - "functions/package.json"
@@ -30,10 +32,12 @@ on:
       - "audit-events.js"
       - "audited-customer-mutations.js"
       - "customer-mutation-adapter.js"
+      - "customer-mutation-integration.js"
       - "scripts/firebase-config-auth.test.js"
       - "scripts/audit-events.test.js"
       - "scripts/audited-customer-mutations.test.js"
       - "scripts/customer-mutation-adapter.test.js"
+      - "scripts/customer-mutation-integration.test.js"
       - "scripts/firestore-role-permissions-contract.js"
       - "scripts/firestore-role-permissions-emulator.test.js"
       - "functions/package.json"
@@ -73,6 +77,10 @@ jobs:
         run: node --check customer-mutation-adapter.js
       - name: Test customer mutation adapter
         run: node scripts/customer-mutation-adapter.test.js
+      - name: Check queue mutation integration syntax
+        run: node --check customer-mutation-integration.js
+      - name: Test queue mutation integration
+        run: node scripts/customer-mutation-integration.test.js
 
   private-data-inventory:
     runs-on: ubuntu-latest
