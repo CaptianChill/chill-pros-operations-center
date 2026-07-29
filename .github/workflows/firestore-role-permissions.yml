@@ -7,6 +7,10 @@ on:
       - "firebase.emulator.json"
       - "scripts/firestore-role-permissions-contract.js"
       - "scripts/firestore-role-permissions-emulator.test.js"
+      - "functions/package.json"
+      - "functions/package-lock.json"
+      - "functions/scripts/inventory-private-customer-data.js"
+      - "functions/scripts/inventory-private-customer-data.test.js"
       - ".github/workflows/firestore-role-permissions.yml"
   push:
     branches:
@@ -16,6 +20,10 @@ on:
       - "firebase.emulator.json"
       - "scripts/firestore-role-permissions-contract.js"
       - "scripts/firestore-role-permissions-emulator.test.js"
+      - "functions/package.json"
+      - "functions/package-lock.json"
+      - "functions/scripts/inventory-private-customer-data.js"
+      - "functions/scripts/inventory-private-customer-data.test.js"
       - ".github/workflows/firestore-role-permissions.yml"
 
 permissions:
@@ -33,6 +41,20 @@ jobs:
         run: node --check scripts/firestore-role-permissions-contract.js
       - name: Validate Firestore role permissions
         run: node scripts/firestore-role-permissions-contract.js
+
+  private-data-inventory:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install backend dependencies
+        run: npm --prefix functions ci
+      - name: Check inventory utility syntax
+        run: node --check functions/scripts/inventory-private-customer-data.js
+      - name: Test private-data inventory helpers
+        run: npm --prefix functions run test:private-data-inventory
 
   role-permissions-emulator:
     runs-on: ubuntu-latest
