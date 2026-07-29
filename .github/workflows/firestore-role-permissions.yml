@@ -12,12 +12,14 @@ on:
       - "customer-mutation-adapter.js"
       - "customer-mutation-integration.js"
       - "security-runtime-bootstrap.js"
+      - "app-audited-mutation-bridge.js"
       - "scripts/firebase-config-auth.test.js"
       - "scripts/audit-events.test.js"
       - "scripts/audited-customer-mutations.test.js"
       - "scripts/customer-mutation-adapter.test.js"
       - "scripts/customer-mutation-integration.test.js"
       - "scripts/security-runtime-bootstrap.test.js"
+      - "scripts/app-audited-mutation-bridge.test.js"
       - "scripts/firestore-role-permissions-contract.js"
       - "scripts/firestore-role-permissions-emulator.test.js"
       - "functions/package.json"
@@ -38,12 +40,14 @@ on:
       - "customer-mutation-adapter.js"
       - "customer-mutation-integration.js"
       - "security-runtime-bootstrap.js"
+      - "app-audited-mutation-bridge.js"
       - "scripts/firebase-config-auth.test.js"
       - "scripts/audit-events.test.js"
       - "scripts/audited-customer-mutations.test.js"
       - "scripts/customer-mutation-adapter.test.js"
       - "scripts/customer-mutation-integration.test.js"
       - "scripts/security-runtime-bootstrap.test.js"
+      - "scripts/app-audited-mutation-bridge.test.js"
       - "scripts/firestore-role-permissions-contract.js"
       - "scripts/firestore-role-permissions-emulator.test.js"
       - "functions/package.json"
@@ -93,6 +97,10 @@ jobs:
         run: node --check security-runtime-bootstrap.js
       - name: Test security runtime bootstrap
         run: node scripts/security-runtime-bootstrap.test.js
+      - name: Check app audited mutation bridge syntax
+        run: node --check app-audited-mutation-bridge.js
+      - name: Test app audited mutation bridge
+        run: node scripts/app-audited-mutation-bridge.test.js
 
   private-data-inventory:
     runs-on: ubuntu-latest
