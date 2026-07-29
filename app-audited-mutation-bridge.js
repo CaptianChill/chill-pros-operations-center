@@ -2,6 +2,36 @@
   "use strict";
 
   const INSTALL_MARKER = "__chillProsAuditedMutationBridgeInstalled";
+  const PRICING_FIELDS = new Set([
+    "cost",
+    "internalCost",
+    "unitCost",
+    "supplierCost",
+    "supplierPrice",
+    "markup",
+    "margin",
+    "profit",
+    "estimatedAmount",
+    "quotedAmount",
+    "salePrice",
+    "priceOverride",
+    "discount"
+  ]);
+  const APPROVAL_FIELDS = new Set([
+    "approvalStatus",
+    "approvedAt",
+    "approvedBy",
+    "quoteApprovalStatus",
+    "overrideApprovedAt",
+    "overrideApprovedBy"
+  ]);
+  const ORDER_FIELDS = new Set([
+    "orderStatus",
+    "partsOrderStatus",
+    "purchaseOrderStatus",
+    "orderedAt",
+    "receivedAt"
+  ]);
 
   function requireGateway(scope) {
     const gateway = scope?.chillProsCustomerMutations;
@@ -16,8 +46,15 @@
     return gateway;
   }
 
+  function hasAnyField(fields, candidates) {
+    return fields.some((field) => candidates.has(field));
+  }
+
   function classifyUpdateAction(changes) {
     const fields = Object.keys(changes || {});
+    if (hasAnyField(fields, PRICING_FIELDS)) return "customer.pricing.updated";
+    if (hasAnyField(fields, APPROVAL_FIELDS)) return "customer.approval.updated";
+    if (hasAnyField(fields, ORDER_FIELDS)) return "customer.order-status.updated";
     if (fields.includes("assignedTechnician") || fields.includes("scheduledDate") || fields.includes("scheduledTime")) {
       return "customer.schedule.updated";
     }
@@ -176,6 +213,7 @@
     classifyUpdateAction,
     emitRollback,
     getQueueStorageKey,
+    hasAnyField,
     installAfterAppLoads,
     installBridge,
     readStoredRecord,
