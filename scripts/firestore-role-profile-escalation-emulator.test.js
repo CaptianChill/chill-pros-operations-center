@@ -81,12 +81,35 @@ async function main() {
     await assertFails(deleteDoc(doc(officeDb, "Users", officeUid)));
     await assertFails(deleteDoc(doc(technicianDb, "Users", technicianUid)));
 
+    await assertFails(setDoc(doc(ownerDb, "Users", "invalid-role"), {
+      role: "administrator",
+      displayName: "Invalid Role",
+    }));
+    await assertFails(setDoc(doc(ownerDb, "Users", "missing-tech-name"), {
+      role: "technician",
+    }));
+    await assertFails(setDoc(doc(ownerDb, "Users", "blank-tech-name"), {
+      role: "technician",
+      technicianName: "",
+    }));
+    await assertFails(setDoc(doc(ownerDb, "Users", "oversized-tech-name"), {
+      role: "technician",
+      technicianName: "T".repeat(201),
+    }));
+    await assertFails(updateDoc(doc(ownerDb, "Users", officeUid), {
+      role: "invalid-role",
+    }));
+
     await assertSucceeds(updateDoc(doc(ownerDb, "Users", officeUid), {
       displayName: "Updated Office",
     }));
     await assertSucceeds(setDoc(doc(ownerDb, "Users", missingProfileUid), {
       role: "technician",
       technicianName: "Provisioned Technician",
+    }));
+    await assertSucceeds(setDoc(doc(ownerDb, "Users", "provisioned-office"), {
+      role: "office",
+      displayName: "Provisioned Office",
     }));
     await assertSucceeds(deleteDoc(doc(ownerDb, "Users", otherTechnicianUid)));
 
