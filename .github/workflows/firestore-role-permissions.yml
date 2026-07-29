@@ -6,7 +6,9 @@ on:
       - "firestore.rules"
       - "firebase.emulator.json"
       - "audit-events.js"
+      - "audited-customer-mutations.js"
       - "scripts/audit-events.test.js"
+      - "scripts/audited-customer-mutations.test.js"
       - "scripts/firestore-role-permissions-contract.js"
       - "scripts/firestore-role-permissions-emulator.test.js"
       - "functions/package.json"
@@ -21,7 +23,9 @@ on:
       - "firestore.rules"
       - "firebase.emulator.json"
       - "audit-events.js"
+      - "audited-customer-mutations.js"
       - "scripts/audit-events.test.js"
+      - "scripts/audited-customer-mutations.test.js"
       - "scripts/firestore-role-permissions-contract.js"
       - "scripts/firestore-role-permissions-emulator.test.js"
       - "functions/package.json"
@@ -49,6 +53,10 @@ jobs:
         run: node --check audit-events.js
       - name: Test authenticated audit event client
         run: node scripts/audit-events.test.js
+      - name: Check audited mutation client syntax
+        run: node --check audited-customer-mutations.js
+      - name: Test atomic audited customer mutations
+        run: node scripts/audited-customer-mutations.test.js
 
   private-data-inventory:
     runs-on: ubuntu-latest
