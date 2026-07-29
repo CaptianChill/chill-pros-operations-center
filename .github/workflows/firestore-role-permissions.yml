@@ -5,6 +5,8 @@ on:
     paths:
       - "firestore.rules"
       - "firebase.emulator.json"
+      - "audit-events.js"
+      - "scripts/audit-events.test.js"
       - "scripts/firestore-role-permissions-contract.js"
       - "scripts/firestore-role-permissions-emulator.test.js"
       - "functions/package.json"
@@ -18,6 +20,8 @@ on:
     paths:
       - "firestore.rules"
       - "firebase.emulator.json"
+      - "audit-events.js"
+      - "scripts/audit-events.test.js"
       - "scripts/firestore-role-permissions-contract.js"
       - "scripts/firestore-role-permissions-emulator.test.js"
       - "functions/package.json"
@@ -41,6 +45,10 @@ jobs:
         run: node --check scripts/firestore-role-permissions-contract.js
       - name: Validate Firestore role permissions
         run: node scripts/firestore-role-permissions-contract.js
+      - name: Check audit event client syntax
+        run: node --check audit-events.js
+      - name: Test authenticated audit event client
+        run: node scripts/audit-events.test.js
 
   private-data-inventory:
     runs-on: ubuntu-latest
