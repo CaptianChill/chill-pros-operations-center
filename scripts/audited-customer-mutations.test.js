@@ -4,12 +4,14 @@ const assert = require("node:assert/strict");
 const {
   createAuditedCustomerMutations,
   requireBoundedString,
-  requireDocumentId
+  requireDocumentId,
+  requirePlainObject
 } = require("../audited-customer-mutations.js");
 
 function createHarness({ role = "owner", profileExists = true, uid = "owner-1", commitError = null } = {}) {
   const operations = [];
   let auditSequence = 0;
+  let customerSequence = 0;
   const db = {
     collection(name) {
       return {
@@ -21,6 +23,10 @@ function createHarness({ role = "owner", profileExists = true, uid = "owner-1", 
                 return { exists: profileExists, data: () => ({ role }) };
               }
             };
+          }
+          if (name === "Customers" && id === undefined) {
+            customerSequence += 1;
+            return { path: `Customers/customer-${customerSequence}`, id: `customer-${customerSequence}` };
           }
           if (name === "AuditEvents" && id === undefined) {
             auditSequence += 1;
@@ -58,6 +64,37 @@ function createHarness({ role = "owner", profileExists = true, uid = "owner-1", 
 }
 
 (async () => {
+  {
+    const { operations, mutations } = createHarness();
+    const customerId = await mutations.createCustomer(
+      { customerName: "Example Customer", officeStatus: "Needs Review" },
+      { metadata: { workflow: "customer-intake", omitted: undefined } }
+    );
+
+    assert.equal(customerId, "customer-1");
+    assert.deepEqual(operations, [
+      {
+        type: "set",
+        path: "Customers/customer-1",
+        payload: { customerName: "Example Customer", officeStatus: "Needs Review" },
+        options: undefined
+      },
+      {
+        type: "set",
+        path: "AuditEvents/audit-1",
+        payload: {
+          actorUid: "owner-1",
+          actorRole: "owner",
+          action: "customer.created",
+          targetPath: "Customers/customer-1",
+          createdAt: "SERVER_TIMESTAMP",
+          metadata: { workflow: "customer-intake" }
+        },
+        options: undefined
+      }
+    ]);
+  }
+
   {
     const { operations, mutations } = createHarness();
     const auditId = await mutations.updateCustomer(
@@ -107,6 +144,10 @@ function createHarness({ role = "owner", profileExists = true, uid = "owner-1", 
   {
     const { mutations } = createHarness({ role: "technician" });
     await assert.rejects(
+      mutations.createCustomer({ customerName: "Blocked" }),
+      /Only owner or office/
+    );
+    await assert.rejects(
       mutations.updateCustomer("customer-3", { officeStatus: "Paused" }),
       /Only owner or office/
     );
@@ -123,6 +164,10 @@ function createHarness({ role = "owner", profileExists = true, uid = "owner-1", 
   {
     const { operations, mutations } = createHarness({ commitError: new Error("batch failed") });
     await assert.rejects(
+      mutations.createCustomer({ customerName: "Atomic failure" }),
+      /batch failed/
+    );
+    await assert.rejects(
       mutations.updateCustomer("customer-5", { assignedTechnician: "Tech One" }),
       /batch failed/
     );
@@ -131,6 +176,8 @@ function createHarness({ role = "owner", profileExists = true, uid = "owner-1", 
 
   {
     const { operations, mutations } = createHarness();
+    await assert.rejects(mutations.createCustomer(null), /plain object/);
+    await assert.rejects(mutations.createCustomer({}), /Customer record is required/);
     await assert.rejects(
       mutations.updateCustomer("customer-6", { officeStatus: "Paused" }, { action: "   " }),
       /action is required/
@@ -155,6 +202,9 @@ function createHarness({ role = "owner", profileExists = true, uid = "owner-1", 
   assert.throws(() => requireBoundedString("", "action", 100), /required/);
   assert.throws(() => requireDocumentId(""), /required/);
   assert.throws(() => requireDocumentId("Customers/customer-1"), /slash/);
+  assert.deepEqual(requirePlainObject({ ok: true }, "payload"), { ok: true });
+  assert.throws(() => requirePlainObject([], "payload"), /plain object/);
+  assert.throws(() => requirePlainObject({}, "payload"), /payload is required/);
 
   console.log("Audited customer mutation tests passed");
 })().catch((error) => {
