@@ -18,6 +18,60 @@
     return "customer.updated";
   }
 
+  function getQueueStorageKey(scope) {
+    const tenantId = scope?.FIELD_FORGED_CONFIG?.tenant?.id;
+    return tenantId ? `fieldForged:${tenantId}:operations-center:v3` : "";
+  }
+
+  function readStoredRecord(scope, record) {
+    const storageKey = getQueueStorageKey(scope);
+    const storage = scope?.localStorage;
+    if (!storageKey || !storage || typeof storage.getItem !== "function") return null;
+
+    try {
+      const queue = JSON.parse(storage.getItem(storageKey) || "[]");
+      if (!Array.isArray(queue)) return null;
+      const recordIds = new Set([record?.firestoreId, record?.id].filter(Boolean));
+      return queue.find((candidate) => recordIds.has(candidate?.firestoreId) || recordIds.has(candidate?.id)) || null;
+    } catch (error) {
+      console.warn("Unable to read optimistic rollback snapshot:", error);
+      return null;
+    }
+  }
+
+  function snapshotChangedFields(scope, record, changes) {
+    const storedRecord = readStoredRecord(scope, record);
+    const source = storedRecord || record || {};
+    const snapshot = {};
+
+    Object.keys(changes || {}).forEach((field) => {
+      snapshot[field] = {
+        existed: Object.prototype.hasOwnProperty.call(source, field),
+        value: source[field]
+      };
+    });
+    return snapshot;
+  }
+
+  function restoreChangedFields(record, snapshot) {
+    if (!record || typeof record !== "object") return;
+    Object.entries(snapshot || {}).forEach(([field, previous]) => {
+      if (previous.existed) record[field] = previous.value;
+      else delete record[field];
+    });
+  }
+
+  function emitRollback(scope, record, changes, error) {
+    if (!scope || typeof scope.dispatchEvent !== "function" || typeof scope.CustomEvent !== "function") return;
+    scope.dispatchEvent(new scope.CustomEvent("chillpros:customer-mutation-rollback", {
+      detail: {
+        record,
+        changedFields: Object.keys(changes || {}),
+        error: error instanceof Error ? error.message : String(error || "Mutation failed")
+      }
+    }));
+  }
+
   function installBridge(scope = globalScope) {
     if (!scope || typeof scope !== "object") throw new Error("Browser scope is required");
 
@@ -29,11 +83,18 @@
 
     scope.updateCustomerInFirebase = async function auditedUpdateCustomer(record, changes) {
       if (!scope.chillProsDb) return legacyUpdate(record, changes);
-      return requireGateway(scope).updateCustomer(record, changes, {
-        action: classifyUpdateAction(changes),
-        source: "operations-center-app",
-        metadata: { workflow: "office-queue" }
-      });
+      const rollbackSnapshot = snapshotChangedFields(scope, record, changes);
+      try {
+        return await requireGateway(scope).updateCustomer(record, changes, {
+          action: classifyUpdateAction(changes),
+          source: "operations-center-app",
+          metadata: { workflow: "office-queue" }
+        });
+      } catch (error) {
+        restoreChangedFields(record, rollbackSnapshot);
+        emitRollback(scope, record, changes, error);
+        throw error;
+      }
     };
 
     scope.deleteCustomerFromFirebase = async function auditedDeleteCustomer(record) {
@@ -63,7 +124,17 @@
     }, { once: true });
   }
 
-  const api = { classifyUpdateAction, installAfterAppLoads, installBridge, requireGateway };
+  const api = {
+    classifyUpdateAction,
+    emitRollback,
+    getQueueStorageKey,
+    installAfterAppLoads,
+    installBridge,
+    readStoredRecord,
+    requireGateway,
+    restoreChangedFields,
+    snapshotChangedFields
+  };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   globalScope.ChillProsAppAuditedMutationBridge = api;
 
