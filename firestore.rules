@@ -102,6 +102,24 @@ service cloud.firestore {
         : !('completedAt' in request.resource.data);
     }
 
+    function auditEventCreateIsSafe() {
+      return request.resource.data.keys().hasOnly([
+          'actorUid', 'actorRole', 'action', 'targetPath', 'createdAt', 'metadata'
+        ])
+        && request.resource.data.actorUid == request.auth.uid
+        && request.resource.data.actorRole == role()
+        && request.resource.data.action is string
+        && request.resource.data.action.size() > 0
+        && request.resource.data.action.size() <= 100
+        && request.resource.data.targetPath is string
+        && request.resource.data.targetPath.size() > 0
+        && request.resource.data.targetPath.size() <= 500
+        && request.resource.data.createdAt == request.time
+        && (!('metadata' in request.resource.data)
+          || (request.resource.data.metadata is map
+            && request.resource.data.metadata.size() <= 25));
+    }
+
     match /Users/{userId} {
       allow read: if signedIn() && (request.auth.uid == userId || isOwner());
       allow create, update, delete: if isOwner();
@@ -125,6 +143,16 @@ service cloud.firestore {
     // of the technician-readable customer/job document.
     match /Customers/{customerId}/Private/{privateDocumentId} {
       allow read, create, update, delete: if isOwner() || isOffice();
+    }
+
+    // Audit records are append-only. Client-created events are restricted to
+    // owner/office actors and must bind identity, role, and timestamp to trusted
+    // authentication/request values. Backend automation can add additional
+    // events through the Admin SDK, which bypasses client security rules.
+    match /AuditEvents/{eventId} {
+      allow read: if isOwner() || isOffice();
+      allow create: if (isOwner() || isOffice()) && auditEventCreateIsSafe();
+      allow update, delete: if false;
     }
 
     match /Technicians/{technicianId} {
