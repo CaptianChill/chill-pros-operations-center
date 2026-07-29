@@ -2,9 +2,11 @@
 
 const assert = require("node:assert/strict");
 const {
+  captureRecordFields,
   createBrowserQueueMutationIntegration,
   createQueueMutationIntegration,
   requireRecordDocumentId,
+  restoreRecordFields,
   summarizeChangedFields
 } = require("../customer-mutation-integration.js");
 
@@ -15,6 +17,13 @@ async function run() {
 
   assert.deepEqual(summarizeChangedFields({ z: 1, officeStatus: "Scheduled" }), ["officeStatus", "z"]);
   assert.throws(() => summarizeChangedFields([]), /plain object/);
+
+  const rollbackRecord = { officeStatus: "Needs Review" };
+  const rollbackSnapshot = captureRecordFields(rollbackRecord, ["officeStatus", "statusUpdatedAt"]);
+  Object.assign(rollbackRecord, { officeStatus: "Scheduled", statusUpdatedAt: "now" });
+  restoreRecordFields(rollbackRecord, rollbackSnapshot);
+  assert.deepEqual(rollbackRecord, { officeStatus: "Needs Review" });
+  assert.throws(() => captureRecordFields(null, ["officeStatus"]), /record is required/);
 
   const calls = [];
   const adapter = {
@@ -52,18 +61,54 @@ async function run() {
     }
   });
 
+  const optimisticRecord = { id: "customer-optimistic", officeStatus: "Needs Review" };
+  const optimisticAuditId = await integration.updateCustomerOptimistically(
+    optimisticRecord,
+    { officeStatus: "Scheduled", statusUpdatedAt: "2026-07-29T13:00:00.000Z" },
+    { action: "customer.status.changed", source: "office-queue" }
+  );
+  assert.equal(optimisticAuditId, "audit-update-1");
+  assert.equal(optimisticRecord.officeStatus, "Scheduled");
+  assert.equal(optimisticRecord.statusUpdatedAt, "2026-07-29T13:00:00.000Z");
+  assert.equal(optimisticRecord.firestoreId, "customer-optimistic");
+
+  const failingIntegration = createQueueMutationIntegration({
+    adapter: {
+      async updateCustomer() {
+        throw new Error("batch failed");
+      },
+      async deleteCustomer() {
+        return "unused";
+      }
+    }
+  });
+  const failedRecord = { id: "customer-failed", officeStatus: "Needs Review", preserved: true };
+  await assert.rejects(
+    () => failingIntegration.updateCustomerOptimistically(
+      failedRecord,
+      { officeStatus: "Completed", statusUpdatedAt: "2026-07-29T14:00:00.000Z" }
+    ),
+    /batch failed/
+  );
+  assert.deepEqual(failedRecord, {
+    id: "customer-failed",
+    officeStatus: "Needs Review",
+    preserved: true
+  });
+
   const deleteAuditId = await integration.deleteCustomer(
     { firestoreId: "customer-2" },
     { source: "office-queue", metadata: { customerName: "Example" } }
   );
   assert.equal(deleteAuditId, "audit-delete-1");
-  assert.deepEqual(calls[1], {
+  assert.deepEqual(calls.at(-1), {
     type: "delete",
     documentId: "customer-2",
     options: { metadata: { source: "office-queue", customerName: "Example" } }
   });
 
   await assert.rejects(() => integration.updateCustomer(record, {}), /changes are required/);
+  await assert.rejects(() => integration.updateCustomerOptimistically(record, {}), /changes are required/);
   assert.throws(
     () => createQueueMutationIntegration({ adapter: {} }),
     /adapter is required/
@@ -81,7 +126,7 @@ async function run() {
   const browserIntegration = createBrowserQueueMutationIntegration(browserScope);
   assert.equal(receivedScope, browserScope);
   await browserIntegration.deleteCustomer({ id: "customer-3" });
-  assert.equal(calls[2].documentId, "customer-3");
+  assert.equal(calls.at(-1).documentId, "customer-3");
 
   assert.throws(
     () => createBrowserQueueMutationIntegration({}),
