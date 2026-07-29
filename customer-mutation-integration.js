@@ -14,6 +14,25 @@
     return Object.keys(changes).sort();
   }
 
+  function captureRecordFields(record, changedFields) {
+    if (!record || typeof record !== "object") {
+      throw new Error("Customer record is required");
+    }
+
+    return changedFields.map((field) => ({
+      field,
+      existed: Object.prototype.hasOwnProperty.call(record, field),
+      value: record[field]
+    }));
+  }
+
+  function restoreRecordFields(record, snapshot) {
+    snapshot.forEach(({ field, existed, value }) => {
+      if (existed) record[field] = value;
+      else delete record[field];
+    });
+  }
+
   function createQueueMutationIntegration({ adapter, scope = globalScope } = {}) {
     if (!adapter || typeof adapter.updateCustomer !== "function" || typeof adapter.deleteCustomer !== "function") {
       throw new Error("Audited customer mutation adapter is required");
@@ -36,6 +55,20 @@
       return auditEventId;
     }
 
+    async function updateCustomerOptimistically(record, changes, options = {}) {
+      const changedFields = summarizeChangedFields(changes);
+      if (!changedFields.length) throw new Error("Customer changes are required");
+      const snapshot = captureRecordFields(record, changedFields);
+      Object.assign(record, changes);
+
+      try {
+        return await updateCustomer(record, changes, options);
+      } catch (error) {
+        restoreRecordFields(record, snapshot);
+        throw error;
+      }
+    }
+
     async function deleteCustomer(record, options = {}) {
       const documentId = requireRecordDocumentId(record);
       const metadata = {
@@ -45,7 +78,7 @@
       return adapter.deleteCustomer(documentId, { metadata });
     }
 
-    return { updateCustomer, deleteCustomer };
+    return { updateCustomer, updateCustomerOptimistically, deleteCustomer };
   }
 
   function createBrowserQueueMutationIntegration(scope = globalScope) {
@@ -57,9 +90,11 @@
   }
 
   const api = {
+    captureRecordFields,
     createBrowserQueueMutationIntegration,
     createQueueMutationIntegration,
     requireRecordDocumentId,
+    restoreRecordFields,
     summarizeChangedFields
   };
 
