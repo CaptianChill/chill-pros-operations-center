@@ -36,6 +36,14 @@ service cloud.firestore {
         && technicianName().size() > 0;
     }
 
+    function authoritativeUserProfileIsSafe() {
+      return request.resource.data.role in ['owner', 'office', 'technician']
+        && (request.resource.data.role != 'technician'
+          || (request.resource.data.technicianName is string
+            && request.resource.data.technicianName.size() > 0
+            && request.resource.data.technicianName.size() <= 200));
+    }
+
     function assignedToCurrentTechnician(data) {
       return isTechnician()
         && data.assignedTechnician is string
@@ -122,7 +130,8 @@ service cloud.firestore {
 
     match /Users/{userId} {
       allow read: if signedIn() && (request.auth.uid == userId || isOwner());
-      allow create, update, delete: if isOwner();
+      allow create, update: if isOwner() && authoritativeUserProfileIsSafe();
+      allow delete: if isOwner();
     }
 
     match /Customers/{customerId} {
