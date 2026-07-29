@@ -63,6 +63,17 @@
     });
   }
 
+  function reconcileRollback(scope) {
+    if (!scope || typeof scope.persistQueue !== "function") return false;
+    try {
+      scope.persistQueue();
+      return true;
+    } catch (error) {
+      console.error("Unable to reconcile rolled-back queue state:", error);
+      return false;
+    }
+  }
+
   function emitRollback(scope, record, changes, error) {
     if (!scope || typeof scope.dispatchEvent !== "function" || typeof scope.CustomEvent !== "function") return;
     scope.dispatchEvent(new scope.CustomEvent("chillpros:customer-mutation-rollback", {
@@ -95,6 +106,7 @@
         });
       } catch (error) {
         restoreChangedFields(record, rollbackSnapshot);
+        reconcileRollback(scope);
         emitRollback(scope, record, changes, error);
         throw error;
       }
@@ -147,6 +159,7 @@
     installAfterAppLoads,
     installBridge,
     readStoredRecord,
+    reconcileRollback,
     requireGateway,
     restoreChangedFields,
     snapshotChangedFields
