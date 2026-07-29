@@ -2,7 +2,18 @@
   "use strict";
 
   const ALLOWED_ACTOR_ROLES = new Set(["owner", "office"]);
+  const MAX_ACTION_LENGTH = 100;
+  const MAX_TARGET_PATH_LENGTH = 500;
   const MAX_METADATA_KEYS = 25;
+
+  function requireBoundedString(value, fieldName, maxLength) {
+    const normalized = String(value || "").trim();
+    if (!normalized) throw new Error(`${fieldName} is required`);
+    if (normalized.length > maxLength) {
+      throw new Error(`${fieldName} exceeds ${maxLength} characters`);
+    }
+    return normalized;
+  }
 
   function requireDocumentId(value) {
     const documentId = String(value || "").trim();
@@ -47,8 +58,8 @@
     function auditPayload(actor, action, targetPath, metadata) {
       const payload = {
         ...actor,
-        action,
-        targetPath,
+        action: requireBoundedString(action, "action", MAX_ACTION_LENGTH),
+        targetPath: requireBoundedString(targetPath, "targetPath", MAX_TARGET_PATH_LENGTH),
         createdAt: serverTimestamp()
       };
       const normalizedMetadata = normalizeMetadata(metadata);
@@ -88,7 +99,12 @@
     return { updateCustomer, deleteCustomer };
   }
 
-  const api = { createAuditedCustomerMutations, normalizeMetadata, requireDocumentId };
+  const api = {
+    createAuditedCustomerMutations,
+    normalizeMetadata,
+    requireBoundedString,
+    requireDocumentId
+  };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   globalScope.ChillProsAuditedCustomerMutations = api;
 })(typeof window !== "undefined" ? window : globalThis);
