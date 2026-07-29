@@ -15,6 +15,10 @@ function createScope(overrides = {}) {
   const timestamp = { server: true };
   const serverTimestamp = () => timestamp;
   const mutations = {
+    async createCustomer(record, options) {
+      calls.push({ type: "create", record, options });
+      return "customer-created";
+    },
     async updateCustomer(documentId, changes, options) {
       calls.push({ type: "update", documentId, changes, options });
       return "audit-update";
@@ -72,6 +76,21 @@ async function run() {
       }
     });
     assert.equal(resolveFirebaseDependencies(scope).auth, fallbackAuth);
+  }
+
+  {
+    const { scope, calls } = createScope();
+    const adapter = createCustomerMutationAdapter(scope);
+    const record = { id: "local-id", customerName: "Example" };
+    const customerId = await adapter.createCustomer(record, { metadata: { workflow: "customer-intake" } });
+
+    assert.equal(customerId, "customer-created");
+    assert.equal(record.firestoreId, "customer-created");
+    assert.deepEqual(calls[0], {
+      type: "create",
+      record,
+      options: { metadata: { workflow: "customer-intake" } }
+    });
   }
 
   {
