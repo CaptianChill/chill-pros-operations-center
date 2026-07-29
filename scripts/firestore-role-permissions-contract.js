@@ -53,12 +53,20 @@ const forbiddenPatterns = [
   [/request\.auth\.token\.email\s*==/, "email-address owner bypass"],
   [/match\s+\/Customers\/\{customerId\}[\s\S]*allow\s+read:\s*if\s+signedIn\(\)/, "all-authenticated customer reads"],
   [/allow\s+create,\s*update\s*:\s*if\s*[^;]*\bisTechnician\(\)/, "unrestricted technician customer writes"],
-  [/allow\s+create\s*:\s*if\s*[^;]*\bisTechnician\(\)/, "technician customer creation"],
-  [/match\s+\/Customers\/\{customerId\}\/Private\/\{privateDocumentId\}[\s\S]*?\bisTechnician\(\)/, "technician private-data access"]
+  [/allow\s+create\s*:\s*if\s*[^;]*\bisTechnician\(\)/, "technician customer creation"]
 ];
 
 for (const [pattern, label] of forbiddenPatterns) {
   if (pattern.test(rules)) failures.push(`Forbidden rule detected: ${label}`);
+}
+
+const privateRuleMatch = rules.match(
+  /match\s+\/Customers\/\{customerId\}\/Private\/\{privateDocumentId\}\s*\{([^}]*)\}/
+);
+if (!privateRuleMatch) {
+  failures.push("Missing private customer data rule block");
+} else if (/\bisTechnician\(\)/.test(privateRuleMatch[1])) {
+  failures.push("Forbidden rule detected: technician private-data access");
 }
 
 const textFields = ["findings", "recommendation", "workNotes", "partsUsed", "laborTimeNotes", "photoNotes"];
