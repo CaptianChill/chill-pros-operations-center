@@ -8,7 +8,9 @@
   "scripts": {
     "serve": "firebase emulators:start --only functions",
     "deploy": "firebase deploy --only functions",
-    "logs": "firebase functions:log"
+    "logs": "firebase functions:log",
+    "test:private-data-inventory": "node scripts/inventory-private-customer-data.test.js",
+    "inventory:private-data": "node scripts/inventory-private-customer-data.js"
   },
   "dependencies": {
     "express": "^4.21.2",
