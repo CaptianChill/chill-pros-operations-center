@@ -2,6 +2,7 @@
 
 const assert = require("node:assert/strict");
 const {
+  INSTALL_MARKER,
   classifyUpdateAction,
   getQueueStorageKey,
   installAfterAppLoads,
@@ -50,7 +51,16 @@ async function run() {
     }
   };
 
-  installBridge(scope);
+  const firstInstall = installBridge(scope);
+  const wrappedUpdate = scope.updateCustomerInFirebase;
+  const wrappedDelete = scope.deleteCustomerFromFirebase;
+  const secondInstall = installBridge(scope);
+  assert.equal(secondInstall, firstInstall);
+  assert.equal(scope.updateCustomerInFirebase, wrappedUpdate);
+  assert.equal(scope.deleteCustomerFromFirebase, wrappedDelete);
+  assert.equal(scope[INSTALL_MARKER], firstInstall);
+  assert.equal(Object.isFrozen(firstInstall), true);
+
   const record = { id: "customer-1", officeStatus: "Scheduled" };
   const changes = { officeStatus: "Scheduled", statusUpdatedAt: "2026-07-29T15:00:00.000Z" };
   assert.equal(await scope.updateCustomerInFirebase(record, changes), "audit-update");
@@ -168,6 +178,7 @@ async function run() {
 
   let listener;
   const eventScope = {
+    document: { readyState: "loading" },
     addEventListener(name, callback, options) {
       assert.equal(name, "DOMContentLoaded");
       assert.deepEqual(options, { once: true });
@@ -176,13 +187,27 @@ async function run() {
     async updateCustomerInFirebase() {},
     async deleteCustomerFromFirebase() {}
   };
-  installAfterAppLoads(eventScope);
+  assert.equal(installAfterAppLoads(eventScope), null);
   assert.equal(typeof listener, "function");
   listener();
   assert.notEqual(eventScope.updateCustomerInFirebase.name, "updateCustomerInFirebase");
 
+  let lateListenerRegistered = false;
+  const readyScope = {
+    document: { readyState: "complete" },
+    addEventListener() {
+      lateListenerRegistered = true;
+    },
+    async updateCustomerInFirebase() {},
+    async deleteCustomerFromFirebase() {}
+  };
+  const readyInstall = installAfterAppLoads(readyScope);
+  assert.equal(readyInstall, readyScope[INSTALL_MARKER]);
+  assert.equal(lateListenerRegistered, false);
+
   assert.throws(() => installBridge({}), /Legacy customer mutation functions are unavailable/);
-  assert.throws(() => installAfterAppLoads({}), /Browser event target is required/);
+  assert.throws(() => installAfterAppLoads(null), /Browser scope is required/);
+  assert.throws(() => installAfterAppLoads({ document: { readyState: "loading" } }), /Browser event target is required/);
 }
 
 run()
