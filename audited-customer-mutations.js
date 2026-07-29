@@ -22,6 +22,14 @@
     return documentId;
   }
 
+  function requirePlainObject(value, fieldName) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      throw new Error(`${fieldName} must be a plain object`);
+    }
+    if (!Object.keys(value).length) throw new Error(`${fieldName} is required`);
+    return value;
+  }
+
   function normalizeMetadata(metadata) {
     if (metadata == null) return undefined;
     if (typeof metadata !== "object" || Array.isArray(metadata)) {
@@ -67,12 +75,22 @@
       return payload;
     }
 
+    async function createCustomer(customer, { metadata } = {}) {
+      const payload = requirePlainObject(customer, "Customer record");
+      const actor = await authoritativeActor();
+      const customerRef = db.collection("Customers").doc();
+      const documentId = requireDocumentId(customerRef?.id);
+      const auditRef = db.collection("AuditEvents").doc();
+      const batch = db.batch();
+      batch.set(customerRef, payload);
+      batch.set(auditRef, auditPayload(actor, "customer.created", `Customers/${documentId}`, metadata));
+      await batch.commit();
+      return documentId;
+    }
+
     async function updateCustomer(documentIdValue, changes, { action = "customer.updated", metadata } = {}) {
       const documentId = requireDocumentId(documentIdValue);
-      if (!changes || typeof changes !== "object" || Array.isArray(changes)) {
-        throw new Error("Customer changes must be a plain object");
-      }
-      if (!Object.keys(changes).length) throw new Error("Customer changes are required");
+      requirePlainObject(changes, "Customer changes");
 
       const actor = await authoritativeActor();
       const customerRef = db.collection("Customers").doc(documentId);
@@ -96,14 +114,15 @@
       return auditRef.id;
     }
 
-    return { updateCustomer, deleteCustomer };
+    return { createCustomer, updateCustomer, deleteCustomer };
   }
 
   const api = {
     createAuditedCustomerMutations,
     normalizeMetadata,
     requireBoundedString,
-    requireDocumentId
+    requireDocumentId,
+    requirePlainObject
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   globalScope.ChillProsAuditedCustomerMutations = api;
