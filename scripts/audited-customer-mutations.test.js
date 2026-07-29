@@ -1,7 +1,11 @@
 "use strict";
 
 const assert = require("node:assert/strict");
-const { createAuditedCustomerMutations, requireDocumentId } = require("../audited-customer-mutations.js");
+const {
+  createAuditedCustomerMutations,
+  requireBoundedString,
+  requireDocumentId
+} = require("../audited-customer-mutations.js");
 
 function createHarness({ role = "owner", profileExists = true, uid = "owner-1", commitError = null } = {}) {
   const operations = [];
@@ -125,6 +129,30 @@ function createHarness({ role = "owner", profileExists = true, uid = "owner-1", 
     assert.deepEqual(operations, []);
   }
 
+  {
+    const { operations, mutations } = createHarness();
+    await assert.rejects(
+      mutations.updateCustomer("customer-6", { officeStatus: "Paused" }, { action: "   " }),
+      /action is required/
+    );
+    await assert.rejects(
+      mutations.updateCustomer("customer-6", { officeStatus: "Paused" }, { action: "x".repeat(101) }),
+      /action exceeds 100 characters/
+    );
+    assert.deepEqual(operations, []);
+  }
+
+  {
+    const { operations, mutations } = createHarness();
+    await assert.rejects(
+      mutations.updateCustomer("x".repeat(491), { officeStatus: "Paused" }),
+      /targetPath exceeds 500 characters/
+    );
+    assert.deepEqual(operations, []);
+  }
+
+  assert.equal(requireBoundedString(" customer.updated ", "action", 100), "customer.updated");
+  assert.throws(() => requireBoundedString("", "action", 100), /required/);
   assert.throws(() => requireDocumentId(""), /required/);
   assert.throws(() => requireDocumentId("Customers/customer-1"), /slash/);
 
