@@ -17,9 +17,13 @@ const requiredPatterns = [
   [/function\s+technicianStatusTransitionIsSafe\(\)/, "status transition guard"],
   [/function\s+technicianStatusTimestampIsSafe\(\)/, "status timestamp guard"],
   [/function\s+technicianCompletionStateIsSafe\(\)/, "completion timestamp guard"],
+  [/function\s+auditEventCreateIsSafe\(\)/, "audit event value guard"],
   [/allow\s+read:\s*if\s+isOwner\(\)\s*\|\|\s*isOffice\(\)\s*\|\|\s*assignedToCurrentTechnician\(resource\.data\)/, "assigned-record read restriction"],
   [/allow\s+create:\s*if\s+isOwner\(\)\s*\|\|\s*isOffice\(\)/, "owner/office-only customer creation"],
   [/match\s+\/Customers\/\{customerId\}\/Private\/\{privateDocumentId\}\s*\{[\s\S]*?allow\s+read,\s*create,\s*update,\s*delete:\s*if\s+isOwner\(\)\s*\|\|\s*isOffice\(\)/, "owner/office-only private customer data"],
+  [/match\s+\/AuditEvents\/\{eventId\}\s*\{[\s\S]*?allow\s+read:\s*if\s+isOwner\(\)\s*\|\|\s*isOffice\(\)/, "owner/office audit reads"],
+  [/match\s+\/AuditEvents\/\{eventId\}\s*\{[\s\S]*?allow\s+create:\s*if\s*\(isOwner\(\)\s*\|\|\s*isOffice\(\)\)\s*&&\s*auditEventCreateIsSafe\(\)/, "validated owner/office audit creation"],
+  [/match\s+\/AuditEvents\/\{eventId\}\s*\{[\s\S]*?allow\s+update,\s*delete:\s*if\s+false/, "immutable audit events"],
   [/match\s+\/\{document=\*\*\}[\s\S]*allow\s+read,\s*write:\s*if\s+false/, "deny-by-default fallback"]
 ];
 
@@ -67,6 +71,28 @@ if (!privateRuleMatch) {
   failures.push("Missing private customer data rule block");
 } else if (/\bisTechnician\(\)/.test(privateRuleMatch[1])) {
   failures.push("Forbidden rule detected: technician private-data access");
+}
+
+const auditRuleMatch = rules.match(
+  /match\s+\/AuditEvents\/\{eventId\}\s*\{([\s\S]*?)\n\s*\}/
+);
+if (!auditRuleMatch) {
+  failures.push("Missing audit event rule block");
+} else {
+  const body = auditRuleMatch[1];
+  if (/\bisTechnician\(\)/.test(body)) failures.push("Forbidden rule detected: technician audit access");
+  if (!/allow\s+update,\s*delete:\s*if\s+false/.test(body)) failures.push("Audit events must be immutable");
+}
+
+const auditGuards = [
+  [/request\.resource\.data\.actorUid\s*==\s*request\.auth\.uid/, "audit actor UID binding"],
+  [/request\.resource\.data\.actorRole\s*==\s*role\(\)/, "audit actor role binding"],
+  [/request\.resource\.data\.createdAt\s*==\s*request\.time/, "trusted audit timestamp"],
+  [/request\.resource\.data\.action\s+is\s+string/, "audit action type guard"],
+  [/request\.resource\.data\.targetPath\s+is\s+string/, "audit target path type guard"]
+];
+for (const [pattern, label] of auditGuards) {
+  if (!pattern.test(rules)) failures.push(`Missing ${label}`);
 }
 
 const textFields = ["findings", "recommendation", "workNotes", "partsUsed", "laborTimeNotes", "photoNotes"];
@@ -118,4 +144,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log("Firestore owner, office, technician assignment, private pricing, field, bounded value, status, trusted timestamp, completion, and deny-by-default checks passed.");
+console.log("Firestore owner, office, technician assignment, private pricing, immutable audit, field, bounded value, status, trusted timestamp, completion, and deny-by-default checks passed.");
