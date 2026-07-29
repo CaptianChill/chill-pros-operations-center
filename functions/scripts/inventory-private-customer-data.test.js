@@ -20,6 +20,20 @@ assert.deepEqual(
   findSensitiveFields({ supplierNotes: "Call vendor", priceOverrideApprovedBy: "owner-uid" }),
   ["supplierNotes", "priceOverrideApprovedBy"],
 );
+assert.deepEqual(
+  findSensitiveFields({
+    quote: { internalCost: 70, customerPrice: 150 },
+    parts: [
+      { description: "Compressor", supplierCost: 45 },
+      { description: "Gasket", pricing: { margin: 0.35 } },
+    ],
+  }),
+  ["quote.internalCost", "parts[0].supplierCost", "parts[1].pricing.margin"],
+);
+const circular = { customerName: "Circular" };
+circular.self = circular;
+circular.pricing = { profit: 25 };
+assert.deepEqual(findSensitiveFields(circular), ["pricing.profit"]);
 assert.deepEqual(parseArgs(["--project", "demo-project"]), {
   projectId: "demo-project",
   output: "json",
