@@ -6,15 +6,18 @@ on:
       - "firestore.rules"
       - "firebase.emulator.json"
       - "firebase-config.js"
+      - "tenant-config.js"
       - "audit-events.js"
       - "audited-customer-mutations.js"
       - "customer-mutation-adapter.js"
       - "customer-mutation-integration.js"
+      - "security-runtime-bootstrap.js"
       - "scripts/firebase-config-auth.test.js"
       - "scripts/audit-events.test.js"
       - "scripts/audited-customer-mutations.test.js"
       - "scripts/customer-mutation-adapter.test.js"
       - "scripts/customer-mutation-integration.test.js"
+      - "scripts/security-runtime-bootstrap.test.js"
       - "scripts/firestore-role-permissions-contract.js"
       - "scripts/firestore-role-permissions-emulator.test.js"
       - "functions/package.json"
@@ -29,15 +32,18 @@ on:
       - "firestore.rules"
       - "firebase.emulator.json"
       - "firebase-config.js"
+      - "tenant-config.js"
       - "audit-events.js"
       - "audited-customer-mutations.js"
       - "customer-mutation-adapter.js"
       - "customer-mutation-integration.js"
+      - "security-runtime-bootstrap.js"
       - "scripts/firebase-config-auth.test.js"
       - "scripts/audit-events.test.js"
       - "scripts/audited-customer-mutations.test.js"
       - "scripts/customer-mutation-adapter.test.js"
       - "scripts/customer-mutation-integration.test.js"
+      - "scripts/security-runtime-bootstrap.test.js"
       - "scripts/firestore-role-permissions-contract.js"
       - "scripts/firestore-role-permissions-emulator.test.js"
       - "functions/package.json"
@@ -65,6 +71,8 @@ jobs:
         run: node --check firebase-config.js
       - name: Test Firebase Auth dependency exposure
         run: node scripts/firebase-config-auth.test.js
+      - name: Check tenant runtime loader syntax
+        run: node --check tenant-config.js
       - name: Check audit event client syntax
         run: node --check audit-events.js
       - name: Test authenticated audit event client
@@ -81,6 +89,10 @@ jobs:
         run: node --check customer-mutation-integration.js
       - name: Test queue mutation integration
         run: node scripts/customer-mutation-integration.test.js
+      - name: Check security runtime bootstrap syntax
+        run: node --check security-runtime-bootstrap.js
+      - name: Test security runtime bootstrap
+        run: node scripts/security-runtime-bootstrap.test.js
 
   private-data-inventory:
     runs-on: ubuntu-latest
