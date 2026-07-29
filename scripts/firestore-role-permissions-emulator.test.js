@@ -82,6 +82,8 @@ async function main() {
     const missingProfileDb = testEnv.authenticatedContext(missingProfileUid).firestore();
     const anonymousDb = testEnv.unauthenticatedContext().firestore();
     const privatePricingPath = ["Customers", assignedJobId, "Private", "pricing"];
+    const ownerAuditPath = ["AuditEvents", "owner-price-change"];
+    const officeAuditPath = ["AuditEvents", "office-approval"];
 
     await assertSucceeds(getDoc(doc(ownerDb, "Customers", assignedJobId)));
     await assertSucceeds(getDoc(doc(officeDb, "Customers", assignedJobId)));
@@ -158,7 +160,53 @@ async function main() {
     await assertSucceeds(deleteDoc(doc(ownerDb, "Customers", otherJobId)));
     await assertFails(deleteDoc(doc(assignedTechDb, "Customers", assignedJobId)));
 
-    console.log("Firestore emulator role-permission and private-pricing matrix passed.");
+    await assertSucceeds(setDoc(doc(ownerDb, ...ownerAuditPath), {
+      actorUid: ownerUid,
+      actorRole: "owner",
+      action: "pricing.updated",
+      targetPath: `Customers/${assignedJobId}/Private/pricing`,
+      createdAt: serverTimestamp(),
+      metadata: { changedFields: ["internalCost"] },
+    }));
+    await assertSucceeds(setDoc(doc(officeDb, ...officeAuditPath), {
+      actorUid: officeUid,
+      actorRole: "office",
+      action: "quote.approved",
+      targetPath: `Customers/${assignedJobId}`,
+      createdAt: serverTimestamp(),
+    }));
+    await assertFails(setDoc(doc(officeDb, "AuditEvents", "forged-actor"), {
+      actorUid: ownerUid,
+      actorRole: "owner",
+      action: "quote.approved",
+      targetPath: `Customers/${assignedJobId}`,
+      createdAt: serverTimestamp(),
+    }));
+    await assertFails(setDoc(doc(assignedTechDb, "AuditEvents", "technician-event"), {
+      actorUid: assignedTechUid,
+      actorRole: "technician",
+      action: "pricing.updated",
+      targetPath: `Customers/${assignedJobId}/Private/pricing`,
+      createdAt: serverTimestamp(),
+    }));
+    await assertFails(setDoc(doc(ownerDb, "AuditEvents", "untrusted-time"), {
+      actorUid: ownerUid,
+      actorRole: "owner",
+      action: "pricing.updated",
+      targetPath: `Customers/${assignedJobId}/Private/pricing`,
+      createdAt: Timestamp.fromMillis(1_700_000_000_000),
+    }));
+    await assertSucceeds(getDoc(doc(ownerDb, ...ownerAuditPath)));
+    await assertSucceeds(getDoc(doc(officeDb, ...ownerAuditPath)));
+    await assertFails(getDoc(doc(assignedTechDb, ...ownerAuditPath)));
+    await assertFails(getDoc(doc(missingProfileDb, ...ownerAuditPath)));
+    await assertFails(getDoc(doc(anonymousDb, ...ownerAuditPath)));
+    await assertFails(updateDoc(doc(ownerDb, ...ownerAuditPath), {
+      action: "pricing.deleted",
+    }));
+    await assertFails(deleteDoc(doc(ownerDb, ...ownerAuditPath)));
+
+    console.log("Firestore emulator role-permission, private-pricing, and immutable audit-event matrix passed.");
   } finally {
     await testEnv.cleanup();
   }
