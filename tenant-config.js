@@ -33,6 +33,7 @@ document.write('<script src="audited-customer-mutations.js?v=20260729-1"><\/scri
 document.write('<script src="customer-mutation-adapter.js?v=20260729-1"><\/script>');
 document.write('<script src="customer-mutation-integration.js?v=20260729-1"><\/script>');
 document.write('<script src="security-runtime-bootstrap.js?v=20260729-1"><\/script>');
+document.write('<script src="app-audited-mutation-bridge.js?v=20260729-1"><\/script>');
 
 // Authentication, role routing and realtime synchronization.
 document.write('<script src="v1-access.js?v=20260722-16"><\/script>');
