@@ -5,7 +5,12 @@
 
   function requireGateway(scope) {
     const gateway = scope?.chillProsCustomerMutations;
-    if (!gateway || typeof gateway.updateCustomer !== "function" || typeof gateway.deleteCustomer !== "function") {
+    if (
+      !gateway ||
+      typeof gateway.createCustomer !== "function" ||
+      typeof gateway.updateCustomer !== "function" ||
+      typeof gateway.deleteCustomer !== "function"
+    ) {
       throw new Error("Authenticated audited customer mutation gateway is unavailable");
     }
     return gateway;
@@ -89,11 +94,25 @@
     if (!scope || typeof scope !== "object") throw new Error("Browser scope is required");
     if (scope[INSTALL_MARKER]) return scope[INSTALL_MARKER];
 
+    const legacyCreate = scope.saveCustomerToFirebase;
     const legacyUpdate = scope.updateCustomerInFirebase;
     const legacyDelete = scope.deleteCustomerFromFirebase;
-    if (typeof legacyUpdate !== "function" || typeof legacyDelete !== "function") {
+    if (
+      typeof legacyCreate !== "function" ||
+      typeof legacyUpdate !== "function" ||
+      typeof legacyDelete !== "function"
+    ) {
       throw new Error("Legacy customer mutation functions are unavailable");
     }
+
+    scope.saveCustomerToFirebase = async function auditedCreateCustomer(record) {
+      if (!scope.chillProsDb) return legacyCreate(record);
+      return requireGateway(scope).createCustomer(record, {
+        action: "customer.created",
+        source: "operations-center-app",
+        metadata: { workflow: "customer-intake" }
+      });
+    };
 
     scope.updateCustomerInFirebase = async function auditedUpdateCustomer(record, changes) {
       if (!scope.chillProsDb) return legacyUpdate(record, changes);
@@ -121,6 +140,7 @@
     };
 
     const installed = Object.freeze({
+      saveCustomerToFirebase: scope.saveCustomerToFirebase,
       updateCustomerInFirebase: scope.updateCustomerInFirebase,
       deleteCustomerFromFirebase: scope.deleteCustomerFromFirebase
     });
