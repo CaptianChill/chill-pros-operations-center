@@ -5,9 +5,11 @@ on:
     paths:
       - "firestore.rules"
       - "firebase.emulator.json"
+      - "firebase-config.js"
       - "audit-events.js"
       - "audited-customer-mutations.js"
       - "customer-mutation-adapter.js"
+      - "scripts/firebase-config-auth.test.js"
       - "scripts/audit-events.test.js"
       - "scripts/audited-customer-mutations.test.js"
       - "scripts/customer-mutation-adapter.test.js"
@@ -24,9 +26,11 @@ on:
     paths:
       - "firestore.rules"
       - "firebase.emulator.json"
+      - "firebase-config.js"
       - "audit-events.js"
       - "audited-customer-mutations.js"
       - "customer-mutation-adapter.js"
+      - "scripts/firebase-config-auth.test.js"
       - "scripts/audit-events.test.js"
       - "scripts/audited-customer-mutations.test.js"
       - "scripts/customer-mutation-adapter.test.js"
@@ -53,6 +57,10 @@ jobs:
         run: node --check scripts/firestore-role-permissions-contract.js
       - name: Validate Firestore role permissions
         run: node scripts/firestore-role-permissions-contract.js
+      - name: Check Firebase config syntax
+        run: node --check firebase-config.js
+      - name: Test Firebase Auth dependency exposure
+        run: node scripts/firebase-config-auth.test.js
       - name: Check audit event client syntax
         run: node --check audit-events.js
       - name: Test authenticated audit event client
