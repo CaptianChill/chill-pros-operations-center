@@ -8,6 +8,7 @@ const {
   installAfterAppLoads,
   installBridge,
   readStoredRecord,
+  reconcileRollback,
   requireGateway,
   restoreChangedFields,
   snapshotChangedFields
@@ -22,6 +23,7 @@ async function run() {
   assert.throws(() => requireGateway({}), /gateway is unavailable/);
   assert.equal(getQueueStorageKey({ FIELD_FORGED_CONFIG: { tenant: { id: "chill-pros" } } }), "fieldForged:chill-pros:operations-center:v3");
   assert.equal(getQueueStorageKey({}), "");
+  assert.equal(reconcileRollback({}), false);
 
   const calls = [];
   const scope = {
@@ -96,6 +98,7 @@ async function run() {
   assert.deepEqual(restoreTarget, { officeStatus: "Needs Review", untouched: true });
 
   const rollbackEvents = [];
+  const reconciliationSnapshots = [];
   class TestCustomEvent {
     constructor(name, options) {
       this.type = name;
@@ -120,6 +123,9 @@ async function run() {
           scheduledDate: "2026-07-29"
         }]);
       }
+    },
+    persistQueue() {
+      reconciliationSnapshots.push({ ...failingRecord });
     },
     CustomEvent: TestCustomEvent,
     dispatchEvent(event) {
@@ -148,10 +154,26 @@ async function run() {
     officeStatus: "Scheduled",
     assignedTechnician: ""
   });
+  assert.deepEqual(reconciliationSnapshots, [{
+    id: "customer-1",
+    officeStatus: "Scheduled",
+    assignedTechnician: ""
+  }]);
   assert.equal(rollbackEvents.length, 1);
   assert.equal(rollbackEvents[0].type, "chillpros:customer-mutation-rollback");
   assert.deepEqual(rollbackEvents[0].detail.changedFields, ["officeStatus", "assignedTechnician", "statusUpdatedAt"]);
   assert.equal(rollbackEvents[0].detail.error, "batch commit rejected");
+
+  const reconciliationError = console.error;
+  const reconciliationLogs = [];
+  console.error = (...args) => reconciliationLogs.push(args);
+  try {
+    assert.equal(reconcileRollback({ persistQueue() { throw new Error("storage unavailable"); } }), false);
+  } finally {
+    console.error = reconciliationError;
+  }
+  assert.equal(reconciliationLogs.length, 1);
+  assert.match(reconciliationLogs[0][0], /Unable to reconcile/);
 
   const malformedScope = {
     FIELD_FORGED_CONFIG: { tenant: { id: "chill-pros" } },
