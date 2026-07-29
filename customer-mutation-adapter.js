@@ -1,7 +1,17 @@
 (function initCustomerMutationAdapter(globalScope) {
   "use strict";
 
+  const adapterCache = new WeakMap();
+
+  function requireScope(scope) {
+    if (!scope || (typeof scope !== "object" && typeof scope !== "function")) {
+      throw new Error("Browser scope is required");
+    }
+    return scope;
+  }
+
   function resolveFirebaseDependencies(scope = globalScope) {
+    requireScope(scope);
     const firebase = scope.firebase;
     const db = scope.chillProsDb;
     const auth = scope.chillProsAuth || (firebase?.auth ? firebase.auth() : null);
@@ -39,7 +49,19 @@
     };
   }
 
-  const api = { createCustomerMutationAdapter, resolveFirebaseDependencies };
+  function getCustomerMutationAdapter(scope = globalScope) {
+    requireScope(scope);
+    if (!adapterCache.has(scope)) {
+      adapterCache.set(scope, createCustomerMutationAdapter(scope));
+    }
+    return adapterCache.get(scope);
+  }
+
+  const api = {
+    createCustomerMutationAdapter,
+    getCustomerMutationAdapter,
+    resolveFirebaseDependencies
+  };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   globalScope.ChillProsCustomerMutationAdapter = api;
 })(typeof window !== "undefined" ? window : globalThis);
