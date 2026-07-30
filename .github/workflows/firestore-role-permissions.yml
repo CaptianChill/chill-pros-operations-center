@@ -1,6 +1,7 @@
 name: Firestore Role Permissions
 
 on:
+  workflow_dispatch:
   pull_request:
     paths:
       - "firestore.rules"
