@@ -78,21 +78,27 @@
   function validateMetadataSchema(metadata) {
     const unknownFields = Object.keys(metadata).filter((field) => !ALLOWED_METADATA_FIELDS.has(field));
     if (unknownFields.length) throw new Error(`metadata contains unsupported fields: ${unknownFields.join(", ")}`);
-    if ("source" in metadata) requireBoundedString(metadata.source, "metadata.source", 100);
-    if ("workflow" in metadata) requireBoundedString(metadata.workflow, "metadata.workflow", 100);
-    if ("context" in metadata) requireBoundedString(metadata.context, "metadata.context", 500);
+
+    const normalized = {};
+    if ("source" in metadata) normalized.source = requireBoundedString(metadata.source, "metadata.source", 100);
+    if ("workflow" in metadata) normalized.workflow = requireBoundedString(metadata.workflow, "metadata.workflow", 100);
+    if ("context" in metadata) normalized.context = requireBoundedString(metadata.context, "metadata.context", 500);
     if ("changedFields" in metadata) {
       if (!Array.isArray(metadata.changedFields)) throw new Error("metadata.changedFields must be an array");
       if (metadata.changedFields.length > 25) throw new Error("metadata.changedFields exceeds 25 entries");
-      metadata.changedFields.forEach((field, index) => requireBoundedString(field, `metadata.changedFields[${index}]`, 100));
+      normalized.changedFields = metadata.changedFields.map((field, index) =>
+        requireBoundedString(field, `metadata.changedFields[${index}]`, 100)
+      );
     }
+    return normalized;
   }
 
   function normalizeMetadata(metadata) {
     if (metadata == null) return undefined;
     if (!isPlainObject(metadata)) throw new Error("metadata must be a plain object");
-    const normalized = Object.fromEntries(Object.entries(metadata).filter(([, value]) => value !== undefined));
-    validateMetadataSchema(normalized);
+    const normalized = validateMetadataSchema(
+      Object.fromEntries(Object.entries(metadata).filter(([, value]) => value !== undefined))
+    );
     const unsafePaths = collectUnsafeMetadataPaths(normalized);
     if (unsafePaths.length) throw new Error(`metadata contains reserved or sensitive audit fields: ${unsafePaths.join(", ")}`);
     return normalized;
