@@ -72,6 +72,31 @@ function createHarness({ role = "owner", profileExists = true, uid = "owner-1", 
   }
 
   {
+    const { operations, mutations } = createHarness();
+    await mutations.updateCustomer(
+      " customer-1 ",
+      { officeStatus: "Completed" },
+      {
+        action: " customer.status_changed ",
+        metadata: {
+          source: " operations-center-app ",
+          workflow: " office-queue ",
+          context: " completion ",
+          changedFields: [" officeStatus "]
+        }
+      }
+    );
+    assert.equal(operations[0].path, "Customers/customer-1");
+    assert.equal(operations[1].payload.action, "customer.status_changed");
+    assert.deepEqual(operations[1].payload.metadata, {
+      source: "operations-center-app",
+      workflow: "office-queue",
+      context: "completion",
+      changedFields: ["officeStatus"]
+    });
+  }
+
+  {
     const { operations, mutations } = createHarness({ role: "office", uid: "office-1" });
     await mutations.deleteCustomer("customer-2", { metadata: { workflow: "office-queue" } });
     assert.deepEqual(operations.map(({ type, path }) => ({ type, path })), [
@@ -112,6 +137,10 @@ function createHarness({ role = "owner", profileExists = true, uid = "owner-1", 
   assert.deepEqual(requirePlainObject({ ok: true }, "payload"), { ok: true });
   assert.throws(() => requirePlainObject([], "payload"), /plain object/);
   assert.deepEqual(normalizeMetadata({ workflow: "customer-intake", omitted: undefined }), { workflow: "customer-intake" });
+  assert.deepEqual(
+    normalizeMetadata({ source: " source ", workflow: " workflow ", context: " context ", changedFields: [" field "] }),
+    { source: "source", workflow: "workflow", context: "context", changedFields: ["field"] }
+  );
   assert.throws(() => normalizeMetadata({ customerName: "Example" }), /unsupported fields: customerName/);
   assert.throws(() => normalizeMetadata({ changedFields: "officeStatus" }), /must be an array/);
   assert.throws(() => normalizeMetadata({ context: "x".repeat(501) }), /metadata\.context exceeds 500/);
