@@ -9,6 +9,7 @@
     "targetPath",
     "createdAt"
   ]);
+  const SENSITIVE_METADATA_FIELD_PATTERN = /^(authorization|cookie|credentials?|password|secret|token|accessToken|refreshToken|idToken|apiKey|api_key|privateKey|private_key|seedPhrase|seed_phrase)$/i;
   const MAX_ACTION_LENGTH = 100;
   const MAX_TARGET_PATH_LENGTH = 500;
   const MAX_METADATA_KEYS = 25;
@@ -40,6 +41,12 @@
       .filter((key) => RESERVED_METADATA_FIELDS.has(key));
     if (reservedFields.length) {
       throw new Error(`metadata contains reserved audit fields: ${reservedFields.join(", ")}`);
+    }
+    const sensitiveFields = entries
+      .map(([key]) => key)
+      .filter((key) => SENSITIVE_METADATA_FIELD_PATTERN.test(key));
+    if (sensitiveFields.length) {
+      throw new Error(`metadata contains sensitive audit fields: ${sensitiveFields.join(", ")}`);
     }
     if (entries.length > MAX_METADATA_KEYS) {
       throw new Error(`metadata exceeds ${MAX_METADATA_KEYS} keys`);
