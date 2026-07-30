@@ -19,6 +19,7 @@ on:
       - "scripts/firebase-config-auth.test.js"
       - "scripts/audit-events.test.js"
       - "scripts/audited-customer-mutations.test.js"
+      - "scripts/audit-metadata-firestore-values.test.js"
       - "scripts/customer-mutation-adapter.test.js"
       - "scripts/customer-mutation-integration.test.js"
       - "scripts/security-runtime-bootstrap.test.js"
@@ -51,6 +52,7 @@ on:
       - "scripts/firebase-config-auth.test.js"
       - "scripts/audit-events.test.js"
       - "scripts/audited-customer-mutations.test.js"
+      - "scripts/audit-metadata-firestore-values.test.js"
       - "scripts/customer-mutation-adapter.test.js"
       - "scripts/customer-mutation-integration.test.js"
       - "scripts/security-runtime-bootstrap.test.js"
@@ -105,6 +107,8 @@ jobs:
         run: node --check audited-customer-mutations.js
       - name: Test atomic audited customer mutations
         run: node scripts/audited-customer-mutations.test.js
+      - name: Test Firestore-safe audit metadata values
+        run: node scripts/audit-metadata-firestore-values.test.js
       - name: Check customer mutation adapter syntax
         run: node --check customer-mutation-adapter.js
       - name: Test customer mutation adapter
