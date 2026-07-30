@@ -49,6 +49,28 @@ function createHarness({ role = "owner", profileExists = true, uid = "owner-1" }
     });
   }
 
+  {
+    const { writes, writeAuditEvent } = createHarness();
+    await writeAuditEvent({
+      action: " customer.updated ",
+      targetPath: " Customers/customer-1 ",
+      metadata: {
+        source: " operations-center-app ",
+        workflow: " office-queue ",
+        context: " status change ",
+        changedFields: [" officeStatus "]
+      }
+    });
+    assert.equal(writes[0].action, "customer.updated");
+    assert.equal(writes[0].targetPath, "Customers/customer-1");
+    assert.deepEqual(writes[0].metadata, {
+      source: "operations-center-app",
+      workflow: "office-queue",
+      context: "status change",
+      changedFields: ["officeStatus"]
+    });
+  }
+
   await assert.rejects(
     createHarness({ role: "technician" }).writeAuditEvent({ action: "customer.updated", targetPath: "Customers/customer-2" }),
     /Only owner or office/
@@ -63,6 +85,10 @@ function createHarness({ role = "owner", profileExists = true, uid = "owner-1" }
   );
 
   assert.deepEqual(normalizeMetadata({ workflow: "customer-intake", omitted: undefined }), { workflow: "customer-intake" });
+  assert.deepEqual(
+    normalizeMetadata({ source: " source ", workflow: " workflow ", context: " context ", changedFields: [" field "] }),
+    { source: "source", workflow: "workflow", context: "context", changedFields: ["field"] }
+  );
   assert.throws(() => normalizeMetadata({ previousStatus: "Scheduled" }), /unsupported fields: previousStatus/);
   assert.throws(() => normalizeMetadata({ workflow: "", context: "valid" }), /metadata\.workflow is required/);
   assert.throws(() => normalizeMetadata({ source: "x".repeat(101) }), /metadata\.source exceeds 100/);
