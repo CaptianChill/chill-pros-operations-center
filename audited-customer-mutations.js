@@ -46,7 +46,19 @@
   }
 
   function inspectMetadata(value, path = "metadata", depth = 0, seen = new Set(), state = { keyCount: 0 }) {
-    if (value == null || typeof value !== "object") return state;
+    if (value === null) return state;
+
+    const valueType = typeof value;
+    if (valueType !== "object") {
+      if (valueType === "undefined" || valueType === "function" || valueType === "symbol" || valueType === "bigint") {
+        throw new Error(`${path} contains an unsupported Firestore value`);
+      }
+      if (valueType === "number" && !Number.isFinite(value)) {
+        throw new Error(`${path} must contain a finite number`);
+      }
+      return state;
+    }
+
     if (depth > MAX_METADATA_DEPTH) {
       throw new Error(`metadata exceeds ${MAX_METADATA_DEPTH} nested levels`);
     }
