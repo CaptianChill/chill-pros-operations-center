@@ -2,9 +2,18 @@
   "use strict";
 
   const ALLOWED_ACTOR_ROLES = new Set(["owner", "office"]);
+  const RESERVED_METADATA_FIELDS = new Set([
+    "actorUid",
+    "actorRole",
+    "action",
+    "targetPath",
+    "createdAt"
+  ]);
+  const SENSITIVE_METADATA_FIELD_PATTERN = /^(authorization|cookie|credentials?|password|secret|token|accessToken|refreshToken|idToken|apiKey|api_key|privateKey|private_key|seedPhrase|seed_phrase)$/i;
   const MAX_ACTION_LENGTH = 100;
   const MAX_TARGET_PATH_LENGTH = 500;
   const MAX_METADATA_KEYS = 25;
+  const MAX_METADATA_DEPTH = 5;
 
   function requireBoundedString(value, fieldName, maxLength) {
     const normalized = String(value || "").trim();
@@ -22,20 +31,59 @@
     return documentId;
   }
 
+  function isPlainObject(value) {
+    if (value == null || typeof value !== "object" || Array.isArray(value)) return false;
+    const prototype = Object.getPrototypeOf(value);
+    return prototype === Object.prototype || prototype === null;
+  }
+
   function requirePlainObject(value, fieldName) {
-    if (!value || typeof value !== "object" || Array.isArray(value)) {
+    if (!isPlainObject(value)) {
       throw new Error(`${fieldName} must be a plain object`);
     }
     if (!Object.keys(value).length) throw new Error(`${fieldName} is required`);
     return value;
   }
 
+  function collectUnsafeMetadataPaths(value, path = "metadata", depth = 0, seen = new Set()) {
+    if (value == null || typeof value !== "object") return [];
+    if (depth > MAX_METADATA_DEPTH) {
+      throw new Error(`metadata exceeds ${MAX_METADATA_DEPTH} nested levels`);
+    }
+    if (seen.has(value)) throw new Error("metadata must not contain circular references");
+    seen.add(value);
+
+    const unsafePaths = [];
+    if (Array.isArray(value)) {
+      value.forEach((item, index) => {
+        unsafePaths.push(...collectUnsafeMetadataPaths(item, `${path}[${index}]`, depth + 1, seen));
+      });
+    } else {
+      if (!isPlainObject(value)) throw new Error(`${path} must contain only plain objects and arrays`);
+      Object.entries(value).forEach(([key, item]) => {
+        const fieldPath = `${path}.${key}`;
+        if (RESERVED_METADATA_FIELDS.has(key) || SENSITIVE_METADATA_FIELD_PATTERN.test(key)) {
+          unsafePaths.push(fieldPath);
+        }
+        unsafePaths.push(...collectUnsafeMetadataPaths(item, fieldPath, depth + 1, seen));
+      });
+    }
+
+    seen.delete(value);
+    return unsafePaths;
+  }
+
   function normalizeMetadata(metadata) {
     if (metadata == null) return undefined;
-    if (typeof metadata !== "object" || Array.isArray(metadata)) {
+    if (!isPlainObject(metadata)) {
       throw new Error("metadata must be a plain object");
     }
+
     const entries = Object.entries(metadata).filter(([, value]) => value !== undefined);
+    const unsafePaths = collectUnsafeMetadataPaths(Object.fromEntries(entries));
+    if (unsafePaths.length) {
+      throw new Error(`metadata contains reserved or sensitive audit fields: ${unsafePaths.join(", ")}`);
+    }
     if (entries.length > MAX_METADATA_KEYS) {
       throw new Error(`metadata exceeds ${MAX_METADATA_KEYS} keys`);
     }
@@ -118,6 +166,7 @@
   }
 
   const api = {
+    collectUnsafeMetadataPaths,
     createAuditedCustomerMutations,
     normalizeMetadata,
     requireBoundedString,
