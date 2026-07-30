@@ -191,6 +191,30 @@ async function main() {
       createdAt: serverTimestamp(),
       metadata: { action: "pricing.deleted" },
     }));
+    await assertFails(setDoc(doc(ownerDb, "AuditEvents", "sensitive-metadata-token"), {
+      actorUid: ownerUid,
+      actorRole: "owner",
+      action: "pricing.updated",
+      targetPath: `Customers/${assignedJobId}/Private/pricing`,
+      createdAt: serverTimestamp(),
+      metadata: { accessToken: "should-not-be-logged" },
+    }));
+    await assertFails(setDoc(doc(officeDb, "AuditEvents", "sensitive-metadata-authorization"), {
+      actorUid: officeUid,
+      actorRole: "office",
+      action: "quote.approved",
+      targetPath: `Customers/${assignedJobId}`,
+      createdAt: serverTimestamp(),
+      metadata: { Authorization: "Bearer should-not-be-logged" },
+    }));
+    await assertFails(setDoc(doc(ownerDb, "AuditEvents", "sensitive-metadata-seed"), {
+      actorUid: ownerUid,
+      actorRole: "owner",
+      action: "pricing.updated",
+      targetPath: `Customers/${assignedJobId}/Private/pricing`,
+      createdAt: serverTimestamp(),
+      metadata: { seed_phrase: "should-not-be-logged" },
+    }));
     await assertFails(setDoc(doc(officeDb, "AuditEvents", "forged-actor"), {
       actorUid: ownerUid,
       actorRole: "owner",
