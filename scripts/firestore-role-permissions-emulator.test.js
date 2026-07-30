@@ -175,6 +175,22 @@ async function main() {
       targetPath: `Customers/${assignedJobId}`,
       createdAt: serverTimestamp(),
     }));
+    await assertFails(setDoc(doc(ownerDb, "AuditEvents", "reserved-metadata-actor"), {
+      actorUid: ownerUid,
+      actorRole: "owner",
+      action: "pricing.updated",
+      targetPath: `Customers/${assignedJobId}/Private/pricing`,
+      createdAt: serverTimestamp(),
+      metadata: { actorUid: officeUid },
+    }));
+    await assertFails(setDoc(doc(ownerDb, "AuditEvents", "reserved-metadata-action"), {
+      actorUid: ownerUid,
+      actorRole: "owner",
+      action: "pricing.updated",
+      targetPath: `Customers/${assignedJobId}/Private/pricing`,
+      createdAt: serverTimestamp(),
+      metadata: { action: "pricing.deleted" },
+    }));
     await assertFails(setDoc(doc(officeDb, "AuditEvents", "forged-actor"), {
       actorUid: ownerUid,
       actorRole: "owner",
