@@ -146,7 +146,7 @@ async function assertRejectsMessage(promise, pattern) {
   circular.self = circular;
   assert.throws(() => normalizeMetadata(circular), /circular references/);
   assert.throws(
-    () => normalizeMetadata({ a: { b: { c: { d: { e: { f: "too deep" } } } } } }),
+    () => normalizeMetadata({ a: { b: { c: { d: { e: { f: { g: "too deep" } } } } } } }),
     /5 nested levels/
   );
   assert.deepEqual(
