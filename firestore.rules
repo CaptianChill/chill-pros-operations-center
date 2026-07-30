@@ -119,7 +119,11 @@ service cloud.firestore {
         || (request.resource.data.metadata is map
           && request.resource.data.metadata.size() <= 25
           && !request.resource.data.metadata.keys().hasAny([
-            'actorUid', 'actorRole', 'action', 'targetPath', 'createdAt'
+            'actorUid', 'actorRole', 'action', 'targetPath', 'createdAt',
+            'authorization', 'Authorization', 'cookie', 'Cookie',
+            'credential', 'credentials', 'password', 'secret', 'token',
+            'accessToken', 'refreshToken', 'idToken', 'apiKey', 'api_key',
+            'privateKey', 'private_key', 'seedPhrase', 'seed_phrase'
           ]));
     }
 
