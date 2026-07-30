@@ -101,16 +101,15 @@ const auditGuards = [
   [/changedFields\[index\]\s+is\s+string/, "audit changed-field item type guard"],
   [/changedFields\[index\]\.size\(\)\s*>\s*0/, "audit changed-field non-empty guard"],
   [/changedFields\[index\]\.size\(\)\s*<=\s*100/, "audit changed-field item size guard"],
+  [/changedFields\[index\]\.matches\('\.\*\\\\S\.\*'\)/, "audit changed-field non-whitespace guard"],
   [/auditChangedFieldsAreSafe\(request\.resource\.data\.metadata\.changedFields\)/, "audit changed-fields helper enforcement"]
 ];
 for (const [pattern, label] of auditGuards) {
   if (!pattern.test(rules)) failures.push(`Missing ${label}`);
 }
 
-const changedFieldIndexGuards = rules.match(/auditChangedFieldIsSafe\(changedFields,\s*\d+\)/g) || [];
-const guardedIndexes = new Set(
-  changedFieldIndexGuards.map((entry) => Number(entry.match(/(\d+)/)[1]))
-);
+const changedFieldIndexGuards = rules.matchAll(/auditChangedFieldIsSafe\(changedFields,\s*(\d+)\)/g);
+const guardedIndexes = new Set(Array.from(changedFieldIndexGuards, (match) => Number(match[1])));
 for (let index = 0; index < 25; index += 1) {
   if (!guardedIndexes.has(index)) failures.push(`Missing audit changed-field guard for index ${index}`);
 }
