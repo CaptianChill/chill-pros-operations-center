@@ -117,14 +117,25 @@ service cloud.firestore {
     function auditMetadataIsSafe() {
       return !('metadata' in request.resource.data)
         || (request.resource.data.metadata is map
-          && request.resource.data.metadata.size() <= 25
-          && !request.resource.data.metadata.keys().hasAny([
-            'actorUid', 'actorRole', 'action', 'targetPath', 'createdAt',
-            'authorization', 'Authorization', 'cookie', 'Cookie',
-            'credential', 'credentials', 'password', 'secret', 'token',
-            'accessToken', 'refreshToken', 'idToken', 'apiKey', 'api_key',
-            'privateKey', 'private_key', 'seedPhrase', 'seed_phrase'
-          ]));
+          && request.resource.data.metadata.size() <= 4
+          && request.resource.data.metadata.keys().hasOnly([
+            'source', 'workflow', 'context', 'changedFields'
+          ])
+          && (!('source' in request.resource.data.metadata)
+            || (request.resource.data.metadata.source is string
+              && request.resource.data.metadata.source.size() > 0
+              && request.resource.data.metadata.source.size() <= 100))
+          && (!('workflow' in request.resource.data.metadata)
+            || (request.resource.data.metadata.workflow is string
+              && request.resource.data.metadata.workflow.size() > 0
+              && request.resource.data.metadata.workflow.size() <= 100))
+          && (!('context' in request.resource.data.metadata)
+            || (request.resource.data.metadata.context is string
+              && request.resource.data.metadata.context.size() > 0
+              && request.resource.data.metadata.context.size() <= 500))
+          && (!('changedFields' in request.resource.data.metadata)
+            || (request.resource.data.metadata.changedFields is list
+              && request.resource.data.metadata.changedFields.size() <= 25)));
     }
 
     function auditEventCreateIsSafe() {
