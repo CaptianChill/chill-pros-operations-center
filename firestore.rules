@@ -114,6 +114,44 @@ service cloud.firestore {
         : !('completedAt' in request.resource.data);
     }
 
+    function auditChangedFieldIsSafe(changedFields, index) {
+      return changedFields.size() <= index
+        || (changedFields[index] is string
+          && changedFields[index].size() > 0
+          && changedFields[index].size() <= 100
+          && changedFields[index].matches('.*\\S.*'));
+    }
+
+    function auditChangedFieldsAreSafe(changedFields) {
+      return changedFields is list
+        && changedFields.size() <= 25
+        && auditChangedFieldIsSafe(changedFields, 0)
+        && auditChangedFieldIsSafe(changedFields, 1)
+        && auditChangedFieldIsSafe(changedFields, 2)
+        && auditChangedFieldIsSafe(changedFields, 3)
+        && auditChangedFieldIsSafe(changedFields, 4)
+        && auditChangedFieldIsSafe(changedFields, 5)
+        && auditChangedFieldIsSafe(changedFields, 6)
+        && auditChangedFieldIsSafe(changedFields, 7)
+        && auditChangedFieldIsSafe(changedFields, 8)
+        && auditChangedFieldIsSafe(changedFields, 9)
+        && auditChangedFieldIsSafe(changedFields, 10)
+        && auditChangedFieldIsSafe(changedFields, 11)
+        && auditChangedFieldIsSafe(changedFields, 12)
+        && auditChangedFieldIsSafe(changedFields, 13)
+        && auditChangedFieldIsSafe(changedFields, 14)
+        && auditChangedFieldIsSafe(changedFields, 15)
+        && auditChangedFieldIsSafe(changedFields, 16)
+        && auditChangedFieldIsSafe(changedFields, 17)
+        && auditChangedFieldIsSafe(changedFields, 18)
+        && auditChangedFieldIsSafe(changedFields, 19)
+        && auditChangedFieldIsSafe(changedFields, 20)
+        && auditChangedFieldIsSafe(changedFields, 21)
+        && auditChangedFieldIsSafe(changedFields, 22)
+        && auditChangedFieldIsSafe(changedFields, 23)
+        && auditChangedFieldIsSafe(changedFields, 24);
+    }
+
     function auditMetadataIsSafe() {
       return !('metadata' in request.resource.data)
         || (request.resource.data.metadata is map
@@ -134,8 +172,7 @@ service cloud.firestore {
               && request.resource.data.metadata.context.size() > 0
               && request.resource.data.metadata.context.size() <= 500))
           && (!('changedFields' in request.resource.data.metadata)
-            || (request.resource.data.metadata.changedFields is list
-              && request.resource.data.metadata.changedFields.size() <= 25)));
+            || auditChangedFieldsAreSafe(request.resource.data.metadata.changedFields)));
     }
 
     function auditEventCreateIsSafe() {
