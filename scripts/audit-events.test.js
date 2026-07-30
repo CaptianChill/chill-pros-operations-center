@@ -155,7 +155,21 @@ async function assertRejectsMessage(promise, pattern) {
   );
   assert.throws(
     () => normalizeMetadata(Object.fromEntries(Array.from({ length: 26 }, (_, index) => [`key${index}`, index]))),
-    /25 keys/
+    /25 keys total/
+  );
+  assert.throws(
+    () => normalizeMetadata({
+      request: Object.fromEntries(Array.from({ length: 25 }, (_, index) => [`field${index}`, index]))
+    }),
+    /25 keys total/
+  );
+  assert.deepEqual(
+    normalizeMetadata({
+      request: Object.fromEntries(Array.from({ length: 24 }, (_, index) => [`field${index}`, index]))
+    }),
+    {
+      request: Object.fromEntries(Array.from({ length: 24 }, (_, index) => [`field${index}`, index]))
+    }
   );
 
   console.log("Audit event client tests passed");
