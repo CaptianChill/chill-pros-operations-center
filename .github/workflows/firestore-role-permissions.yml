@@ -64,9 +64,14 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: firestore-role-permissions-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   role-permissions-contract:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -111,6 +116,7 @@ jobs:
 
   private-data-inventory:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -125,6 +131,7 @@ jobs:
 
   role-permissions-emulator:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
