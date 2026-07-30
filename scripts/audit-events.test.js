@@ -98,6 +98,14 @@ async function assertRejectsMessage(promise, pattern) {
   }
 
   assert.throws(() => normalizeMetadata([]), /plain object/);
+  assert.throws(() => normalizeMetadata(new Date()), /plain object/);
+  assert.throws(
+    () => normalizeMetadata(new (class AuditMetadata { constructor() { this.changedField = "status"; } })()),
+    /plain object/
+  );
+  const nullPrototypeMetadata = Object.create(null);
+  nullPrototypeMetadata.changedField = "status";
+  assert.deepEqual(normalizeMetadata(nullPrototypeMetadata), { changedField: "status" });
   assert.throws(
     () => normalizeMetadata({ actorUid: "forged-owner", changedFields: ["internalCost"] }),
     /reserved audit fields: actorUid/
