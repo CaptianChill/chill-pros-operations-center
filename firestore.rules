@@ -21,6 +21,13 @@ service cloud.firestore {
       return hasUserProfile() ? userProfile().technicianName : null;
     }
 
+    function technicianNameIsSafe(name) {
+      return name is string
+        && name.size() > 0
+        && name.size() <= 200
+        && name.matches('.*\\S.*');
+    }
+
     function isOwner() {
       return signedIn() && role() == 'owner';
     }
@@ -32,16 +39,13 @@ service cloud.firestore {
     function isTechnician() {
       return signedIn()
         && role() == 'technician'
-        && technicianName() is string
-        && technicianName().size() > 0;
+        && technicianNameIsSafe(technicianName());
     }
 
     function authoritativeUserProfileIsSafe() {
       return request.resource.data.role in ['owner', 'office', 'technician']
         && (request.resource.data.role != 'technician'
-          || (request.resource.data.technicianName is string
-            && request.resource.data.technicianName.size() > 0
-            && request.resource.data.technicianName.size() <= 200));
+          || technicianNameIsSafe(request.resource.data.technicianName));
     }
 
     function assignedToCurrentTechnician(data) {
