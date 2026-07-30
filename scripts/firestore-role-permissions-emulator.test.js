@@ -175,6 +175,38 @@ async function main() {
       targetPath: `Customers/${assignedJobId}`,
       createdAt: serverTimestamp(),
     }));
+    await assertFails(setDoc(doc(ownerDb, "AuditEvents", "changed-fields-map-value"), {
+      actorUid: ownerUid,
+      actorRole: "owner",
+      action: "pricing.updated",
+      targetPath: `Customers/${assignedJobId}/Private/pricing`,
+      createdAt: serverTimestamp(),
+      metadata: { changedFields: [{ accessToken: "should-not-be-logged" }] },
+    }));
+    await assertFails(setDoc(doc(ownerDb, "AuditEvents", "changed-fields-empty-value"), {
+      actorUid: ownerUid,
+      actorRole: "owner",
+      action: "pricing.updated",
+      targetPath: `Customers/${assignedJobId}/Private/pricing`,
+      createdAt: serverTimestamp(),
+      metadata: { changedFields: ["   "] },
+    }));
+    await assertFails(setDoc(doc(ownerDb, "AuditEvents", "changed-fields-long-value"), {
+      actorUid: ownerUid,
+      actorRole: "owner",
+      action: "pricing.updated",
+      targetPath: `Customers/${assignedJobId}/Private/pricing`,
+      createdAt: serverTimestamp(),
+      metadata: { changedFields: ["x".repeat(101)] },
+    }));
+    await assertSucceeds(setDoc(doc(ownerDb, "AuditEvents", "changed-fields-boundary-value"), {
+      actorUid: ownerUid,
+      actorRole: "owner",
+      action: "pricing.updated",
+      targetPath: `Customers/${assignedJobId}/Private/pricing`,
+      createdAt: serverTimestamp(),
+      metadata: { changedFields: ["x".repeat(100)] },
+    }));
     await assertFails(setDoc(doc(ownerDb, "AuditEvents", "reserved-metadata-actor"), {
       actorUid: ownerUid,
       actorRole: "owner",
