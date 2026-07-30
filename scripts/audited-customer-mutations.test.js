@@ -3,6 +3,7 @@
 const assert = require("node:assert/strict");
 const {
   createAuditedCustomerMutations,
+  normalizeMetadata,
   requireBoundedString,
   requireDocumentId,
   requirePlainObject
@@ -198,13 +199,56 @@ function createHarness({ role = "owner", profileExists = true, uid = "owner-1", 
     assert.deepEqual(operations, []);
   }
 
+  {
+    const { operations, mutations } = createHarness();
+    await assert.rejects(
+      mutations.updateCustomer(
+        "customer-7",
+        { officeStatus: "Completed" },
+        { metadata: { actorUid: "forged-owner" } }
+      ),
+      /metadata\.actorUid/
+    );
+    await assert.rejects(
+      mutations.deleteCustomer(
+        "customer-7",
+        { metadata: { request: { headers: { authorization: "Bearer secret" } } } }
+      ),
+      /metadata\.request\.headers\.authorization/
+    );
+    await assert.rejects(
+      mutations.createCustomer(
+        { customerName: "Blocked metadata" },
+        { metadata: { attempts: [{ refreshToken: "secret" }] } }
+      ),
+      /metadata\.attempts\[0\]\.refreshToken/
+    );
+    assert.deepEqual(operations, []);
+  }
+
   assert.equal(requireBoundedString(" customer.updated ", "action", 100), "customer.updated");
   assert.throws(() => requireBoundedString("", "action", 100), /required/);
   assert.throws(() => requireDocumentId(""), /required/);
   assert.throws(() => requireDocumentId("Customers/customer-1"), /slash/);
   assert.deepEqual(requirePlainObject({ ok: true }, "payload"), { ok: true });
   assert.throws(() => requirePlainObject([], "payload"), /plain object/);
+  assert.throws(() => requirePlainObject(new Date(), "payload"), /plain object/);
   assert.throws(() => requirePlainObject({}, "payload"), /payload is required/);
+  assert.deepEqual(normalizeMetadata({ workflow: "customer-intake", omitted: undefined }), {
+    workflow: "customer-intake"
+  });
+  assert.throws(() => normalizeMetadata(new Date()), /plain object/);
+  assert.throws(
+    () => normalizeMetadata({ context: { happenedAt: new Date() } }),
+    /must contain only plain objects and arrays/
+  );
+  const circular = { workflow: "customer-intake" };
+  circular.self = circular;
+  assert.throws(() => normalizeMetadata(circular), /circular references/);
+  assert.throws(
+    () => normalizeMetadata(Object.fromEntries(Array.from({ length: 26 }, (_, index) => [`key${index}`, index]))),
+    /25 keys/
+  );
 
   console.log("Audited customer mutation tests passed");
 })().catch((error) => {
