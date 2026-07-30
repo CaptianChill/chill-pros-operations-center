@@ -108,23 +108,46 @@ async function assertRejectsMessage(promise, pattern) {
   assert.deepEqual(normalizeMetadata(nullPrototypeMetadata), { changedField: "status" });
   assert.throws(
     () => normalizeMetadata({ actorUid: "forged-owner", changedFields: ["internalCost"] }),
-    /reserved audit fields: actorUid/
+    /metadata\.actorUid/
   );
   assert.throws(
     () => normalizeMetadata({ action: "customer.deleted", createdAt: "forged-time" }),
-    /reserved audit fields: action, createdAt/
+    /metadata\.action, metadata\.createdAt/
   );
   assert.throws(
     () => normalizeMetadata({ accessToken: "should-not-be-logged", changedFields: ["status"] }),
-    /sensitive audit fields: accessToken/
+    /metadata\.accessToken/
   );
   assert.throws(
     () => normalizeMetadata({ AUTHORIZATION: "Bearer secret" }),
-    /sensitive audit fields: AUTHORIZATION/
+    /metadata\.AUTHORIZATION/
   );
   assert.throws(
     () => normalizeMetadata({ seed_phrase: "should-not-be-logged" }),
-    /sensitive audit fields: seed_phrase/
+    /metadata\.seed_phrase/
+  );
+  assert.throws(
+    () => normalizeMetadata({ request: { headers: { authorization: "Bearer secret" } } }),
+    /metadata\.request\.headers\.authorization/
+  );
+  assert.throws(
+    () => normalizeMetadata({ attempts: [{ context: { refreshToken: "secret" } }] }),
+    /metadata\.attempts\[0\]\.context\.refreshToken/
+  );
+  assert.throws(
+    () => normalizeMetadata({ request: { actorRole: "owner" } }),
+    /metadata\.request\.actorRole/
+  );
+  assert.throws(
+    () => normalizeMetadata({ context: { happenedAt: new Date() } }),
+    /must contain only plain objects and arrays/
+  );
+  const circular = { source: "operations-center" };
+  circular.self = circular;
+  assert.throws(() => normalizeMetadata(circular), /circular references/);
+  assert.throws(
+    () => normalizeMetadata({ a: { b: { c: { d: { e: { f: "too deep" } } } } } }),
+    /5 nested levels/
   );
   assert.deepEqual(
     normalizeMetadata({ actorUid: undefined, changedFields: ["status"] }),
