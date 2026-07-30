@@ -99,6 +99,18 @@ async function assertRejectsMessage(promise, pattern) {
 
   assert.throws(() => normalizeMetadata([]), /plain object/);
   assert.throws(
+    () => normalizeMetadata({ actorUid: "forged-owner", changedFields: ["internalCost"] }),
+    /reserved audit fields: actorUid/
+  );
+  assert.throws(
+    () => normalizeMetadata({ action: "customer.deleted", createdAt: "forged-time" }),
+    /reserved audit fields: action, createdAt/
+  );
+  assert.deepEqual(
+    normalizeMetadata({ actorUid: undefined, changedFields: ["status"] }),
+    { changedFields: ["status"] }
+  );
+  assert.throws(
     () => normalizeMetadata(Object.fromEntries(Array.from({ length: 26 }, (_, index) => [`key${index}`, index]))),
     /25 keys/
   );
