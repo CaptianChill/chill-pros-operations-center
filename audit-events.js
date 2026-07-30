@@ -2,6 +2,13 @@
   "use strict";
 
   const ALLOWED_ACTOR_ROLES = new Set(["owner", "office"]);
+  const RESERVED_METADATA_FIELDS = new Set([
+    "actorUid",
+    "actorRole",
+    "action",
+    "targetPath",
+    "createdAt"
+  ]);
   const MAX_ACTION_LENGTH = 100;
   const MAX_TARGET_PATH_LENGTH = 500;
   const MAX_METADATA_KEYS = 25;
@@ -22,6 +29,12 @@
     }
 
     const entries = Object.entries(metadata).filter(([, value]) => value !== undefined);
+    const reservedFields = entries
+      .map(([key]) => key)
+      .filter((key) => RESERVED_METADATA_FIELDS.has(key));
+    if (reservedFields.length) {
+      throw new Error(`metadata contains reserved audit fields: ${reservedFields.join(", ")}`);
+    }
     if (entries.length > MAX_METADATA_KEYS) {
       throw new Error(`metadata exceeds ${MAX_METADATA_KEYS} keys`);
     }
