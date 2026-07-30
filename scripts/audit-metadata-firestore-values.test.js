@@ -12,39 +12,48 @@ const normalizers = [
 for (const [name, normalizeMetadata] of normalizers) {
   assert.deepEqual(
     normalizeMetadata({
-      source: "operations-center",
-      attempt: 1,
-      successful: true,
-      detail: null,
-      tags: ["security", "audit"]
+      source: " operations-center ",
+      workflow: " customer-intake ",
+      context: " owner-created record ",
+      changedFields: [" customerName ", " officeStatus "]
     }),
     {
       source: "operations-center",
-      attempt: 1,
-      successful: true,
-      detail: null,
-      tags: ["security", "audit"]
+      workflow: "customer-intake",
+      context: "owner-created record",
+      changedFields: ["customerName", "officeStatus"]
     },
-    `${name} should preserve supported primitive values`
+    `${name} should persist the canonical Firestore audit metadata schema`
   );
 
-  const unsupportedCases = [
-    [{ context: { omitted: undefined } }, /metadata\.context\.omitted contains an unsupported Firestore value/],
-    [{ context: { callback() {} } }, /metadata\.context\.callback contains an unsupported Firestore value/],
-    [{ context: { marker: Symbol("marker") } }, /metadata\.context\.marker contains an unsupported Firestore value/],
-    [{ context: { sequence: 1n } }, /metadata\.context\.sequence contains an unsupported Firestore value/],
-    [{ context: { attempts: Number.NaN } }, /metadata\.context\.attempts must contain a finite number/],
-    [{ context: { duration: Number.POSITIVE_INFINITY } }, /metadata\.context\.duration must contain a finite number/],
-    [{ attempts: [1, undefined] }, /metadata\.attempts\[1\] contains an unsupported Firestore value/]
+  const strictStringCases = [
+    [{ source: 123 }, /metadata\.source must be a string/],
+    [{ workflow: true }, /metadata\.workflow must be a string/],
+    [{ context: { text: "not allowed" } }, /metadata\.context must be a string/],
+    [{ changedFields: ["officeStatus", 42] }, /metadata\.changedFields\[1\] must be a string/],
+    [{ changedFields: ["officeStatus", null] }, /metadata\.changedFields\[1\] must be a string/],
+    [{ changedFields: ["officeStatus", { field: "assignedTechnician" }] }, /metadata\.changedFields\[1\] must be a string/]
   ];
 
-  for (const [metadata, expected] of unsupportedCases) {
+  for (const [metadata, expected] of strictStringCases) {
     assert.throws(
       () => normalizeMetadata(metadata),
       expected,
-      `${name} should reject invalid Firestore metadata values before writing`
+      `${name} should reject non-string schema values before writing`
     );
   }
+
+  assert.throws(
+    () => normalizeMetadata({ source: "operations-center", attempt: 1 }),
+    /metadata contains unsupported fields: attempt/,
+    `${name} should reject fields outside the Firestore metadata allowlist`
+  );
+
+  assert.throws(
+    () => normalizeMetadata({ changedFields: Array.from({ length: 26 }, (_, index) => `field${index}`) }),
+    /metadata\.changedFields exceeds 25 entries/,
+    `${name} should enforce the Firestore changed-field entry limit`
+  );
 }
 
-console.log("Audit metadata Firestore value tests passed");
+console.log("Audit metadata Firestore schema parity tests passed");
