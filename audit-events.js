@@ -83,14 +83,19 @@
     if (unknownFields.length) {
       throw new Error(`metadata contains unsupported fields: ${unknownFields.join(", ")}`);
     }
-    if ("source" in metadata) requireBoundedString(metadata.source, "metadata.source", 100);
-    if ("workflow" in metadata) requireBoundedString(metadata.workflow, "metadata.workflow", 100);
-    if ("context" in metadata) requireBoundedString(metadata.context, "metadata.context", 500);
+
+    const normalized = {};
+    if ("source" in metadata) normalized.source = requireBoundedString(metadata.source, "metadata.source", 100);
+    if ("workflow" in metadata) normalized.workflow = requireBoundedString(metadata.workflow, "metadata.workflow", 100);
+    if ("context" in metadata) normalized.context = requireBoundedString(metadata.context, "metadata.context", 500);
     if ("changedFields" in metadata) {
       if (!Array.isArray(metadata.changedFields)) throw new Error("metadata.changedFields must be an array");
       if (metadata.changedFields.length > 25) throw new Error("metadata.changedFields exceeds 25 entries");
-      metadata.changedFields.forEach((field, index) => requireBoundedString(field, `metadata.changedFields[${index}]`, 100));
+      normalized.changedFields = metadata.changedFields.map((field, index) =>
+        requireBoundedString(field, `metadata.changedFields[${index}]`, 100)
+      );
     }
+    return normalized;
   }
 
   function normalizeMetadata(metadata) {
@@ -100,8 +105,7 @@
     }
 
     const entries = Object.entries(metadata).filter(([, value]) => value !== undefined);
-    const normalized = Object.fromEntries(entries);
-    validateMetadataSchema(normalized);
+    const normalized = validateMetadataSchema(Object.fromEntries(entries));
     const unsafePaths = collectUnsafeMetadataPaths(normalized);
     if (unsafePaths.length) {
       throw new Error(`metadata contains reserved or sensitive audit fields: ${unsafePaths.join(", ")}`);
