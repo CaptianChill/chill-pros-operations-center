@@ -30,32 +30,39 @@
     return prototype === Object.prototype || prototype === null;
   }
 
-  function collectUnsafeMetadataPaths(value, path = "metadata", depth = 0, seen = new Set()) {
-    if (value == null || typeof value !== "object") return [];
+  function inspectMetadata(value, path = "metadata", depth = 0, seen = new Set(), state = { keyCount: 0, unsafePaths: [] }) {
+    if (value == null || typeof value !== "object") return state;
     if (depth > MAX_METADATA_DEPTH) {
       throw new Error(`metadata exceeds ${MAX_METADATA_DEPTH} nested levels`);
     }
     if (seen.has(value)) throw new Error("metadata must not contain circular references");
     seen.add(value);
 
-    const unsafePaths = [];
     if (Array.isArray(value)) {
       value.forEach((item, index) => {
-        unsafePaths.push(...collectUnsafeMetadataPaths(item, `${path}[${index}]`, depth + 1, seen));
+        inspectMetadata(item, `${path}[${index}]`, depth + 1, seen, state);
       });
     } else {
       if (!isPlainObject(value)) throw new Error(`${path} must contain only plain objects and arrays`);
       Object.entries(value).forEach(([key, item]) => {
+        state.keyCount += 1;
+        if (state.keyCount > MAX_METADATA_KEYS) {
+          throw new Error(`metadata exceeds ${MAX_METADATA_KEYS} keys total`);
+        }
         const fieldPath = `${path}.${key}`;
         if (RESERVED_METADATA_FIELDS.has(key) || SENSITIVE_METADATA_FIELD_PATTERN.test(key)) {
-          unsafePaths.push(fieldPath);
+          state.unsafePaths.push(fieldPath);
         }
-        unsafePaths.push(...collectUnsafeMetadataPaths(item, fieldPath, depth + 1, seen));
+        inspectMetadata(item, fieldPath, depth + 1, seen, state);
       });
     }
 
     seen.delete(value);
-    return unsafePaths;
+    return state;
+  }
+
+  function collectUnsafeMetadataPaths(value, path = "metadata", depth = 0, seen = new Set()) {
+    return inspectMetadata(value, path, depth, seen).unsafePaths;
   }
 
   function normalizeMetadata(metadata) {
@@ -65,14 +72,12 @@
     }
 
     const entries = Object.entries(metadata).filter(([, value]) => value !== undefined);
-    const unsafePaths = collectUnsafeMetadataPaths(Object.fromEntries(entries));
+    const normalized = Object.fromEntries(entries);
+    const unsafePaths = collectUnsafeMetadataPaths(normalized);
     if (unsafePaths.length) {
       throw new Error(`metadata contains reserved or sensitive audit fields: ${unsafePaths.join(", ")}`);
     }
-    if (entries.length > MAX_METADATA_KEYS) {
-      throw new Error(`metadata exceeds ${MAX_METADATA_KEYS} keys`);
-    }
-    return Object.fromEntries(entries);
+    return normalized;
   }
 
   function createAuditEventWriter({ db, auth, serverTimestamp }) {
