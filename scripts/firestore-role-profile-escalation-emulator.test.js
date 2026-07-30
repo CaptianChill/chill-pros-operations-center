@@ -92,6 +92,14 @@ async function main() {
       role: "technician",
       technicianName: "",
     }));
+    await assertFails(setDoc(doc(ownerDb, "Users", "space-only-tech-name"), {
+      role: "technician",
+      technicianName: "   ",
+    }));
+    await assertFails(setDoc(doc(ownerDb, "Users", "tab-only-tech-name"), {
+      role: "technician",
+      technicianName: "\t\t",
+    }));
     await assertFails(setDoc(doc(ownerDb, "Users", "oversized-tech-name"), {
       role: "technician",
       technicianName: "T".repeat(201),
@@ -106,6 +114,10 @@ async function main() {
     await assertSucceeds(setDoc(doc(ownerDb, "Users", missingProfileUid), {
       role: "technician",
       technicianName: "Provisioned Technician",
+    }));
+    await assertSucceeds(setDoc(doc(ownerDb, "Users", "trimmed-valid-technician"), {
+      role: "technician",
+      technicianName: "  Valid Technician  ",
     }));
     await assertSucceeds(setDoc(doc(ownerDb, "Users", "provisioned-office"), {
       role: "office",
