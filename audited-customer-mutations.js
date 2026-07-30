@@ -62,7 +62,7 @@
       Object.entries(value).forEach(([key, item]) => {
         state.keyCount += 1;
         if (state.keyCount > MAX_METADATA_KEYS) {
-          throw new Error(`metadata exceeds ${MAX_METADATA_KEYS} total keys`);
+          throw new Error(`metadata exceeds ${MAX_METADATA_KEYS} keys total`);
         }
         const fieldPath = `${path}.${key}`;
         if (RESERVED_METADATA_FIELDS.has(key) || SENSITIVE_METADATA_FIELD_PATTERN.test(key)) {
