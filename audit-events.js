@@ -17,7 +17,8 @@
   const MAX_METADATA_DEPTH = 5;
 
   function requireBoundedString(value, fieldName, maxLength) {
-    const normalized = String(value || "").trim();
+    if (typeof value !== "string") throw new Error(`${fieldName} must be a string`);
+    const normalized = value.trim();
     if (!normalized) throw new Error(`${fieldName} is required`);
     if (normalized.length > maxLength) {
       throw new Error(`${fieldName} exceeds ${maxLength} characters`);
