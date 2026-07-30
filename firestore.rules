@@ -114,6 +114,15 @@ service cloud.firestore {
         : !('completedAt' in request.resource.data);
     }
 
+    function auditMetadataIsSafe() {
+      return !('metadata' in request.resource.data)
+        || (request.resource.data.metadata is map
+          && request.resource.data.metadata.size() <= 25
+          && !request.resource.data.metadata.keys().hasAny([
+            'actorUid', 'actorRole', 'action', 'targetPath', 'createdAt'
+          ]));
+    }
+
     function auditEventCreateIsSafe() {
       return request.resource.data.keys().hasOnly([
           'actorUid', 'actorRole', 'action', 'targetPath', 'createdAt', 'metadata'
@@ -127,9 +136,7 @@ service cloud.firestore {
         && request.resource.data.targetPath.size() > 0
         && request.resource.data.targetPath.size() <= 500
         && request.resource.data.createdAt == request.time
-        && (!('metadata' in request.resource.data)
-          || (request.resource.data.metadata is map
-            && request.resource.data.metadata.size() <= 25));
+        && auditMetadataIsSafe();
     }
 
     match /Users/{userId} {
