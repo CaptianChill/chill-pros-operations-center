@@ -80,6 +80,7 @@ async function main() {
     }));
     await assertFails(deleteDoc(doc(officeDb, "Users", officeUid)));
     await assertFails(deleteDoc(doc(technicianDb, "Users", technicianUid)));
+    await assertFails(deleteDoc(doc(ownerDb, "Users", ownerUid)));
 
     await assertFails(setDoc(doc(ownerDb, "Users", "invalid-role"), {
       role: "administrator",
