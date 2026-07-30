@@ -8,12 +8,14 @@ on:
       - "firebase.emulator.json"
       - "firebase-config.js"
       - "tenant-config.js"
+      - "v1-access.js"
       - "audit-events.js"
       - "audited-customer-mutations.js"
       - "customer-mutation-adapter.js"
       - "customer-mutation-integration.js"
       - "security-runtime-bootstrap.js"
       - "app-audited-mutation-bridge.js"
+      - "scripts/v1-access-authoritative-role-contract.js"
       - "scripts/firebase-config-auth.test.js"
       - "scripts/audit-events.test.js"
       - "scripts/audited-customer-mutations.test.js"
@@ -38,12 +40,14 @@ on:
       - "firebase.emulator.json"
       - "firebase-config.js"
       - "tenant-config.js"
+      - "v1-access.js"
       - "audit-events.js"
       - "audited-customer-mutations.js"
       - "customer-mutation-adapter.js"
       - "customer-mutation-integration.js"
       - "security-runtime-bootstrap.js"
       - "app-audited-mutation-bridge.js"
+      - "scripts/v1-access-authoritative-role-contract.js"
       - "scripts/firebase-config-auth.test.js"
       - "scripts/audit-events.test.js"
       - "scripts/audited-customer-mutations.test.js"
@@ -81,6 +85,12 @@ jobs:
         run: node --check scripts/firestore-role-permissions-contract.js
       - name: Validate Firestore role permissions
         run: node scripts/firestore-role-permissions-contract.js
+      - name: Check legacy access syntax
+        run: node --check v1-access.js
+      - name: Check legacy authoritative role contract syntax
+        run: node --check scripts/v1-access-authoritative-role-contract.js
+      - name: Validate legacy authoritative role enforcement
+        run: node scripts/v1-access-authoritative-role-contract.js
       - name: Check Firebase config syntax
         run: node --check firebase-config.js
       - name: Test Firebase Auth dependency exposure
