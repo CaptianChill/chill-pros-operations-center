@@ -93,14 +93,16 @@ function createHarness({ role = "owner", profileExists = true, uid = "owner-1" }
   assert.throws(() => normalizeMetadata({ workflow: "", context: "valid" }), /metadata\.workflow is required/);
   assert.throws(() => normalizeMetadata({ source: "x".repeat(101) }), /metadata\.source exceeds 100/);
   assert.throws(() => normalizeMetadata({ context: "x".repeat(501) }), /metadata\.context exceeds 500/);
+  assert.throws(() => normalizeMetadata({ source: 42 }), /metadata\.source must be a string/);
+  assert.throws(() => normalizeMetadata({ context: { authorization: "Bearer secret" } }), /metadata\.context must be a string/);
+  assert.throws(() => normalizeMetadata({ context: new Date() }), /metadata\.context must be a string/);
   assert.throws(() => normalizeMetadata({ changedFields: "officeStatus" }), /must be an array/);
   assert.throws(() => normalizeMetadata({ changedFields: Array.from({ length: 26 }, (_, index) => `field${index}`) }), /exceeds 25 entries/);
   assert.throws(() => normalizeMetadata({ changedFields: [""] }), /changedFields\[0\] is required/);
+  assert.throws(() => normalizeMetadata({ changedFields: [7] }), /changedFields\[0\] must be a string/);
   assert.throws(() => normalizeMetadata([]), /plain object/);
   assert.throws(() => normalizeMetadata(new Date()), /plain object/);
   assert.throws(() => normalizeMetadata({ actorUid: "forged-owner" }), /unsupported fields: actorUid/);
-  assert.throws(() => normalizeMetadata({ context: { authorization: "Bearer secret" } }), /metadata\.context/);
-  assert.throws(() => normalizeMetadata({ context: new Date() }), /metadata\.context/);
 
   console.log("Audit event client tests passed");
 })().catch((error) => {
