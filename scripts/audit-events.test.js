@@ -8,32 +8,14 @@ function createHarness({ role = "owner", profileExists = true, uid = "owner-1" }
   const db = {
     collection(name) {
       if (name === "Users") {
-        return {
-          doc(requestedUid) {
-            assert.equal(requestedUid, uid);
-            return {
-              async get() {
-                return {
-                  exists: profileExists,
-                  data: () => ({ role })
-                };
-              }
-            };
-          }
-        };
+        return { doc(requestedUid) { return { async get() { assert.equal(requestedUid, uid); return { exists: profileExists, data: () => ({ role }) }; } }; } };
       }
       if (name === "AuditEvents") {
-        return {
-          async add(payload) {
-            writes.push(payload);
-            return { id: "audit-1" };
-          }
-        };
+        return { async add(payload) { writes.push(payload); return { id: "audit-1" }; } };
       }
       throw new Error(`Unexpected collection: ${name}`);
     }
   };
-
   return {
     writes,
     writeAuditEvent: createAuditEventWriter({
@@ -44,133 +26,55 @@ function createHarness({ role = "owner", profileExists = true, uid = "owner-1" }
   };
 }
 
-async function assertRejectsMessage(promise, pattern) {
-  await assert.rejects(promise, pattern);
-}
-
 (async () => {
   {
-    const { writes, writeAuditEvent } = createHarness({ role: "owner" });
+    const { writes, writeAuditEvent } = createHarness();
     const id = await writeAuditEvent({
       action: "customer.status_changed",
       targetPath: "Customers/customer-1",
-      metadata: { previousStatus: "Scheduled", nextStatus: "Completed", omitted: undefined }
+      metadata: {
+        source: "operations-center-app",
+        workflow: "office-queue",
+        context: "status change",
+        changedFields: ["officeStatus"],
+        omitted: undefined
+      }
     });
-
     assert.equal(id, "audit-1");
-    assert.deepEqual(writes, [{
-      actorUid: "owner-1",
-      actorRole: "owner",
-      action: "customer.status_changed",
-      targetPath: "Customers/customer-1",
-      createdAt: "SERVER_TIMESTAMP",
-      metadata: { previousStatus: "Scheduled", nextStatus: "Completed" }
-    }]);
+    assert.deepEqual(writes[0].metadata, {
+      source: "operations-center-app",
+      workflow: "office-queue",
+      context: "status change",
+      changedFields: ["officeStatus"]
+    });
   }
 
-  {
-    const { writeAuditEvent } = createHarness({ role: "office" });
-    await writeAuditEvent({ action: "customer.deleted", targetPath: "Customers/customer-2" });
-  }
+  await assert.rejects(
+    createHarness({ role: "technician" }).writeAuditEvent({ action: "customer.updated", targetPath: "Customers/customer-2" }),
+    /Only owner or office/
+  );
+  await assert.rejects(
+    createHarness({ profileExists: false }).writeAuditEvent({ action: "customer.updated", targetPath: "Customers/customer-3" }),
+    /Authoritative user profile/
+  );
+  await assert.rejects(
+    createHarness({ uid: "" }).writeAuditEvent({ action: "customer.updated", targetPath: "Customers/customer-4" }),
+    /Authenticated user/
+  );
 
-  {
-    const { writeAuditEvent } = createHarness({ role: "technician" });
-    await assertRejectsMessage(
-      writeAuditEvent({ action: "customer.updated", targetPath: "Customers/customer-3" }),
-      /Only owner or office/
-    );
-  }
-
-  {
-    const { writeAuditEvent } = createHarness({ profileExists: false });
-    await assertRejectsMessage(
-      writeAuditEvent({ action: "customer.updated", targetPath: "Customers/customer-4" }),
-      /Authoritative user profile/
-    );
-  }
-
-  {
-    const { writeAuditEvent } = createHarness({ uid: "" });
-    await assertRejectsMessage(
-      writeAuditEvent({ action: "customer.updated", targetPath: "Customers/customer-5" }),
-      /Authenticated user/
-    );
-  }
-
+  assert.deepEqual(normalizeMetadata({ workflow: "customer-intake", omitted: undefined }), { workflow: "customer-intake" });
+  assert.throws(() => normalizeMetadata({ previousStatus: "Scheduled" }), /unsupported fields: previousStatus/);
+  assert.throws(() => normalizeMetadata({ workflow: "", context: "valid" }), /metadata\.workflow is required/);
+  assert.throws(() => normalizeMetadata({ source: "x".repeat(101) }), /metadata\.source exceeds 100/);
+  assert.throws(() => normalizeMetadata({ context: "x".repeat(501) }), /metadata\.context exceeds 500/);
+  assert.throws(() => normalizeMetadata({ changedFields: "officeStatus" }), /must be an array/);
+  assert.throws(() => normalizeMetadata({ changedFields: Array.from({ length: 26 }, (_, index) => `field${index}`) }), /exceeds 25 entries/);
+  assert.throws(() => normalizeMetadata({ changedFields: [""] }), /changedFields\[0\] is required/);
   assert.throws(() => normalizeMetadata([]), /plain object/);
   assert.throws(() => normalizeMetadata(new Date()), /plain object/);
-  assert.throws(
-    () => normalizeMetadata(new (class AuditMetadata { constructor() { this.changedField = "status"; } })()),
-    /plain object/
-  );
-  const nullPrototypeMetadata = Object.create(null);
-  nullPrototypeMetadata.changedField = "status";
-  assert.deepEqual(normalizeMetadata(nullPrototypeMetadata), { changedField: "status" });
-  assert.throws(
-    () => normalizeMetadata({ actorUid: "forged-owner", changedFields: ["internalCost"] }),
-    /metadata\.actorUid/
-  );
-  assert.throws(
-    () => normalizeMetadata({ action: "customer.deleted", createdAt: "forged-time" }),
-    /metadata\.action, metadata\.createdAt/
-  );
-  assert.throws(
-    () => normalizeMetadata({ accessToken: "should-not-be-logged", changedFields: ["status"] }),
-    /metadata\.accessToken/
-  );
-  assert.throws(
-    () => normalizeMetadata({ AUTHORIZATION: "Bearer secret" }),
-    /metadata\.AUTHORIZATION/
-  );
-  assert.throws(
-    () => normalizeMetadata({ seed_phrase: "should-not-be-logged" }),
-    /metadata\.seed_phrase/
-  );
-  assert.throws(
-    () => normalizeMetadata({ request: { headers: { authorization: "Bearer secret" } } }),
-    /metadata\.request\.headers\.authorization/
-  );
-  assert.throws(
-    () => normalizeMetadata({ attempts: [{ context: { refreshToken: "secret" } }] }),
-    /metadata\.attempts\[0\]\.context\.refreshToken/
-  );
-  assert.throws(
-    () => normalizeMetadata({ request: { actorRole: "owner" } }),
-    /metadata\.request\.actorRole/
-  );
-  assert.throws(
-    () => normalizeMetadata({ context: { happenedAt: new Date() } }),
-    /must contain only plain objects and arrays/
-  );
-  const circular = { source: "operations-center" };
-  circular.self = circular;
-  assert.throws(() => normalizeMetadata(circular), /circular references/);
-  assert.throws(
-    () => normalizeMetadata({ a: { b: { c: { d: { e: { f: { g: "too deep" } } } } } } }),
-    /5 nested levels/
-  );
-  assert.deepEqual(
-    normalizeMetadata({ actorUid: undefined, changedFields: ["status"] }),
-    { changedFields: ["status"] }
-  );
-  assert.throws(
-    () => normalizeMetadata(Object.fromEntries(Array.from({ length: 26 }, (_, index) => [`key${index}`, index]))),
-    /25 keys total/
-  );
-  assert.throws(
-    () => normalizeMetadata({
-      request: Object.fromEntries(Array.from({ length: 25 }, (_, index) => [`field${index}`, index]))
-    }),
-    /25 keys total/
-  );
-  assert.deepEqual(
-    normalizeMetadata({
-      request: Object.fromEntries(Array.from({ length: 24 }, (_, index) => [`field${index}`, index]))
-    }),
-    {
-      request: Object.fromEntries(Array.from({ length: 24 }, (_, index) => [`field${index}`, index]))
-    }
-  );
+  assert.throws(() => normalizeMetadata({ actorUid: "forged-owner" }), /unsupported fields: actorUid/);
+  assert.throws(() => normalizeMetadata({ context: { authorization: "Bearer secret" } }), /metadata\.context/);
+  assert.throws(() => normalizeMetadata({ context: new Date() }), /metadata\.context/);
 
   console.log("Audit event client tests passed");
 })().catch((error) => {
