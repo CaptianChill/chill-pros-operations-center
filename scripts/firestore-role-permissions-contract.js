@@ -17,6 +17,8 @@ const requiredPatterns = [
   [/function\s+technicianStatusTransitionIsSafe\(\)/, "status transition guard"],
   [/function\s+technicianStatusTimestampIsSafe\(\)/, "status timestamp guard"],
   [/function\s+technicianCompletionStateIsSafe\(\)/, "completion timestamp guard"],
+  [/function\s+auditChangedFieldIsSafe\(changedFields,\s*index\)/, "audit changed-field item guard"],
+  [/function\s+auditChangedFieldsAreSafe\(changedFields\)/, "audit changed-fields collection guard"],
   [/function\s+auditEventCreateIsSafe\(\)/, "audit event value guard"],
   [/allow\s+read:\s*if\s+isOwner\(\)\s*\|\|\s*isOffice\(\)\s*\|\|\s*assignedToCurrentTechnician\(resource\.data\)/, "assigned-record read restriction"],
   [/allow\s+create:\s*if\s+isOwner\(\)\s*\|\|\s*isOffice\(\)/, "owner/office-only customer creation"],
@@ -94,11 +96,23 @@ const auditGuards = [
   [/request\.resource\.data\.metadata\.source\.size\(\)\s*<=\s*100/, "audit source size guard"],
   [/request\.resource\.data\.metadata\.workflow\.size\(\)\s*<=\s*100/, "audit workflow size guard"],
   [/request\.resource\.data\.metadata\.context\.size\(\)\s*<=\s*500/, "audit context size guard"],
-  [/request\.resource\.data\.metadata\.changedFields\s+is\s+list/, "audit changed-fields type guard"],
-  [/request\.resource\.data\.metadata\.changedFields\.size\(\)\s*<=\s*25/, "audit changed-fields size guard"]
+  [/changedFields\s+is\s+list/, "audit changed-fields type guard"],
+  [/changedFields\.size\(\)\s*<=\s*25/, "audit changed-fields size guard"],
+  [/changedFields\[index\]\s+is\s+string/, "audit changed-field item type guard"],
+  [/changedFields\[index\]\.size\(\)\s*>\s*0/, "audit changed-field non-empty guard"],
+  [/changedFields\[index\]\.size\(\)\s*<=\s*100/, "audit changed-field item size guard"],
+  [/auditChangedFieldsAreSafe\(request\.resource\.data\.metadata\.changedFields\)/, "audit changed-fields helper enforcement"]
 ];
 for (const [pattern, label] of auditGuards) {
   if (!pattern.test(rules)) failures.push(`Missing ${label}`);
+}
+
+const changedFieldIndexGuards = rules.match(/auditChangedFieldIsSafe\(changedFields,\s*\d+\)/g) || [];
+const guardedIndexes = new Set(
+  changedFieldIndexGuards.map((entry) => Number(entry.match(/(\d+)/)[1]))
+);
+for (let index = 0; index < 25; index += 1) {
+  if (!guardedIndexes.has(index)) failures.push(`Missing audit changed-field guard for index ${index}`);
 }
 
 const textFields = ["findings", "recommendation", "workNotes", "partsUsed", "laborTimeNotes", "photoNotes"];
@@ -150,4 +164,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log("Firestore owner, office, technician assignment, private pricing, immutable audit, restricted metadata, field, bounded value, status, trusted timestamp, completion, and deny-by-default checks passed.");
+console.log("Firestore owner, office, technician assignment, private pricing, immutable audit, restricted metadata, bounded changed-field values, field, bounded value, status, trusted timestamp, completion, and deny-by-default checks passed.");
