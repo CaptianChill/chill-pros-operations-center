@@ -134,7 +134,12 @@ service cloud.firestore {
 
     match /Users/{userId} {
       allow read: if signedIn() && (request.auth.uid == userId || isOwner());
-      allow create, update: if isOwner() && authoritativeUserProfileIsSafe();
+      allow create: if isOwner() && authoritativeUserProfileIsSafe();
+      // Prevent the currently authenticated owner from changing the role that
+      // grants owner authority and locking the account out of administration.
+      allow update: if isOwner()
+        && authoritativeUserProfileIsSafe()
+        && (request.auth.uid != userId || request.resource.data.role == 'owner');
       // Prevent the currently authenticated owner from deleting the profile
       // that grants owner authority and locking the account out of recovery.
       allow delete: if isOwner() && request.auth.uid != userId;
