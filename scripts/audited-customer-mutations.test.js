@@ -249,6 +249,23 @@ function createHarness({ role = "owner", profileExists = true, uid = "owner-1", 
     () => normalizeMetadata(Object.fromEntries(Array.from({ length: 26 }, (_, index) => [`key${index}`, index]))),
     /25 keys/
   );
+  assert.throws(
+    () => normalizeMetadata({
+      request: Object.fromEntries(Array.from({ length: 13 }, (_, index) => [`requestKey${index}`, index])),
+      response: Object.fromEntries(Array.from({ length: 12 }, (_, index) => [`responseKey${index}`, index]))
+    }),
+    /25 keys total/
+  );
+  assert.deepEqual(
+    normalizeMetadata({
+      request: Object.fromEntries(Array.from({ length: 12 }, (_, index) => [`requestKey${index}`, index])),
+      response: Object.fromEntries(Array.from({ length: 11 }, (_, index) => [`responseKey${index}`, index]))
+    }),
+    {
+      request: Object.fromEntries(Array.from({ length: 12 }, (_, index) => [`requestKey${index}`, index])),
+      response: Object.fromEntries(Array.from({ length: 11 }, (_, index) => [`responseKey${index}`, index]))
+    }
+  );
 
   console.log("Audited customer mutation tests passed");
 })().catch((error) => {
