@@ -2,6 +2,7 @@
   "use strict";
 
   const ALLOWED_ACTOR_ROLES = new Set(["owner", "office"]);
+  const ALLOWED_METADATA_FIELDS = new Set(["source", "workflow", "context", "changedFields"]);
   const RESERVED_METADATA_FIELDS = new Set([
     "actorUid",
     "actorRole",
@@ -77,6 +78,21 @@
     return inspectMetadata(value, path, depth, seen).unsafePaths;
   }
 
+  function validateMetadataSchema(metadata) {
+    const unknownFields = Object.keys(metadata).filter((field) => !ALLOWED_METADATA_FIELDS.has(field));
+    if (unknownFields.length) {
+      throw new Error(`metadata contains unsupported fields: ${unknownFields.join(", ")}`);
+    }
+    if ("source" in metadata) requireBoundedString(metadata.source, "metadata.source", 100);
+    if ("workflow" in metadata) requireBoundedString(metadata.workflow, "metadata.workflow", 100);
+    if ("context" in metadata) requireBoundedString(metadata.context, "metadata.context", 500);
+    if ("changedFields" in metadata) {
+      if (!Array.isArray(metadata.changedFields)) throw new Error("metadata.changedFields must be an array");
+      if (metadata.changedFields.length > 25) throw new Error("metadata.changedFields exceeds 25 entries");
+      metadata.changedFields.forEach((field, index) => requireBoundedString(field, `metadata.changedFields[${index}]`, 100));
+    }
+  }
+
   function normalizeMetadata(metadata) {
     if (metadata == null) return undefined;
     if (!isPlainObject(metadata)) {
@@ -85,6 +101,7 @@
 
     const entries = Object.entries(metadata).filter(([, value]) => value !== undefined);
     const normalized = Object.fromEntries(entries);
+    validateMetadataSchema(normalized);
     const unsafePaths = collectUnsafeMetadataPaths(normalized);
     if (unsafePaths.length) {
       throw new Error(`metadata contains reserved or sensitive audit fields: ${unsafePaths.join(", ")}`);
@@ -129,7 +146,8 @@
     collectUnsafeMetadataPaths,
     createAuditEventWriter,
     normalizeMetadata,
-    requireBoundedString
+    requireBoundedString,
+    validateMetadataSchema
   };
 
   if (typeof module !== "undefined" && module.exports) module.exports = api;
