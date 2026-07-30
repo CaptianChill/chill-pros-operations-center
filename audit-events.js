@@ -22,9 +22,15 @@
     return normalized;
   }
 
+  function isPlainObject(value) {
+    if (value == null || typeof value !== "object" || Array.isArray(value)) return false;
+    const prototype = Object.getPrototypeOf(value);
+    return prototype === Object.prototype || prototype === null;
+  }
+
   function normalizeMetadata(metadata) {
     if (metadata == null) return undefined;
-    if (typeof metadata !== "object" || Array.isArray(metadata)) {
+    if (!isPlainObject(metadata)) {
       throw new Error("metadata must be a plain object");
     }
 
