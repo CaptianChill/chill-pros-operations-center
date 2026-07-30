@@ -2,139 +2,29 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#05070b">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#03070a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <title>Big Booda Command Center</title>
   <link rel="stylesheet" href="owner-command-center.css">
 </head>
 <body>
-  <div class="ambient ambient-one"></div>
-  <div class="ambient ambient-two"></div>
+  <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
+  <aside class="jewel-rail jewel-rail-left" aria-hidden="true"><i></i><b></b><i></i><b></b><i></i><b></b><i></i></aside>
+  <aside class="jewel-rail jewel-rail-right" aria-hidden="true"><i></i><b></b><i></i><b></b><i></i><b></b><i></i></aside>
   <main class="command-shell">
-    <header class="topbar">
-      <div>
-        <p class="kicker">PRIVATE OWNER CONSOLE</p>
-        <h1>BIG BOODA <span>COMMAND CENTER</span></h1>
-        <p class="subtitle">One screen for operations, technology, and paper-trading research.</p>
-      </div>
-      <div class="system-clock" aria-label="Current local time">
-        <span id="clock">--:--</span>
-        <small id="date">Loading date…</small>
-      </div>
-    </header>
-
-    <section class="status-strip" aria-label="System overview">
-      <div><span class="pulse green"></span><strong>3</strong><small>Projects monitored</small></div>
-      <div><span class="pulse blue"></span><strong>Private</strong><small>Owner access</small></div>
-      <div><span class="pulse amber"></span><strong id="approvalCount">0</strong><small>Approvals needed</small></div>
-      <div><span class="pulse violet"></span><strong>Paper Only</strong><small>Crypto execution</small></div>
+    <nav class="desktop-nav" aria-label="Primary navigation"><div class="nav-links"><a class="active" href="#dashboard">Dashboard</a><a href="#projects">Projects</a><a href="#mission">Mission</a><a href="#quick">Quick Access</a></div><div class="nav-tools"><span class="secure-dot"></span><span>PRIVATE OWNER ACCESS</span><div class="mini-bb">BB</div></div></nav>
+    <header class="hero" id="dashboard"><div class="hero-crown">♛</div><div class="brand-lockup"><p class="kicker">BIG <strong>BB</strong> BOODA</p><h1>COMMAND <span>CENTER</span></h1></div><p class="subtitle">Plan. Execute. Dominate.</p><div class="hero-gems" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div><div class="system-clock" aria-label="Current local time"><span id="clock">--:--</span><small id="date">Loading date…</small></div></header>
+    <section class="status-strip" aria-label="System overview"><div><span class="gem-icon diamond"></span><strong>3</strong><small>Projects monitored</small></div><div><span class="gem-icon emerald"></span><strong>Private</strong><small>Owner access</small></div><div><span class="gem-icon diamond"></span><strong id="approvalCount">0</strong><small>Approvals needed</small></div><div><span class="gem-icon emerald"></span><strong>Paper Only</strong><small>Crypto execution</small></div></section>
+    <section class="project-grid" id="projects">
+      <article class="project-card chill-card"><div class="project-head"><div class="project-mark" data-label="CP">CP</div><div><p>BUSINESS OPERATIONS</p><h2>Chill Pros</h2></div><span class="health online">ONLINE</span></div><p class="project-copy">Dispatch, jobs, technicians, customers, equipment, invoicing, and daily field operations.</p><div class="metric-row"><div><strong id="cpJobs">—</strong><small>Jobs today</small></div><div><strong id="cpQueue">—</strong><small>Office queue</small></div><div><strong id="cpTechs">—</strong><small>Technicians</small></div></div><div class="workstream"><span>Current focus</span><strong>Operations Center + Jobber integration</strong></div><div class="card-actions"><a href="index.html" class="primary-link">Open Operations Center</a><a href="https://github.com/CaptianChill/chill-pros-operations-center" target="_blank" rel="noreferrer">View GitHub</a></div></article>
+      <article class="project-card forge-card"><div class="project-head"><div class="project-mark" data-label="FF">FF</div><div><p>AI FIELD INTELLIGENCE</p><h2>FieldForge</h2></div><span class="health build">BUILDING</span></div><p class="project-copy">Diagnostic intelligence, Field Proof records, OEM parts verification, and automated service knowledge.</p><div class="metric-row"><div><strong id="ffCases">5+</strong><small>Seed cases</small></div><div><strong id="ffReview">1</strong><small>Review queue</small></div><div><strong>4</strong><small>Core modules</small></div></div><div class="workstream"><span>Current focus</span><strong>Automated Field Proof Database</strong></div><div class="card-actions"><a href="https://github.com/CaptianChill/chill-pros-operations-center/issues/18" target="_blank" rel="noreferrer" class="primary-link">Open FieldForge Workstream</a><button type="button" data-note="FieldForge detailed workspace is under construction.">Details</button></div></article>
+      <article class="project-card crypto-card"><div class="project-head"><div class="project-mark" data-label="AI">AI</div><div><p>PAPER RESEARCH LAB</p><h2>Crypto AI Signal Lab</h2></div><span class="health paper">PAPER ONLY</span></div><p class="project-copy">Signals, historical replay, strategy comparison, portfolio accounting, and deterministic research artifacts.</p><div class="metric-row"><div><strong>3</strong><small>Strategies</small></div><div><strong>0</strong><small>Live orders</small></div><div><strong>100%</strong><small>Paper mode</small></div></div><div class="workstream"><span>Current focus</span><strong>Replay safety, reproducibility, and CI</strong></div><div class="card-actions"><a href="https://github.com/CaptianChill/Crypto-Ai-signal-lab" target="_blank" rel="noreferrer" class="primary-link">Open Research Repository</a><button type="button" data-note="No wallet, leverage, live order, or production exchange controls are available here.">Safety</button></div></article>
     </section>
-
-    <section class="project-grid">
-      <article class="project-card chill-card">
-        <div class="project-head">
-          <div class="project-mark">CP</div>
-          <div><p>BUSINESS OPERATIONS</p><h2>Chill Pros</h2></div>
-          <span class="health online">ONLINE</span>
-        </div>
-        <p class="project-copy">Dispatch, jobs, technicians, customers, equipment, invoicing, and daily field operations.</p>
-        <div class="metric-row">
-          <div><strong id="cpJobs">—</strong><small>Jobs today</small></div>
-          <div><strong id="cpQueue">—</strong><small>Office queue</small></div>
-          <div><strong id="cpTechs">—</strong><small>Technicians</small></div>
-        </div>
-        <div class="workstream">
-          <span>Current focus</span>
-          <strong>Operations Center + Jobber integration</strong>
-        </div>
-        <div class="card-actions">
-          <a href="index.html" class="primary-link">Open Operations Center</a>
-          <a href="https://github.com/CaptianChill/chill-pros-operations-center" target="_blank" rel="noreferrer">View GitHub</a>
-        </div>
-      </article>
-
-      <article class="project-card forge-card">
-        <div class="project-head">
-          <div class="project-mark">FF</div>
-          <div><p>AI FIELD INTELLIGENCE</p><h2>FieldForge</h2></div>
-          <span class="health build">BUILDING</span>
-        </div>
-        <p class="project-copy">Diagnostic intelligence, Field Proof records, OEM parts verification, and automated service knowledge.</p>
-        <div class="metric-row">
-          <div><strong id="ffCases">5+</strong><small>Seed cases</small></div>
-          <div><strong id="ffReview">1</strong><small>Review queue</small></div>
-          <div><strong>4</strong><small>Core modules</small></div>
-        </div>
-        <div class="workstream">
-          <span>Current focus</span>
-          <strong>Automated Field Proof Database</strong>
-        </div>
-        <div class="card-actions">
-          <a href="https://github.com/CaptianChill/chill-pros-operations-center/issues/18" target="_blank" rel="noreferrer" class="primary-link">Open FieldForge Workstream</a>
-          <button type="button" data-note="FieldForge detailed workspace is under construction.">Details</button>
-        </div>
-      </article>
-
-      <article class="project-card crypto-card">
-        <div class="project-head">
-          <div class="project-mark">AI</div>
-          <div><p>PAPER RESEARCH LAB</p><h2>Crypto AI Signal Lab</h2></div>
-          <span class="health paper">PAPER ONLY</span>
-        </div>
-        <p class="project-copy">Signals, historical replay, strategy comparison, portfolio accounting, and deterministic research artifacts.</p>
-        <div class="metric-row">
-          <div><strong>3</strong><small>Strategies</small></div>
-          <div><strong>0</strong><small>Live orders</small></div>
-          <div><strong>100%</strong><small>Paper mode</small></div>
-        </div>
-        <div class="workstream">
-          <span>Current focus</span>
-          <strong>Replay safety, reproducibility, and CI</strong>
-        </div>
-        <div class="card-actions">
-          <a href="https://github.com/CaptianChill/Crypto-Ai-signal-lab" target="_blank" rel="noreferrer" class="primary-link">Open Research Repository</a>
-          <button type="button" data-note="No wallet, leverage, live order, or production exchange controls are available here.">Safety</button>
-        </div>
-      </article>
-    </section>
-
-    <section class="lower-grid">
-      <article class="panel mission-panel">
-        <div class="panel-title"><p>OWNER MISSION BOARD</p><span>ASAP MODE</span></div>
-        <ol>
-          <li class="complete"><b>1</b><div><strong>Command Center shell</strong><small>Desktop-first private monitoring page</small></div></li>
-          <li class="active"><b>2</b><div><strong>Live project status feeds</strong><small>GitHub issues, PRs, commits, and CI</small></div></li>
-          <li><b>3</b><div><strong>Firebase operations metrics</strong><small>Jobs, queue, technicians, and Field Proof counts</small></div></li>
-          <li><b>4</b><div><strong>Personal customization</strong><small>Backgrounds, sounds, widgets, shortcuts, and layout</small></div></li>
-        </ol>
-      </article>
-
-      <article class="panel approval-panel">
-        <div class="panel-title"><p>APPROVALS</p><span>MOBILE FRIENDLY</span></div>
-        <div class="empty-state">
-          <div>✓</div>
-          <strong>No owner approvals required</strong>
-          <small>Draft pull requests stay unmerged until you approve them.</small>
-        </div>
-      </article>
-
-      <article class="panel quick-panel">
-        <div class="panel-title"><p>QUICK LAUNCH</p><span>PRIVATE</span></div>
-        <div class="quick-links">
-          <a href="index.html"><span>01</span> Operations</a>
-          <a href="https://github.com/CaptianChill/chill-pros-operations-center/issues" target="_blank" rel="noreferrer"><span>02</span> Development Board</a>
-          <a href="https://github.com/CaptianChill/Crypto-Ai-signal-lab/pulls" target="_blank" rel="noreferrer"><span>03</span> Crypto Draft PRs</a>
-          <a href="https://github.com/CaptianChill/chill-pros-operations-center/pulls" target="_blank" rel="noreferrer"><span>04</span> Operations Draft PRs</a>
-        </div>
-      </article>
-    </section>
-
-    <footer>
-      <span>BIG BOODA COMMAND CENTER</span>
-      <small>Private owner monitoring • No live crypto execution</small>
-    </footer>
+    <section class="lower-grid" id="mission"><article class="panel mission-panel"><div class="panel-title"><p>OWNER MISSION BOARD</p><span>ASAP MODE</span></div><ol><li class="complete"><b>1</b><div><strong>Command Center shell</strong><small>Responsive owner homepage</small></div></li><li class="complete"><b>2</b><div><strong>Big Booda jewel branding</strong><small>Desktop and mobile visual system</small></div></li><li class="active"><b>3</b><div><strong>Live project status feeds</strong><small>GitHub issues, PRs, commits, and CI</small></div></li><li><b>4</b><div><strong>Firebase operations metrics</strong><small>Jobs, queue, technicians, and Field Proof counts</small></div></li></ol></article><article class="panel approval-panel"><div class="panel-title"><p>APPROVALS</p><span>MOBILE READY</span></div><div class="empty-state"><div>✓</div><strong>No owner approvals required</strong><small>Draft pull requests stay unmerged until you approve them.</small></div></article><article class="panel quick-panel" id="quick"><div class="panel-title"><p>QUICK ACCESS</p><span>PRIVATE</span></div><div class="quick-links"><a href="index.html"><span>◆</span> Operations</a><a href="https://github.com/CaptianChill/chill-pros-operations-center/issues" target="_blank" rel="noreferrer"><span>◆</span> Development Board</a><a href="https://github.com/CaptianChill/Crypto-Ai-signal-lab/pulls" target="_blank" rel="noreferrer"><span>◆</span> Crypto Draft PRs</a><a href="https://github.com/CaptianChill/chill-pros-operations-center/pulls" target="_blank" rel="noreferrer"><span>◆</span> Operations Draft PRs</a></div></article></section>
+    <footer><span>BIG BOODA COMMAND CENTER</span><small>Private owner monitoring • No live crypto execution</small></footer>
   </main>
-  <div id="toast" role="status" aria-live="polite"></div>
-  <script src="owner-command-center.js"></script>
+  <nav class="mobile-nav" aria-label="Mobile navigation"><a href="#dashboard"><span>♛</span>Home</a><a href="#projects"><span>◆</span>Projects</a><a href="index.html"><span>◇</span>Operations</a><a href="#quick"><span>BB</span>Quick</a></nav>
+  <div id="toast" role="status" aria-live="polite"></div><script src="owner-command-center.js"></script>
 </body>
 </html>
