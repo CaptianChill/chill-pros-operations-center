@@ -1,0 +1,19 @@
+{
+  "name": "BB Command Center",
+  "short_name": "BB Command",
+  "description": "Private owner dashboard for project status, priorities, approvals, schedules, and execution.",
+  "start_url": "./owner-command-center.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#020406",
+  "theme_color": "#020406",
+  "icons": [
+    {
+      "src": "assets/bb-command-center-logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
