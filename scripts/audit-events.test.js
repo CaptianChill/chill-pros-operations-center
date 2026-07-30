@@ -114,6 +114,18 @@ async function assertRejectsMessage(promise, pattern) {
     () => normalizeMetadata({ action: "customer.deleted", createdAt: "forged-time" }),
     /reserved audit fields: action, createdAt/
   );
+  assert.throws(
+    () => normalizeMetadata({ accessToken: "should-not-be-logged", changedFields: ["status"] }),
+    /sensitive audit fields: accessToken/
+  );
+  assert.throws(
+    () => normalizeMetadata({ AUTHORIZATION: "Bearer secret" }),
+    /sensitive audit fields: AUTHORIZATION/
+  );
+  assert.throws(
+    () => normalizeMetadata({ seed_phrase: "should-not-be-logged" }),
+    /sensitive audit fields: seed_phrase/
+  );
   assert.deepEqual(
     normalizeMetadata({ actorUid: undefined, changedFields: ["status"] }),
     { changedFields: ["status"] }
