@@ -89,7 +89,13 @@ const auditGuards = [
   [/request\.resource\.data\.actorRole\s*==\s*role\(\)/, "audit actor role binding"],
   [/request\.resource\.data\.createdAt\s*==\s*request\.time/, "trusted audit timestamp"],
   [/request\.resource\.data\.action\s+is\s+string/, "audit action type guard"],
-  [/request\.resource\.data\.targetPath\s+is\s+string/, "audit target path type guard"]
+  [/request\.resource\.data\.targetPath\s+is\s+string/, "audit target path type guard"],
+  [/request\.resource\.data\.metadata\.keys\(\)\.hasOnly\(\[\s*'source',\s*'workflow',\s*'context',\s*'changedFields'\s*\]\)/, "audit metadata key allowlist"],
+  [/request\.resource\.data\.metadata\.source\.size\(\)\s*<=\s*100/, "audit source size guard"],
+  [/request\.resource\.data\.metadata\.workflow\.size\(\)\s*<=\s*100/, "audit workflow size guard"],
+  [/request\.resource\.data\.metadata\.context\.size\(\)\s*<=\s*500/, "audit context size guard"],
+  [/request\.resource\.data\.metadata\.changedFields\s+is\s+list/, "audit changed-fields type guard"],
+  [/request\.resource\.data\.metadata\.changedFields\.size\(\)\s*<=\s*25/, "audit changed-fields size guard"]
 ];
 for (const [pattern, label] of auditGuards) {
   if (!pattern.test(rules)) failures.push(`Missing ${label}`);
@@ -144,4 +150,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log("Firestore owner, office, technician assignment, private pricing, immutable audit, field, bounded value, status, trusted timestamp, completion, and deny-by-default checks passed.");
+console.log("Firestore owner, office, technician assignment, private pricing, immutable audit, restricted metadata, field, bounded value, status, trusted timestamp, completion, and deny-by-default checks passed.");
