@@ -11,6 +11,12 @@
       "**/.*",
       "**/node_modules/**",
       "functions/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/",
+        "destination": "/owner-command-center.html"
+      }
     ]
   }
 }
