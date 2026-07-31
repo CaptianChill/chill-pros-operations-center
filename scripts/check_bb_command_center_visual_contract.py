@@ -33,6 +33,7 @@ class CommandCenterHTMLParser(HTMLParser):
         self.ids: set[str] = set()
         self.duplicate_ids: set[str] = set()
         self.references: list[tuple[str, str]] = []
+        self.blank_target_links: list[tuple[str, str]] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         attributes = dict(attrs)
@@ -45,6 +46,10 @@ class CommandCenterHTMLParser(HTMLParser):
             value = attributes.get(attribute)
             if value:
                 self.references.append((attribute, value))
+        if tag == "a" and str(attributes.get("target", "")).lower() == "_blank":
+            self.blank_target_links.append(
+                (str(attributes.get("href", "")), str(attributes.get("rel", "")))
+            )
 
 
 def fail(message: str) -> None:
@@ -101,6 +106,11 @@ def validate_local_references(html: str) -> None:
     if parser.duplicate_ids:
         duplicates = ", ".join(sorted(parser.duplicate_ids))
         fail(f"Duplicate element IDs break navigation and JavaScript hooks: {duplicates}")
+
+    for href, rel in parser.blank_target_links:
+        rel_tokens = {token.lower() for token in rel.split()}
+        if "noopener" not in rel_tokens and "noreferrer" not in rel_tokens:
+            fail(f"New-tab link must prevent opener access: {href or '<missing href>'}")
 
     for attribute, reference in parser.references:
         if any(ord(character) < 32 or ord(character) == 127 for character in reference):
