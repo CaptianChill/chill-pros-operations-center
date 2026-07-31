@@ -5,6 +5,7 @@ on:
     paths:
       - "owner-command-center.html"
       - "owner-command-center.css"
+      - "owner-command-center.js"
       - "bb-command-center.webmanifest"
       - "assets/bb-command-center-logo.svg"
       - "scripts/check_bb_command_center_visual_contract.py"
@@ -21,5 +22,7 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+      - name: Check command-center JavaScript syntax
+        run: node --check owner-command-center.js
       - name: Validate BB Command Center structure
         run: python3 scripts/check_bb_command_center_visual_contract.py
