@@ -11,6 +11,7 @@ on:
       - "scripts/check_bb_command_center_visual_contract.py"
       - "scripts/check_bb_command_center_document_base.py"
       - "scripts/test_bb_command_center_visual_contract.py"
+      - "scripts/test_bb_command_center_document_base.py"
       - ".github/workflows/bb-command-center-visual-contract.yml"
   workflow_dispatch:
 
@@ -28,6 +29,8 @@ jobs:
         run: node --check owner-command-center.js
       - name: Run visual-contract unit tests
         run: python3 -m unittest scripts/test_bb_command_center_visual_contract.py
+      - name: Run document-base unit tests
+        run: python3 -m unittest scripts/test_bb_command_center_document_base.py
       - name: Reject document-base URL overrides
         run: python3 scripts/check_bb_command_center_document_base.py
       - name: Validate BB Command Center structure
