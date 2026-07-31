@@ -62,6 +62,8 @@ class LocalReferenceValidationTests(unittest.TestCase):
             "JaVaScRiPt:void(0)",
             "vbscript:msgbox(1)",
             "VbScRiPt:execute()",
+            "data:text/html,<script>alert(1)</script>",
+            "DaTa:image/svg+xml,<svg onload=alert(1)></svg>",
         ):
             with self.subTest(reference=reference), self.assertRaises(SystemExit):
                 validate_local_references(f'<a href="{reference}">Unsafe</a>')
