@@ -116,6 +116,9 @@ def validate_local_references(html: str) -> None:
         if any(ord(character) < 32 or ord(character) == 127 for character in reference):
             fail(f"Control characters are prohibited in {attribute} references: {reference!r}")
 
+        if reference.startswith("//"):
+            fail(f"Protocol-relative external {attribute} reference is prohibited: {reference}")
+
         parsed = urlsplit(reference)
         scheme = parsed.scheme.lower()
         if scheme in UNSAFE_REFERENCE_SCHEMES:
