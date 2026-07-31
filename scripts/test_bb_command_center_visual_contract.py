@@ -83,6 +83,22 @@ class LocalReferenceValidationTests(unittest.TestCase):
             with self.subTest(reference=reference), self.assertRaises(SystemExit):
                 validate_local_references(f'<a href="{reference}">Unsafe</a>')
 
+    def test_rejects_protocol_relative_external_references(self) -> None:
+        for attribute, reference in (
+            ("href", "//example.com/account"),
+            ("src", "//cdn.example.com/app.js"),
+        ):
+            with self.subTest(attribute=attribute, reference=reference), self.assertRaises(SystemExit):
+                validate_local_references(
+                    f'<a {attribute}="{reference}">Protocol-relative</a>'
+                )
+
+    def test_allows_explicit_https_references(self) -> None:
+        validate_local_references(
+            '<a href="https://example.com/account">External</a>'
+            '<img src="https://cdn.example.com/logo.svg" alt="">'
+        )
+
     def test_allows_mail_and_phone_links(self) -> None:
         validate_local_references(
             '<a href="mailto:owner@example.com">Email</a>'
