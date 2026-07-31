@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import unittest
 
-from check_bb_command_center_visual_contract import CommandCenterHTMLParser
+from scripts.check_bb_command_center_visual_contract import CommandCenterHTMLParser
 
 
 class CommandCenterHTMLParserTests(unittest.TestCase):
