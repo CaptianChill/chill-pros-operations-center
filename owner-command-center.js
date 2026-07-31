@@ -1,9 +1,39 @@
 (() => {
   'use strict';
 
+  const APPROVED_ARTWORK = Object.freeze({
+    mobile: 'https://github.com/user-attachments/assets/816b9e04-e54e-4c7d-99a0-3783a4ce2269',
+    desktop: 'https://github.com/user-attachments/assets/28a8189c-3bba-4448-800a-3d07e0b15aab'
+  });
+
   const clock = document.querySelector('#clock');
   const date = document.querySelector('#date');
   const toast = document.querySelector('#toast');
+
+  function installApprovedArtworkReference() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('reference') !== 'approved') return;
+
+    const reference = document.createElement('section');
+    reference.id = 'approvedArtworkReference';
+    reference.setAttribute('aria-label', 'Approved BB Command Center source artwork');
+    reference.innerHTML = `
+      <style>
+        body.approved-reference-mode { padding: 0; background: #020406; }
+        body.approved-reference-mode > :not(#approvedArtworkReference) { display: none !important; }
+        #approvedArtworkReference { width: 100%; margin: 0; background: #020406; }
+        #approvedArtworkReference picture,
+        #approvedArtworkReference img { display: block; width: 100%; height: auto; margin: 0; }
+        #approvedArtworkReference img { object-fit: contain; object-position: center top; }
+      </style>
+      <picture>
+        <source media="(max-width: 767px)" srcset="${APPROVED_ARTWORK.mobile}">
+        <img src="${APPROVED_ARTWORK.desktop}" alt="Approved BB Command Center desktop design reference" decoding="async">
+      </picture>`;
+
+    document.body.classList.add('approved-reference-mode');
+    document.body.prepend(reference);
+  }
 
   function updateClock() {
     const now = new Date();
@@ -54,6 +84,8 @@
     window.clearTimeout(showToast.timer);
     showToast.timer = window.setTimeout(() => toast.classList.remove('show'), 3200);
   }
+
+  installApprovedArtworkReference();
 
   document.querySelectorAll('[data-note]').forEach((button) => {
     button.addEventListener('click', () => showToast(button.dataset.note));
