@@ -93,11 +93,12 @@ def main() -> None:
         ('role="status" aria-live="polite"', "live status region"),
         ('assets/bb-command-center-logo.svg', "BB logo reference"),
         ('BB COMMAND CENTER', "BB identity"),
-        ('LICENSE TO CHILL', "approved footer slogan"),
     ):
         require(html, token, label)
 
     # The approved shell must remain personal; operational project names are allowed.
+    # Issue #43 explicitly requires the LICENSE TO CHILL footer, so that slogan must
+    # not be treated as forbidden Chill Pros shell branding.
     forbidden_shell_phrases = (
         "CHILL PROS COMMAND CENTER",
         "CHILL PROS OWNER",
