@@ -127,6 +127,8 @@ def validate_approved_reference_mode(js: str) -> None:
         ("object-position: center top", "approved artwork positioning"),
         ("width: 100%; height: auto", "proportional artwork scaling"),
         ("body.approved-reference-mode > :not(#approvedArtworkReference)", "isolated reference rendering"),
+        ("return true;", "successful reference-mode signal"),
+        ("if (installApprovedArtworkReference()) return;", "reference-mode initialization short circuit"),
     ):
         require(js, token, label)
 
@@ -146,7 +148,6 @@ def main() -> None:
     validate_local_references(html)
     validate_approved_reference_mode(js)
 
-    # Approved identity, accessibility, and responsive-shell anchors.
     for token, label in (
         ('<html lang="en">', "document language"),
         ('name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"', "safe-area viewport"),
