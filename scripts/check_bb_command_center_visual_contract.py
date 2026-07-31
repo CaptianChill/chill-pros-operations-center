@@ -30,12 +30,15 @@ class CommandCenterHTMLParser(HTMLParser):
     def __init__(self) -> None:
         super().__init__()
         self.ids: set[str] = set()
+        self.duplicate_ids: set[str] = set()
         self.references: list[tuple[str, str]] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         attributes = dict(attrs)
         element_id = attributes.get("id")
         if element_id:
+            if element_id in self.ids:
+                self.duplicate_ids.add(element_id)
             self.ids.add(element_id)
         for attribute in ("href", "src"):
             value = attributes.get(attribute)
@@ -93,6 +96,10 @@ def validate_manifest(manifest: dict[str, object]) -> None:
 def validate_local_references(html: str) -> None:
     parser = CommandCenterHTMLParser()
     parser.feed(html)
+
+    if parser.duplicate_ids:
+        duplicates = ", ".join(sorted(parser.duplicate_ids))
+        fail(f"Duplicate element IDs break navigation and JavaScript hooks: {duplicates}")
 
     for attribute, reference in parser.references:
         parsed = urlsplit(reference)
