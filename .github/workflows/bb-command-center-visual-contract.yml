@@ -9,6 +9,7 @@ on:
       - "bb-command-center.webmanifest"
       - "assets/bb-command-center-logo.svg"
       - "scripts/check_bb_command_center_visual_contract.py"
+      - "scripts/test_bb_command_center_visual_contract.py"
       - ".github/workflows/bb-command-center-visual-contract.yml"
   workflow_dispatch:
 
@@ -24,5 +25,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Check command-center JavaScript syntax
         run: node --check owner-command-center.js
+      - name: Run visual-contract unit tests
+        run: python3 -m unittest scripts/test_bb_command_center_visual_contract.py
       - name: Validate BB Command Center structure
         run: python3 scripts/check_bb_command_center_visual_contract.py
