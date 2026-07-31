@@ -93,6 +93,7 @@ def main() -> None:
         ('role="status" aria-live="polite"', "live status region"),
         ('assets/bb-command-center-logo.svg', "BB logo reference"),
         ('BB COMMAND CENTER', "BB identity"),
+        ('<strong>LICENSE TO CHILL</strong>', "approved footer slogan"),
     ):
         require(html, token, label)
 
