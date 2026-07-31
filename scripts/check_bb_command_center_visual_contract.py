@@ -17,8 +17,11 @@ from urllib.parse import urlsplit
 ROOT = Path(__file__).resolve().parents[1]
 HTML_PATH = ROOT / "owner-command-center.html"
 CSS_PATH = ROOT / "owner-command-center.css"
+JS_PATH = ROOT / "owner-command-center.js"
 MANIFEST_PATH = ROOT / "bb-command-center.webmanifest"
 LOGO_PATH = ROOT / "assets" / "bb-command-center-logo.svg"
+APPROVED_MOBILE_ARTWORK = "https://github.com/user-attachments/assets/816b9e04-e54e-4c7d-99a0-3783a4ce2269"
+APPROVED_DESKTOP_ARTWORK = "https://github.com/user-attachments/assets/28a8189c-3bba-4448-800a-3d07e0b15aab"
 
 
 class CommandCenterHTMLParser(HTMLParser):
@@ -114,15 +117,34 @@ def validate_local_references(html: str) -> None:
             fail(f"Missing local {attribute} target: {reference}")
 
 
+def validate_approved_reference_mode(js: str) -> None:
+    for token, label in (
+        (APPROVED_MOBILE_ARTWORK, "approved mobile artwork URL"),
+        (APPROVED_DESKTOP_ARTWORK, "approved desktop artwork URL"),
+        ("params.get('reference') !== 'approved'", "explicit approved-reference query gate"),
+        ('media="(max-width: 767px)"', "mobile artwork breakpoint"),
+        ("object-fit: contain", "uncropped artwork rendering"),
+        ("object-position: center top", "approved artwork positioning"),
+        ("width: 100%; height: auto", "proportional artwork scaling"),
+        ("body.approved-reference-mode > :not(#approvedArtworkReference)", "isolated reference rendering"),
+    ):
+        require(js, token, label)
+
+    if "object-fit: cover" in js or "background-size: cover" in js:
+        fail("Approved artwork reference mode must not crop source assets")
+
+
 def main() -> None:
-    for path in (HTML_PATH, CSS_PATH, MANIFEST_PATH, LOGO_PATH):
+    for path in (HTML_PATH, CSS_PATH, JS_PATH, MANIFEST_PATH, LOGO_PATH):
         if not path.is_file():
             fail(f"Required BB Command Center asset is missing: {path.relative_to(ROOT)}")
 
     html = HTML_PATH.read_text(encoding="utf-8", errors="replace")
     css = CSS_PATH.read_text(encoding="utf-8", errors="replace")
+    js = JS_PATH.read_text(encoding="utf-8", errors="replace")
     validate_manifest(read_manifest())
     validate_local_references(html)
+    validate_approved_reference_mode(js)
 
     # Approved identity, accessibility, and responsive-shell anchors.
     for token, label in (
@@ -146,9 +168,6 @@ def main() -> None:
     ):
         require(html, token, label)
 
-    # The approved shell must remain personal; operational project names are allowed.
-    # Issue #43 explicitly requires the LICENSE TO CHILL footer, so that slogan must
-    # not be treated as forbidden Chill Pros shell branding.
     forbidden_shell_phrases = (
         "CHILL PROS COMMAND CENTER",
         "CHILL PROS OWNER",
@@ -157,13 +176,12 @@ def main() -> None:
         if phrase in html.upper():
             fail(f"Personal owner shell contains forbidden Chill Pros branding: {phrase}")
 
-    # Require both desktop and phone-specific responsive behavior.
     if len(re.findall(r"@media\s*\(", css)) < 2:
         fail("Expected at least two responsive media-query blocks")
     for selector in (".command-shell", ".jewel-rail", ".project-grid", ".mobile-nav"):
         require(css, selector, f"CSS selector {selector}")
 
-    print("BB Command Center structural, navigation, asset, and PWA contract is valid.")
+    print("BB Command Center structural, navigation, approved-artwork, asset, and PWA contract is valid.")
     print("Manual gate still required: compare approved desktop and iPhone references side by side.")
 
 
