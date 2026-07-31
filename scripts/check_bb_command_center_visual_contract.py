@@ -22,7 +22,7 @@ MANIFEST_PATH = ROOT / "bb-command-center.webmanifest"
 LOGO_PATH = ROOT / "assets" / "bb-command-center-logo.svg"
 APPROVED_MOBILE_ARTWORK = "https://github.com/user-attachments/assets/816b9e04-e54e-4c7d-99a0-3783a4ce2269"
 APPROVED_DESKTOP_ARTWORK = "https://github.com/user-attachments/assets/28a8189c-3bba-4448-800a-3d07e0b15aab"
-UNSAFE_REFERENCE_SCHEMES = {"javascript", "vbscript"}
+UNSAFE_REFERENCE_SCHEMES = {"data", "javascript", "vbscript"}
 
 
 class CommandCenterHTMLParser(HTMLParser):
