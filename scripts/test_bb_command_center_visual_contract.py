@@ -56,8 +56,18 @@ class CommandCenterHTMLParserTests(unittest.TestCase):
 
 
 class LocalReferenceValidationTests(unittest.TestCase):
-    def test_rejects_javascript_href_case_insensitively(self) -> None:
-        for reference in ("javascript:alert(1)", "JaVaScRiPt:void(0)"):
+    def test_rejects_active_content_schemes_case_insensitively(self) -> None:
+        for reference in (
+            "javascript:alert(1)",
+            "JaVaScRiPt:void(0)",
+            "vbscript:msgbox(1)",
+            "VbScRiPt:execute()",
+        ):
+            with self.subTest(reference=reference), self.assertRaises(SystemExit):
+                validate_local_references(f'<a href="{reference}">Unsafe</a>')
+
+    def test_rejects_control_characters_in_references(self) -> None:
+        for reference in ("java\nscript:alert(1)", "assets/logo.svg\x7f"):
             with self.subTest(reference=reference), self.assertRaises(SystemExit):
                 validate_local_references(f'<a href="{reference}">Unsafe</a>')
 
