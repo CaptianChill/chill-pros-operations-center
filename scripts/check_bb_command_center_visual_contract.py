@@ -93,6 +93,7 @@ def main() -> None:
         ('role="status" aria-live="polite"', "live status region"),
         ('assets/bb-command-center-logo.svg', "BB logo reference"),
         ('BB COMMAND CENTER', "BB identity"),
+        ('LICENSE TO CHILL', "approved footer slogan"),
     ):
         require(html, token, label)
 
@@ -100,7 +101,6 @@ def main() -> None:
     forbidden_shell_phrases = (
         "CHILL PROS COMMAND CENTER",
         "CHILL PROS OWNER",
-        "LICENSE TO CHILL",
     )
     for phrase in forbidden_shell_phrases:
         if phrase in html.upper():
