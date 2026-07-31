@@ -54,6 +54,16 @@ class CommandCenterHTMLParserTests(unittest.TestCase):
             [("href", "first.css"), ("src", "second.js"), ("href", "#third")],
         )
 
+    def test_collects_new_tab_link_security_metadata(self) -> None:
+        parser = self.parse(
+            '<a href="https://example.com" target="_blank" rel="noreferrer">External</a>'
+        )
+
+        self.assertEqual(
+            parser.blank_target_links,
+            [("https://example.com", "noreferrer")],
+        )
+
 
 class LocalReferenceValidationTests(unittest.TestCase):
     def test_rejects_active_content_schemes_case_insensitively(self) -> None:
@@ -78,6 +88,20 @@ class LocalReferenceValidationTests(unittest.TestCase):
             '<a href="mailto:owner@example.com">Email</a>'
             '<a href="tel:+12105550100">Call</a>'
         )
+
+    def test_rejects_unprotected_new_tab_links(self) -> None:
+        for rel in ("", "external", "nofollow"):
+            with self.subTest(rel=rel), self.assertRaises(SystemExit):
+                validate_local_references(
+                    f'<a href="https://example.com" target="_blank" rel="{rel}">External</a>'
+                )
+
+    def test_allows_new_tab_links_with_opener_protection(self) -> None:
+        for rel in ("noopener", "noreferrer", "external NOOPENER"):
+            with self.subTest(rel=rel):
+                validate_local_references(
+                    f'<a href="https://example.com" target="_blank" rel="{rel}">External</a>'
+                )
 
 
 if __name__ == "__main__":
