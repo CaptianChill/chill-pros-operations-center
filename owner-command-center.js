@@ -12,7 +12,7 @@
 
   function installApprovedArtworkReference() {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('reference') !== 'approved') return;
+    if (params.get('reference') !== 'approved') return false;
 
     const reference = document.createElement('section');
     reference.id = 'approvedArtworkReference';
@@ -33,6 +33,7 @@
 
     document.body.classList.add('approved-reference-mode');
     document.body.prepend(reference);
+    return true;
   }
 
   function updateClock() {
@@ -43,10 +44,6 @@
     date.textContent = new Intl.DateTimeFormat(undefined, {
       weekday: 'long', month: 'short', day: 'numeric', year: 'numeric'
     }).format(now);
-  }
-
-  function safeArray(value) {
-    return Array.isArray(value) ? value : [];
   }
 
   function readJson(key) {
@@ -85,7 +82,7 @@
     showToast.timer = window.setTimeout(() => toast.classList.remove('show'), 3200);
   }
 
-  installApprovedArtworkReference();
+  if (installApprovedArtworkReference()) return;
 
   document.querySelectorAll('[data-note]').forEach((button) => {
     button.addEventListener('click', () => showToast(button.dataset.note));
