@@ -22,6 +22,7 @@ MANIFEST_PATH = ROOT / "bb-command-center.webmanifest"
 LOGO_PATH = ROOT / "assets" / "bb-command-center-logo.svg"
 APPROVED_MOBILE_ARTWORK = "https://github.com/user-attachments/assets/816b9e04-e54e-4c7d-99a0-3783a4ce2269"
 APPROVED_DESKTOP_ARTWORK = "https://github.com/user-attachments/assets/28a8189c-3bba-4448-800a-3d07e0b15aab"
+UNSAFE_REFERENCE_SCHEMES = {"javascript", "vbscript"}
 
 
 class CommandCenterHTMLParser(HTMLParser):
@@ -102,10 +103,13 @@ def validate_local_references(html: str) -> None:
         fail(f"Duplicate element IDs break navigation and JavaScript hooks: {duplicates}")
 
     for attribute, reference in parser.references:
+        if any(ord(character) < 32 or ord(character) == 127 for character in reference):
+            fail(f"Control characters are prohibited in {attribute} references: {reference!r}")
+
         parsed = urlsplit(reference)
         scheme = parsed.scheme.lower()
-        if scheme == "javascript":
-            fail(f"Unsafe JavaScript {attribute} reference is prohibited: {reference}")
+        if scheme in UNSAFE_REFERENCE_SCHEMES:
+            fail(f"Unsafe active-content {attribute} reference is prohibited: {reference}")
         if scheme or parsed.netloc or reference.startswith(("mailto:", "tel:")):
             continue
 
