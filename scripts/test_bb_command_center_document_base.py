@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import unittest
 
-from check_bb_command_center_document_base import BaseElementParser
+from scripts.check_bb_command_center_document_base import BaseElementParser
 
 
 class BaseElementParserTests(unittest.TestCase):
