@@ -7,16 +7,37 @@ values. Pixel-level desktop and iPhone comparison remains a manual release gate.
 
 from __future__ import annotations
 
+from html.parser import HTMLParser
 import json
 from pathlib import Path
 import re
 import sys
+from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 HTML_PATH = ROOT / "owner-command-center.html"
 CSS_PATH = ROOT / "owner-command-center.css"
 MANIFEST_PATH = ROOT / "bb-command-center.webmanifest"
 LOGO_PATH = ROOT / "assets" / "bb-command-center-logo.svg"
+
+
+class CommandCenterHTMLParser(HTMLParser):
+    """Collect IDs and navigational/resource references without external dependencies."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.ids: set[str] = set()
+        self.references: list[tuple[str, str]] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        attributes = dict(attrs)
+        element_id = attributes.get("id")
+        if element_id:
+            self.ids.add(element_id)
+        for attribute in ("href", "src"):
+            value = attributes.get(attribute)
+            if value:
+                self.references.append((attribute, value))
 
 
 def fail(message: str) -> None:
@@ -66,6 +87,33 @@ def validate_manifest(manifest: dict[str, object]) -> None:
         fail("Manifest must reference the maskable BB SVG logo")
 
 
+def validate_local_references(html: str) -> None:
+    parser = CommandCenterHTMLParser()
+    parser.feed(html)
+
+    for attribute, reference in parser.references:
+        parsed = urlsplit(reference)
+        if parsed.scheme or parsed.netloc or reference.startswith(("mailto:", "tel:", "javascript:")):
+            continue
+
+        if reference.startswith("#"):
+            target = parsed.fragment
+            if target and target not in parser.ids:
+                fail(f"Broken in-page navigation target: {reference}")
+            continue
+
+        local_path = parsed.path
+        if not local_path or local_path == "/":
+            continue
+        resolved = (HTML_PATH.parent / local_path).resolve()
+        try:
+            resolved.relative_to(ROOT.resolve())
+        except ValueError:
+            fail(f"Local {attribute} escapes repository root: {reference}")
+        if not resolved.is_file():
+            fail(f"Missing local {attribute} target: {reference}")
+
+
 def main() -> None:
     for path in (HTML_PATH, CSS_PATH, MANIFEST_PATH, LOGO_PATH):
         if not path.is_file():
@@ -74,6 +122,7 @@ def main() -> None:
     html = HTML_PATH.read_text(encoding="utf-8", errors="replace")
     css = CSS_PATH.read_text(encoding="utf-8", errors="replace")
     validate_manifest(read_manifest())
+    validate_local_references(html)
 
     # Approved identity, accessibility, and responsive-shell anchors.
     for token, label in (
@@ -114,7 +163,7 @@ def main() -> None:
     for selector in (".command-shell", ".jewel-rail", ".project-grid", ".mobile-nav"):
         require(css, selector, f"CSS selector {selector}")
 
-    print("BB Command Center structural and PWA contract is valid.")
+    print("BB Command Center structural, navigation, asset, and PWA contract is valid.")
     print("Manual gate still required: compare approved desktop and iPhone references side by side.")
 
 
