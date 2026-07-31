@@ -103,7 +103,10 @@ def validate_local_references(html: str) -> None:
 
     for attribute, reference in parser.references:
         parsed = urlsplit(reference)
-        if parsed.scheme or parsed.netloc or reference.startswith(("mailto:", "tel:", "javascript:")):
+        scheme = parsed.scheme.lower()
+        if scheme == "javascript":
+            fail(f"Unsafe JavaScript {attribute} reference is prohibited: {reference}")
+        if scheme or parsed.netloc or reference.startswith(("mailto:", "tel:")):
             continue
 
         if reference.startswith("#"):
