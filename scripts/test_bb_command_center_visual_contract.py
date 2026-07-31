@@ -5,7 +5,10 @@ from __future__ import annotations
 
 import unittest
 
-from scripts.check_bb_command_center_visual_contract import CommandCenterHTMLParser
+from scripts.check_bb_command_center_visual_contract import (
+    CommandCenterHTMLParser,
+    validate_local_references,
+)
 
 
 class CommandCenterHTMLParserTests(unittest.TestCase):
@@ -49,6 +52,19 @@ class CommandCenterHTMLParserTests(unittest.TestCase):
         self.assertEqual(
             parser.references,
             [("href", "first.css"), ("src", "second.js"), ("href", "#third")],
+        )
+
+
+class LocalReferenceValidationTests(unittest.TestCase):
+    def test_rejects_javascript_href_case_insensitively(self) -> None:
+        for reference in ("javascript:alert(1)", "JaVaScRiPt:void(0)"):
+            with self.subTest(reference=reference), self.assertRaises(SystemExit):
+                validate_local_references(f'<a href="{reference}">Unsafe</a>')
+
+    def test_allows_mail_and_phone_links(self) -> None:
+        validate_local_references(
+            '<a href="mailto:owner@example.com">Email</a>'
+            '<a href="tel:+12105550100">Call</a>'
         )
 
 
