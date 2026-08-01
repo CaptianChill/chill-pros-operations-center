@@ -5,14 +5,18 @@ on:
     branches: [main]
     paths:
       - owner-command-auth.js
+      - owner-command-auth-bootstrap.js
       - scripts/owner-command-auth.test.js
+      - scripts/owner-command-auth-bootstrap.test.js
       - .github/workflows/owner-command-auth-contract.yml
   push:
     branches:
       - security/issue-38-owner-command-auth
     paths:
       - owner-command-auth.js
+      - owner-command-auth-bootstrap.js
       - scripts/owner-command-auth.test.js
+      - scripts/owner-command-auth-bootstrap.test.js
       - .github/workflows/owner-command-auth-contract.yml
   workflow_dispatch:
 
@@ -34,7 +38,13 @@ jobs:
           node-version: 20
       - name: Check authorization module syntax
         run: node --check owner-command-auth.js
+      - name: Check bootstrap module syntax
+        run: node --check owner-command-auth-bootstrap.js
       - name: Check contract test syntax
         run: node --check scripts/owner-command-auth.test.js
+      - name: Check bootstrap test syntax
+        run: node --check scripts/owner-command-auth-bootstrap.test.js
       - name: Run authorization contract
         run: node scripts/owner-command-auth.test.js
+      - name: Run bootstrap contract
+        run: node scripts/owner-command-auth-bootstrap.test.js
