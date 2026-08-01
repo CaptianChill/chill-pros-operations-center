@@ -34,5 +34,13 @@ assert "if (auth.currentUser)" in diagnostics, "technician portal must detect an
 assert "await auth.signOut()" in diagnostics, "technician portal must clear an existing session before accepting credentials"
 assert '"Preparing a separate technician sign-in…"' in diagnostics, "session isolation must be visible to the user"
 assert '"Could not clear the existing account session.' in diagnostics, "session-isolation failure must fail closed with recovery guidance"
+assert "async function verifyTechnicianAccount(user, auth)" in diagnostics, "technician portal must verify the authenticated role profile"
+assert 'db.collection("Users").doc(user.uid).get()' in diagnostics, "technician verification must use the signed-in user profile"
+assert 'profile.role !== "technician"' in diagnostics, "owner and office accounts must be rejected from the technician portal"
+assert "!technicianName" in diagnostics, "technician accounts must have an assigned technician identity"
+assert 'error.code = "auth/not-technician-account"' in diagnostics, "invalid technician profiles must produce a clear diagnostic"
+assert '"Verifying technician access…"' in diagnostics, "technician role verification must be visible during sign-in"
+assert "await verifyTechnicianAccount(credential.user, auth)" in diagnostics, "successful credentials must be role-verified before loading"
+assert '"This account is not configured as a Chill Pros technician.' in diagnostics, "wrong-role accounts must receive actionable guidance"
 
 print("Technician sign-in contract passed.")
