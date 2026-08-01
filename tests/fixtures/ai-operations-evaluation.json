@@ -1,0 +1,46 @@
+{
+  "generatedFor": "AI Operations Engine deterministic evaluation",
+  "containsRealCustomerData": false,
+  "now": "2026-07-26T18:00:00.000Z",
+  "jobs": [
+    {
+      "id": "fixture-emergency-refrigeration",
+      "customerName": "DEIDENTIFIED-SITE-A",
+      "description": "Walk-in refrigeration is not cooling; product temperature is rising",
+      "status": "queued",
+      "createdAt": "2026-07-24T12:00:00.000Z",
+      "estimatedAmount": 2400,
+      "phone": "",
+      "email": ""
+    },
+    {
+      "id": "fixture-parts-follow-up",
+      "customerName": "DEIDENTIFIED-SITE-B",
+      "description": "Ice machine awaiting replacement water valve",
+      "status": "scheduled",
+      "createdAt": "2026-07-23T12:00:00.000Z",
+      "updatedAt": "2026-07-23T18:00:00.000Z",
+      "partsStatus": "ordered",
+      "technicianId": "tech-fixture-1"
+    },
+    {
+      "id": "fixture-incomplete-field-notes",
+      "customerName": "DEIDENTIFIED-SITE-C",
+      "description": "Commercial kitchen equipment service",
+      "status": "in-progress",
+      "createdAt": "2026-07-26T10:00:00.000Z",
+      "updatedAt": "2026-07-26T11:00:00.000Z",
+      "technicianId": "tech-fixture-2",
+      "findings": "",
+      "recommendations": ""
+    },
+    {
+      "id": "fixture-completed-excluded",
+      "customerName": "DEIDENTIFIED-SITE-D",
+      "description": "Completed HVAC diagnostic",
+      "status": "completed",
+      "createdAt": "2026-07-25T09:00:00.000Z",
+      "updatedAt": "2026-07-25T12:00:00.000Z"
+    }
+  ]
+}

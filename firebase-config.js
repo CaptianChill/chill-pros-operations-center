@@ -13,3 +13,33 @@ firebase.initializeApp(firebaseConfig);
 const firestoreDb = firebase.firestore();
 
 window.chillProsDb = firestoreDb;
+
+// The AI foundation remains isolated and advisory-only. Load its browser
+// modules only when the explicit local feature flag is enabled.
+const AI_OPERATIONS_FEATURE_KEY = "chillProsFeatures:aiOperationsBrief";
+const aiOperationsEnabled = (() => {
+  try {
+    return window.localStorage?.getItem(AI_OPERATIONS_FEATURE_KEY) === "true";
+  } catch (_error) {
+    return false;
+  }
+})();
+
+if (aiOperationsEnabled) {
+  for (const aiScript of [
+    "ai/operations-engine.js",
+    "ai/job-data-adapter.js",
+    "ai/follow-up-flags.js",
+    "ai/advisory-review-queue.js",
+    "ai/advisory-pipeline.js",
+    "ai/daily-operations-brief.js",
+    "ai/advisory-review-panel.js"
+  ]) {
+    if (!document.querySelector(`script[src="${aiScript}"]`)) {
+      const script = document.createElement("script");
+      script.src = aiScript;
+      script.async = false;
+      document.head.appendChild(script);
+    }
+  }
+}
