@@ -1,124 +1,149 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#020406">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>BB Owner Command Center</title>
-<style>
-html,body{margin:0;min-height:100%;background:#000;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-*{box-sizing:border-box}
-main{position:relative;width:min(100vw,1536px);margin:auto;background:#000;line-height:0}
-picture,img{display:block;width:100%;height:auto}
-.hotspots{position:absolute;inset:0}
-button.hot{position:absolute;left:var(--x);top:var(--y);width:var(--w);height:var(--h);border:0;background:transparent;color:transparent;border-radius:14px}
-button.hot:active{background:rgba(255,255,255,.12)}
-.mobile{display:none}
-.panel-bg{position:fixed;inset:0;background:rgba(0,0,0,.78);display:none;z-index:10}
-.panel-bg.open{display:block}
-.panel{position:fixed;right:0;top:0;width:min(620px,100vw);height:100dvh;background:#061018;color:#fff;border-left:1px solid #29556d;transform:translateX(100%);transition:.22s;z-index:11;overflow:auto}
-.panel.open{transform:translateX(0)}
-.panel header{position:sticky;top:0;display:flex;align-items:center;gap:12px;padding:16px;background:#02070bee;border-bottom:1px solid #17384b}
-.panel header button{width:42px;height:42px;border-radius:50%;border:1px solid #44738c;background:#07121a;color:#fff;font-size:24px}
-.panel h1{margin:0;font-size:22px}
-.content{padding:18px}
-.card{border:1px solid #2c5c75;background:#08131c;border-radius:18px;padding:16px;margin-bottom:12px}
-.card h2{margin:0 0 8px;font-size:18px}
-.card p{margin:0;color:#9db3c0;line-height:1.5}
-.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.metric{border:1px solid #17384b;background:#07121a;border-radius:14px;padding:14px}
-.metric small{color:#9db3c0}
-.metric strong{display:block;font-size:22px;margin-top:5px}
-@media(max-width:767px){
-  .desktop{display:none} .mobile{display:block}
-  .panel{top:auto;bottom:0;height:min(84dvh,900px);width:100%;border-left:0;border-top:1px solid #29556d;border-radius:22px 22px 0 0;transform:translateY(100%)}
-  .panel.open{transform:translateY(0)}
-  .grid{grid-template-columns:1fr 1fr}
-}
-</style>
+  <meta name="theme-color" content="#020406">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>BB Owner Command Center</title>
+  <style>
+    html,body{margin:0;min-height:100%;background:#000;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    *{box-sizing:border-box}
+    main{position:relative;width:min(100vw,1536px);margin:auto;background:#000;line-height:0}
+    picture,img{display:block;width:100%;height:auto}
+    .hotspots{position:absolute;inset:0}
+    button.hot{position:absolute;left:var(--x);top:var(--y);width:var(--w);height:var(--h);border:0;background:transparent;color:transparent;border-radius:14px;cursor:pointer}
+    button.hot:focus-visible{outline:3px solid #7edbff;outline-offset:2px;background:rgba(126,219,255,.16)}
+    button.hot:active{background:rgba(255,255,255,.12)}
+    .mobile{display:none}
+    .panel-bg{position:fixed;inset:0;background:rgba(0,0,0,.78);display:none;z-index:10}
+    .panel-bg.open{display:block}
+    .panel{position:fixed;right:0;top:0;width:min(620px,100vw);height:100dvh;background:#061018;color:#fff;border-left:1px solid #29556d;transform:translateX(100%);transition:.22s;z-index:11;overflow:auto;visibility:hidden}
+    .panel.open{transform:translateX(0);visibility:visible}
+    .panel header{position:sticky;top:0;display:flex;align-items:center;gap:12px;padding:16px;background:#02070bee;border-bottom:1px solid #17384b}
+    .panel header button{width:42px;height:42px;border-radius:50%;border:1px solid #44738c;background:#07121a;color:#fff;font-size:24px}
+    .panel h1{margin:0;font-size:22px}
+    .content{padding:18px}
+    .card{border:1px solid #2c5c75;background:#08131c;border-radius:18px;padding:16px;margin-bottom:12px}
+    .card h2{margin:0 0 8px;font-size:18px}
+    .card p{margin:0;color:#9db3c0;line-height:1.5}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .metric{border:1px solid #17384b;background:#07121a;border-radius:14px;padding:14px}
+    .metric small{color:#9db3c0}
+    .metric strong{display:block;font-size:22px;margin-top:5px}
+    @media(max-width:767px){
+      .desktop{display:none}.mobile{display:block}
+      .panel{top:auto;bottom:0;height:min(84dvh,900px);width:100%;border-left:0;border-top:1px solid #29556d;border-radius:22px 22px 0 0;transform:translateY(100%)}
+      .panel.open{transform:translateY(0)}
+      .grid{grid-template-columns:1fr 1fr}
+    }
+    @media(prefers-reduced-motion:reduce){.panel{transition:none}}
+  </style>
 </head>
 <body>
-<main class="command-shell"><div hidden aria-hidden="true">
-  <div class="hero-crown"></div>
-  <div class="jewel-rail jewel-rail-left"></div>
-  <div class="jewel-rail jewel-rail-right"></div>
-  <section class="project-grid"></section>
-  <section id="mission"></section>
-  <section id="quick"></section>
-  <div role="status" aria-live="polite"></div>
-  <img src="assets/bb-command-center-logo.svg" alt="">
-  <span>BB COMMAND CENTER</span>
-  <footer><strong>LICENSE TO CHILL</strong></footer>
-</div>
-  <picture>
-    <source media="(max-width: 767px)" srcset="https://github.com/user-attachments/assets/816b9e04-e54e-4c7d-99a0-3783a4ce2269">
-    <img src="https://github.com/user-attachments/assets/28a8189c-3bba-4448-800a-3d07e0b15aab" alt="BB Owner Command Center">
-  <picture class="hero">
+  <main class="command-shell">
+    <div hidden aria-hidden="true">
+      <div class="hero-crown"></div>
+      <div class="jewel-rail jewel-rail-left"></div>
+      <div class="jewel-rail jewel-rail-right"></div>
+      <section class="project-grid"></section>
+      <section id="mission"></section>
+      <section id="quick"></section>
+      <div role="status" aria-live="polite"></div>
+      <img src="assets/bb-command-center-logo.svg" alt="">
+      <span>BB COMMAND CENTER</span>
+      <footer><strong>LICENSE TO CHILL</strong></footer>
+    </div>
 
-  <nav class="desktop-nav">
-  <div class="hotspots desktop"></nav>
-    <button class="hot" data-panel="projects" style="--x:3%;--y:27%;--w:9%;--h:4.5%">Projects</button>
-    <button class="hot" data-panel="dispatch" style="--x:3%;--y:32%;--w:9%;--h:4.5%">Dispatch</button>
-    <button class="hot" data-panel="jobs" style="--x:3%;--y:37%;--w:9%;--h:4.5%">Jobs</button>
-    <button class="hot" data-panel="technicians" style="--x:3%;--y:42%;--w:9%;--h:4.5%">Technicians</button>
-    <button class="hot" data-panel="customers" style="--x:3%;--y:47%;--w:9%;--h:4.5%">Customers</button>
-    <button class="hot" data-panel="finances" style="--x:3%;--y:52%;--w:9%;--h:4.5%">Finances</button>
-    <button class="hot" data-panel="analytics" style="--x:3%;--y:57%;--w:9%;--h:4.5%">Analytics</button>
-    <button class="hot" data-panel="settings" style="--x:3%;--y:62%;--w:9%;--h:4.5%">Settings</button>
-    <button class="hot" data-panel="alerts" style="--x:83%;--y:6%;--w:14%;--h:48%">Alerts</button>
-  </div>
+    <picture class="hero">
+      <source media="(max-width: 767px)" srcset="https://github.com/user-attachments/assets/816b9e04-e54e-4c7d-99a0-3783a4ce2269">
+      <img src="https://github.com/user-attachments/assets/28a8189c-3bba-4448-800a-3d07e0b15aab" alt="BB Owner Command Center">
+    </picture>
 
-  <nav class="mobile-nav">
-  <div class="hotspots mobile">
-    <button class="hot" data-panel="projects" style="--x:22%;--y:92%;--w:20%;--h:7%">Projects</button>
-    <button class="hot" data-panel="alerts" style="--x:59%;--y:92%;--w:19%;--h:7%">Alerts</button>
-    <button class="hot" data-panel="settings" style="--x:78%;--y:92%;--w:21%;--h:7%">Settings</button>
-    <button class="hot" data-panel="dispatch" style="--x:8%;--y:85%;--w:21%;--h:5%">Dispatch</button>
-    <button class="hot" data-panel="jobs" style="--x:29%;--y:85%;--w:19%;--h:5%">Jobs</button>
-    <button class="hot" data-panel="technicians" style="--x:48%;--y:85%;--w:25%;--h:5%">Technicians</button>
-    <button class="hot" data-panel="customers" style="--x:73%;--y:85%;--w:22%;--h:5%">Customers</button>
-  </nav></div>
-</main>
+    <nav class="desktop-nav hotspots desktop" aria-label="Desktop command center navigation">
+      <button type="button" class="hot" data-panel="projects" style="--x:3%;--y:27%;--w:9%;--h:4.5%">Projects</button>
+      <button type="button" class="hot" data-panel="dispatch" style="--x:3%;--y:32%;--w:9%;--h:4.5%">Dispatch</button>
+      <button type="button" class="hot" data-panel="jobs" style="--x:3%;--y:37%;--w:9%;--h:4.5%">Jobs</button>
+      <button type="button" class="hot" data-panel="technicians" style="--x:3%;--y:42%;--w:9%;--h:4.5%">Technicians</button>
+      <button type="button" class="hot" data-panel="customers" style="--x:3%;--y:47%;--w:9%;--h:4.5%">Customers</button>
+      <button type="button" class="hot" data-panel="finances" style="--x:3%;--y:52%;--w:9%;--h:4.5%">Finances</button>
+      <button type="button" class="hot" data-panel="analytics" style="--x:3%;--y:57%;--w:9%;--h:4.5%">Analytics</button>
+      <button type="button" class="hot" data-panel="settings" style="--x:3%;--y:62%;--w:9%;--h:4.5%">Settings</button>
+      <button type="button" class="hot" data-panel="alerts" style="--x:83%;--y:6%;--w:14%;--h:48%">Alerts</button>
+    </nav>
 
-<div id="backdrop" class="panel-bg"></div>
-<aside id="panel" class="panel">
-  <header>
-    <button id="close">×</button>
-    <h1 id="title">Dashboard</h1>
-  </header>
-  <div id="content" class="content"></div>
-</aside>
+    <nav class="mobile-nav hotspots mobile" aria-label="Mobile command center navigation">
+      <button type="button" class="hot" data-panel="projects" style="--x:22%;--y:92%;--w:20%;--h:7%">Projects</button>
+      <button type="button" class="hot" data-panel="alerts" style="--x:59%;--y:92%;--w:19%;--h:7%">Alerts</button>
+      <button type="button" class="hot" data-panel="settings" style="--x:78%;--y:92%;--w:21%;--h:7%">Settings</button>
+      <button type="button" class="hot" data-panel="dispatch" style="--x:8%;--y:85%;--w:21%;--h:5%">Dispatch</button>
+      <button type="button" class="hot" data-panel="jobs" style="--x:29%;--y:85%;--w:19%;--h:5%">Jobs</button>
+      <button type="button" class="hot" data-panel="technicians" style="--x:48%;--y:85%;--w:25%;--h:5%">Technicians</button>
+      <button type="button" class="hot" data-panel="customers" style="--x:73%;--y:85%;--w:22%;--h:5%">Customers</button>
+    </nav>
+  </main>
 
-<script>
-const info={
-projects:["Projects","4","Operations Center, FieldForged, Crypto AI Signal Lab, and Chill Bro Wizard."],
-dispatch:["Dispatch","3","Open service calls and assignments."],
-jobs:["Jobs","12","Today, scheduled, awaiting parts, and completed work."],
-technicians:["Technicians","2","Active technicians and current field status."],
-customers:["Customers","55","Customer accounts, follow-ups, and care plans."],
-finances:["Finances","$12.4K","Owner-level financial snapshot."],
-analytics:["Analytics","70%","Cross-project portfolio progress."],
-alerts:["Alerts","0","No critical alerts currently."],
-settings:["Settings","Private","Owner-only configuration and integrations."]
-};
-const panel=document.getElementById("panel"),backdrop=document.getElementById("backdrop"),title=document.getElementById("title"),content=document.getElementById("content");
-function openPanel(key){
-  const d=info[key]||["Dashboard","Online","Owner overview"];
-  title.textContent=d[0];
-  content.innerHTML=`<section class="card"><h2>${d[0]}</h2><p>${d[2]}</p></section>
-  <section class="grid">
-    <div class="metric"><small>Status</small><strong>${d[1]}</strong></div>
-    <div class="metric"><small>Access</small><strong>Owner</strong></div>
-    <div class="metric"><small>System</small><strong>Online</strong></div>
-    <div class="metric"><small>Mode</small><strong>Private</strong></div>
-  </section>`;
-  panel.classList.add("open");backdrop.classList.add("open");document.body.style.overflow="hidden";
-}
-function closePanel(){panel.classList.remove("open");backdrop.classList.remove("open");document.body.style.overflow="";}
-document.querySelectorAll("[data-panel]").forEach(b=>b.addEventListener("click",()=>openPanel(b.dataset.panel)));
-document.getElementById("close").addEventListener("click",closePanel);
-backdrop.addEventListener("click",closePanel);
-</script>
+  <div id="backdrop" class="panel-bg" aria-hidden="true"></div>
+  <aside id="panel" class="panel" role="dialog" aria-modal="true" aria-labelledby="title" aria-hidden="true">
+    <header>
+      <button id="close" type="button" aria-label="Close panel">×</button>
+      <h1 id="title">Dashboard</h1>
+    </header>
+    <div id="content" class="content"></div>
+  </aside>
+
+  <script>
+    const info={
+      projects:["Projects","4","Operations Center, FieldForged, Crypto AI Signal Lab, and Chill Bro Wizard."],
+      dispatch:["Dispatch","3","Open service calls and assignments."],
+      jobs:["Jobs","12","Today, scheduled, awaiting parts, and completed work."],
+      technicians:["Technicians","2","Active technicians and current field status."],
+      customers:["Customers","55","Customer accounts, follow-ups, and care plans."],
+      finances:["Finances","$12.4K","Owner-level financial snapshot."],
+      analytics:["Analytics","70%","Cross-project portfolio progress."],
+      alerts:["Alerts","0","No critical alerts currently."],
+      settings:["Settings","Private","Owner-only configuration and integrations."]
+    };
+    const panel=document.getElementById("panel");
+    const backdrop=document.getElementById("backdrop");
+    const title=document.getElementById("title");
+    const content=document.getElementById("content");
+    const closeButton=document.getElementById("close");
+    let returnFocus=null;
+
+    function openPanel(key,trigger){
+      const d=info[key]||["Dashboard","Online","Owner overview"];
+      returnFocus=trigger||document.activeElement;
+      title.textContent=d[0];
+      content.innerHTML=`<section class="card"><h2>${d[0]}</h2><p>${d[2]}</p></section>
+        <section class="grid">
+          <div class="metric"><small>Status</small><strong>${d[1]}</strong></div>
+          <div class="metric"><small>Access</small><strong>Owner</strong></div>
+          <div class="metric"><small>System</small><strong>Online</strong></div>
+          <div class="metric"><small>Mode</small><strong>Private</strong></div>
+        </section>`;
+      panel.classList.add("open");
+      backdrop.classList.add("open");
+      panel.setAttribute("aria-hidden","false");
+      backdrop.setAttribute("aria-hidden","false");
+      document.body.style.overflow="hidden";
+      closeButton.focus();
+    }
+
+    function closePanel(){
+      panel.classList.remove("open");
+      backdrop.classList.remove("open");
+      panel.setAttribute("aria-hidden","true");
+      backdrop.setAttribute("aria-hidden","true");
+      document.body.style.overflow="";
+      if(returnFocus&&typeof returnFocus.focus==="function")returnFocus.focus();
+    }
+
+    document.querySelectorAll("[data-panel]").forEach(button=>button.addEventListener("click",()=>openPanel(button.dataset.panel,button)));
+    closeButton.addEventListener("click",closePanel);
+    backdrop.addEventListener("click",closePanel);
+    document.addEventListener("keydown",event=>{if(event.key==="Escape"&&panel.classList.contains("open"))closePanel();});
+  </script>
 </body>
 </html>
