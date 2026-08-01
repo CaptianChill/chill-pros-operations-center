@@ -19,5 +19,10 @@ assert "Enter the owner email first." not in diagnostics, "password recovery wor
 assert "Loading owner dashboard" not in diagnostics, "success wording must be role-neutral"
 assert "window.location.hostname" in diagnostics, "unauthorized-domain guidance must report the active host"
 assert "Add ${currentHost}" in diagnostics, "unauthorized-domain guidance must identify the host to authorize"
+assert 'portal === "technician"' in diagnostics, "diagnostics must detect technician portal intent"
+assert '"chillProsLastTechnicianEmail"' in diagnostics, "technician email history must be isolated from owner sign-in"
+assert 'heading.textContent = "Technician Sign-In"' in diagnostics, "technician route must identify itself clearly"
+assert '"Use your assigned Chill Pros technician account."' in diagnostics, "technician route must explain which credentials to use"
+assert '"Sign-in successful. Loading technician workspace…"' in diagnostics, "technician route must confirm technician routing"
 
 print("Technician sign-in contract passed.")
