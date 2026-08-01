@@ -85,7 +85,7 @@
   </main>
 
   <div id="backdrop" class="panel-bg" aria-hidden="true"></div>
-  <aside id="panel" class="panel" role="dialog" aria-modal="true" aria-labelledby="title" aria-hidden="true">
+  <aside id="panel" class="panel" role="dialog" aria-modal="true" aria-labelledby="title" aria-hidden="true" inert>
     <header>
       <button id="close" type="button" aria-label="Close panel">×</button>
       <h1 id="title">Dashboard</h1>
@@ -123,6 +123,7 @@
           <div class="metric"><small>System</small><strong>Online</strong></div>
           <div class="metric"><small>Mode</small><strong>Private</strong></div>
         </section>`;
+      panel.removeAttribute("inert");
       panel.classList.add("open");
       backdrop.classList.add("open");
       panel.setAttribute("aria-hidden","false");
@@ -135,15 +136,30 @@
       panel.classList.remove("open");
       backdrop.classList.remove("open");
       panel.setAttribute("aria-hidden","true");
+      panel.setAttribute("inert","");
       backdrop.setAttribute("aria-hidden","true");
       document.body.style.overflow="";
       if(returnFocus&&typeof returnFocus.focus==="function")returnFocus.focus();
     }
 
+    function trapPanelFocus(event){
+      if(event.key!=="Tab"||!panel.classList.contains("open"))return;
+      const focusable=[...panel.querySelectorAll('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])')]
+        .filter(element=>!element.disabled&&element.getAttribute("aria-hidden")!=="true");
+      if(!focusable.length){event.preventDefault();closeButton.focus();return;}
+      const first=focusable[0];
+      const last=focusable[focusable.length-1];
+      if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
+      else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
+    }
+
     document.querySelectorAll("[data-panel]").forEach(button=>button.addEventListener("click",()=>openPanel(button.dataset.panel,button)));
     closeButton.addEventListener("click",closePanel);
     backdrop.addEventListener("click",closePanel);
-    document.addEventListener("keydown",event=>{if(event.key==="Escape"&&panel.classList.contains("open"))closePanel();});
+    document.addEventListener("keydown",event=>{
+      if(event.key==="Escape"&&panel.classList.contains("open"))closePanel();
+      else trapPanelFocus(event);
+    });
   </script>
 </body>
 </html>
