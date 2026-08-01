@@ -102,8 +102,12 @@ async function testSynchronousAuthErrorCleanup() {
 async function testAuthorizedBootstrap() {
   const auth = { name: "auth" };
   const firestore = { name: "firestore" };
+  const expectedUser = { uid: "owner-1" };
   const expectedSession = Object.freeze({ authorized: true, uid: "owner-1", role: "owner" });
+  const scheduleTimeout = () => "timer";
+  const cancelTimeout = () => {};
   let authorizationOptions;
+  let authStateResolverOptions;
   let authorizedSession;
   let rejected = false;
 
@@ -117,10 +121,18 @@ async function testAuthorizedBootstrap() {
     authorizationApi: {
       async authorizeOwnerSession(options) {
         authorizationOptions = options;
+        assert.strictEqual(await options.waitForAuthState(auth), expectedUser);
         return expectedSession;
       }
     },
-    waitForAuthState: async () => ({ uid: "owner-1" }),
+    waitForAuthState: async (currentAuth, options) => {
+      assert.strictEqual(currentAuth, auth);
+      authStateResolverOptions = options;
+      return expectedUser;
+    },
+    authStateTimeoutMs: 4321,
+    setTimeout: scheduleTimeout,
+    clearTimeout: cancelTimeout,
     onAuthorized(session) {
       authorizedSession = session;
     },
@@ -133,6 +145,10 @@ async function testAuthorizedBootstrap() {
   assert.strictEqual(authorizationOptions.auth, auth);
   assert.strictEqual(authorizationOptions.firestore, firestore);
   assert.strictEqual(typeof authorizationOptions.waitForAuthState, "function");
+  assert.strictEqual(authStateResolverOptions.timeoutMs, 4321);
+  assert.strictEqual(authStateResolverOptions.setTimeout, scheduleTimeout);
+  assert.strictEqual(authStateResolverOptions.clearTimeout, cancelTimeout);
+  assert.strictEqual(Object.isFrozen(authStateResolverOptions), true);
   assert.strictEqual(authorizedSession, expectedSession);
   assert.strictEqual(rejected, false);
   await expectReject(bootstrap.start(), "auth/bootstrap-already-started");
