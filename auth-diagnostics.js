@@ -1,5 +1,8 @@
 (() => {
   const currentHost = window.location.hostname;
+  const portal = new URLSearchParams(window.location.search).get("portal");
+  const technicianPortal = portal === "technician";
+  const emailStorageKey = technicianPortal ? "chillProsLastTechnicianEmail" : "chillProsLastEmail";
   const FRIENDLY_ERRORS = {
     "auth/invalid-credential": "Firebase rejected the email/password combination. Re-enter the password or use Forgot password.",
     "auth/wrong-password": "The password does not match this Firebase user.",
@@ -39,7 +42,15 @@
     const errorBox = document.getElementById("authError");
     const submitButton = form.querySelector('button[type="submit"]');
 
-    emailInput.value = localStorage.getItem("chillProsLastEmail") || "";
+    if (technicianPortal) {
+      const heading = form.querySelector("h2");
+      const description = form.querySelector("p");
+      if (heading) heading.textContent = "Technician Sign-In";
+      if (description) description.textContent = "Use your assigned Chill Pros technician account.";
+      document.title = "Chill Pros Technician Sign-In";
+    }
+
+    emailInput.value = localStorage.getItem(emailStorageKey) || "";
 
     const controls = document.createElement("div");
     controls.className = "auth-recovery-controls";
@@ -80,9 +91,11 @@
       submitButton.disabled = true;
       submitButton.textContent = "SIGNING IN…";
       try {
-        localStorage.setItem("chillProsLastEmail", email);
+        localStorage.setItem(emailStorageKey, email);
         await auth.signInWithEmailAndPassword(email, password);
-        errorBox.textContent = "Sign-in successful. Loading your workspace…";
+        errorBox.textContent = technicianPortal
+          ? "Sign-in successful. Loading technician workspace…"
+          : "Sign-in successful. Loading your workspace…";
       } catch (error) {
         console.error("Firebase sign-in failed:", error);
         errorBox.textContent = formatError(error);
