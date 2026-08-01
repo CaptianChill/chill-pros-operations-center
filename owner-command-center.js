@@ -1,4 +1,4 @@
-f(() => {
+(() => {
   'use strict';
 
   const APPROVED_ARTWORK = Object.freeze({
