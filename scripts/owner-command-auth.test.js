@@ -80,6 +80,21 @@ async function expectCode(promise, code) {
   }), "auth/signed-out");
   assert.equal(signOutCalls, 3, "signed-out state must not call signOut again");
 
+  const timeout = Object.assign(new Error("timed out"), { code: "auth/session-timeout" });
+  await expectCode(authorizeOwnerSession({
+    auth,
+    firestore: makeFirestore(makeSnapshot({ role: "owner" })),
+    waitForAuthState: async () => { throw timeout; }
+  }), "auth/session-timeout");
+  assert.equal(signOutCalls, 3, "session resolution failures must not call signOut");
+
+  await expectCode(authorizeOwnerSession({
+    auth,
+    firestore: makeFirestore(makeSnapshot({ role: "owner" })),
+    waitForAuthState: async () => { throw new Error("listener failed"); }
+  }), "auth/session-unavailable");
+  assert.equal(signOutCalls, 3, "generic session failures must not call signOut");
+
   await expectCode(authorizeOwnerSession({ auth: {}, firestore: {}, waitForAuthState: async () => owner }), "auth/dependency-unavailable");
   await expectCode(authorizeOwnerSession({ auth, firestore: makeFirestore(makeSnapshot({ role: "owner" })) }), "auth/dependency-unavailable");
 
