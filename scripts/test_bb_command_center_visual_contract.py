@@ -7,6 +7,7 @@ import unittest
 
 from scripts.check_bb_command_center_visual_contract import (
     CommandCenterHTMLParser,
+    validate_html_structure,
     validate_local_references,
 )
 
@@ -63,6 +64,35 @@ class CommandCenterHTMLParserTests(unittest.TestCase):
             parser.blank_target_links,
             [("https://example.com", "noreferrer")],
         )
+
+
+class ApprovedStructureValidationTests(unittest.TestCase):
+    DOCUMENT_HEAD = (
+        '<html lang="en"><head>'
+        '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">'
+        '<meta name="theme-color" content="#020406"></head><body>'
+    )
+
+    def approved_shell(self) -> str:
+        return self.DOCUMENT_HEAD + (
+            '<header class="bb-topbar"><a class="bb-brand"></a></header>'
+            '<main class="bb-shell" id="main-content">'
+            '<section class="bb-hero" aria-labelledby="bb-dashboard-title">'
+            '<h1 id="bb-dashboard-title">COMMAND CENTER</h1></section>'
+            '<section class="bb-section"><h2>LIVE OPS <span>×</span></h2>'
+            '<div class="bb-card-grid"></div></section>'
+            '<section class="bb-section"><h2>GROWTH <span>×</span></h2></section>'
+            '<section class="bb-section"><h2>AI INTELLIGENCE <span>×</span></h2></section>'
+            '<section class="bb-section"><h2>SYSTEM <span>×</span></h2></section>'
+            '</main><footer class="bb-footer"></footer></body></html>'
+        )
+
+    def test_accepts_approved_bb_shell(self) -> None:
+        validate_html_structure(self.approved_shell())
+
+    def test_rejects_approved_shell_missing_system_section(self) -> None:
+        with self.assertRaises(SystemExit):
+            validate_html_structure(self.approved_shell().replace('>SYSTEM <', '>SETTINGS <'))
 
 
 class LocalReferenceValidationTests(unittest.TestCase):
