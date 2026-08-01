@@ -9,6 +9,7 @@ on:
       - "bb-command-center.webmanifest"
       - "assets/bb-command-center-logo.svg"
       - "scripts/check_bb_command_center_visual_contract.py"
+      - "scripts/check_bb_command_center_install_metadata.py"
       - "scripts/check_bb_command_center_document_base.py"
       - "scripts/check_bb_command_center_form_targets.py"
       - "scripts/test_bb_command_center_visual_contract.py"
@@ -39,5 +40,7 @@ jobs:
         run: python3 scripts/check_bb_command_center_document_base.py
       - name: Validate form submission targets
         run: python3 scripts/check_bb_command_center_form_targets.py
+      - name: Validate install and browser metadata
+        run: python3 scripts/check_bb_command_center_install_metadata.py
       - name: Validate BB Command Center structure
         run: python3 scripts/check_bb_command_center_visual_contract.py
