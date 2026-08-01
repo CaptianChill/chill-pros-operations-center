@@ -72,11 +72,13 @@
 
     const onAuthorized = typeof settings.onAuthorized === "function" ? settings.onAuthorized : function noop() {};
     const onRejected = typeof settings.onRejected === "function" ? settings.onRejected : function noop() {};
-    let started = false;
+    let state = "idle";
 
     async function start() {
-      if (started) throw bootstrapError("auth/bootstrap-already-started", "Owner authorization bootstrap has already started.");
-      started = true;
+      if (state !== "idle") {
+        throw bootstrapError("auth/bootstrap-already-started", "Owner authorization bootstrap has already started.");
+      }
+      state = "running";
 
       try {
         const firebase = requireDependency(scope.firebase, "Firebase SDK");
@@ -93,8 +95,10 @@
         });
 
         await onAuthorized(session);
+        state = "authorized";
         return session;
       } catch (error) {
+        state = "idle";
         try {
           await onRejected(error);
         } catch (handlerError) {
