@@ -24,5 +24,11 @@ assert '"chillProsLastTechnicianEmail"' in diagnostics, "technician email histor
 assert 'heading.textContent = "Technician Sign-In"' in diagnostics, "technician route must identify itself clearly"
 assert '"Use your assigned Chill Pros technician account."' in diagnostics, "technician route must explain which credentials to use"
 assert '"Sign-in successful. Loading technician workspace…"' in diagnostics, "technician route must confirm technician routing"
+assert "function safeStorageGet(key)" in diagnostics, "sign-in must tolerate unavailable browser storage"
+assert "function safeStorageSet(key, value)" in diagnostics, "saving the email must not block authentication"
+assert "emailInput.value = safeStorageGet(emailStorageKey)" in diagnostics, "email restore must use the guarded storage reader"
+assert "safeStorageSet(emailStorageKey, email)" in diagnostics, "email persistence must use the guarded storage writer"
+assert "localStorage.getItem(emailStorageKey)" not in diagnostics, "unguarded storage reads can break iPhone/private browsing sign-in"
+assert "localStorage.setItem(emailStorageKey, email)" not in diagnostics, "unguarded storage writes can break authentication"
 
 print("Technician sign-in contract passed.")
