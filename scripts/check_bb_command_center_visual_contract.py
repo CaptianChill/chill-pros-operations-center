@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Fail closed when the approved BB Command Center structure regresses.
 
-This contract intentionally checks stable semantic and PWA hooks rather than pixel
-values. Pixel-level desktop and iPhone comparison remains a manual release gate.
+The contract checks semantic/PWA hooks rather than pixel values. Desktop and
+phone artwork comparison remains a manual release gate.
 """
 
 from __future__ import annotations
@@ -26,12 +26,13 @@ UNSAFE_REFERENCE_SCHEMES = {"data", "javascript", "vbscript"}
 
 
 class CommandCenterHTMLParser(HTMLParser):
-    """Collect IDs and navigational/resource references without external dependencies."""
+    """Collect structural hooks and references without external dependencies."""
 
     def __init__(self) -> None:
         super().__init__()
         self.ids: set[str] = set()
         self.duplicate_ids: set[str] = set()
+        self.classes: set[str] = set()
         self.references: list[tuple[str, str]] = []
         self.blank_target_links: list[tuple[str, str]] = []
 
@@ -42,6 +43,7 @@ class CommandCenterHTMLParser(HTMLParser):
             if element_id in self.ids:
                 self.duplicate_ids.add(element_id)
             self.ids.add(element_id)
+        self.classes.update(str(attributes.get("class", "")).split())
         for attribute in ("href", "src"):
             value = attributes.get(attribute)
             if value:
@@ -67,6 +69,12 @@ def require_all(text: str, requirements: tuple[tuple[str, str], ...]) -> None:
         require(text, token, label)
 
 
+def require_classes(parser: CommandCenterHTMLParser, requirements: tuple[tuple[str, str], ...]) -> None:
+    for class_name, label in requirements:
+        if class_name not in parser.classes:
+            fail(f"Missing {label} class: {class_name}")
+
+
 def read_manifest() -> dict[str, object]:
     try:
         manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
@@ -90,11 +98,8 @@ def validate_manifest(manifest: dict[str, object]) -> None:
     for key, value in expected.items():
         if manifest.get(key) != value:
             fail(f"Manifest {key!r} must be {value!r}")
-
     icons = manifest.get("icons")
-    if not isinstance(icons, list) or not icons:
-        fail("Manifest must define at least one BB Command Center icon")
-    if not any(
+    if not isinstance(icons, list) or not any(
         isinstance(icon, dict)
         and icon.get("src") == "assets/bb-command-center-logo.svg"
         and icon.get("type") == "image/svg+xml"
@@ -104,43 +109,39 @@ def validate_manifest(manifest: dict[str, object]) -> None:
         fail("Manifest must reference the maskable BB SVG logo")
 
 
-def validate_local_references(html: str) -> None:
+def parse_html(html: str) -> CommandCenterHTMLParser:
     parser = CommandCenterHTMLParser()
     parser.feed(html)
+    parser.close()
+    return parser
 
+
+def validate_local_references(html: str) -> None:
+    parser = parse_html(html)
     if parser.duplicate_ids:
-        duplicates = ", ".join(sorted(parser.duplicate_ids))
-        fail(f"Duplicate element IDs break navigation and JavaScript hooks: {duplicates}")
-
+        fail("Duplicate element IDs break navigation and JavaScript hooks: " + ", ".join(sorted(parser.duplicate_ids)))
     for href, rel in parser.blank_target_links:
         rel_tokens = {token.lower() for token in rel.split()}
         if "noopener" not in rel_tokens and "noreferrer" not in rel_tokens:
             fail(f"New-tab link must prevent opener access: {href or '<missing href>'}")
-
     for attribute, reference in parser.references:
         if any(ord(character) < 32 or ord(character) == 127 for character in reference):
             fail(f"Control characters are prohibited in {attribute} references: {reference!r}")
-
         if reference.startswith("//"):
             fail(f"Protocol-relative external {attribute} reference is prohibited: {reference}")
-
         parsed = urlsplit(reference)
         scheme = parsed.scheme.lower()
         if scheme in UNSAFE_REFERENCE_SCHEMES:
             fail(f"Unsafe active-content {attribute} reference is prohibited: {reference}")
         if scheme or parsed.netloc or reference.startswith(("mailto:", "tel:")):
             continue
-
         if reference.startswith("#"):
-            target = parsed.fragment
-            if target and target not in parser.ids:
+            if parsed.fragment and parsed.fragment not in parser.ids:
                 fail(f"Broken in-page navigation target: {reference}")
             continue
-
-        local_path = parsed.path
-        if not local_path or local_path == "/":
+        if not parsed.path or parsed.path == "/":
             continue
-        resolved = (HTML_PATH.parent / local_path).resolve()
+        resolved = (HTML_PATH.parent / parsed.path).resolve()
         try:
             resolved.relative_to(ROOT.resolve())
         except ValueError:
@@ -150,7 +151,7 @@ def validate_local_references(html: str) -> None:
 
 
 def validate_approved_reference_mode(js: str) -> None:
-    for token, label in (
+    require_all(js, (
         (APPROVED_MOBILE_ARTWORK, "approved mobile artwork URL"),
         (APPROVED_DESKTOP_ARTWORK, "approved desktop artwork URL"),
         ("params.get('reference') !== 'approved'", "explicit approved-reference query gate"),
@@ -161,70 +162,50 @@ def validate_approved_reference_mode(js: str) -> None:
         ("body.approved-reference-mode > :not(#approvedArtworkReference)", "isolated reference rendering"),
         ("return true;", "successful reference-mode signal"),
         ("if (installApprovedArtworkReference()) return;", "reference-mode initialization short circuit"),
-    ):
-        require(js, token, label)
-
+    ))
     if "object-fit: cover" in js or "background-size: cover" in js:
         fail("Approved artwork reference mode must not crop source assets")
 
 
 def validate_html_structure(html: str) -> None:
-    """Accept the approved shell while retaining compatibility with the prior RC shell."""
-    require_all(
-        html,
-        (
-            ('<html lang="en">', "document language"),
-            ('name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"', "safe-area viewport"),
-            ('name="theme-color" content="#020406"', "browser theme color"),
-        ),
-    )
-
-    if '<main class="bb-shell" id="main-content">' in html:
-        require_all(
-            html,
-            (
-                ('class="bb-topbar"', "approved top bar"),
-                ('class="bb-brand"', "approved owner brand link"),
-                ('class="bb-hero"', "approved hero"),
-                ('id="bb-dashboard-title"', "dashboard title hook"),
-                ('>COMMAND CENTER</h1>', "approved dashboard identity"),
-                ('class="bb-section"', "approved dashboard sections"),
-                ('class="bb-card-grid"', "approved dashboard card grid"),
-                ('>LIVE OPS ', "Live Ops section"),
-                ('>GROWTH ', "Growth section"),
-                ('>AI INTELLIGENCE ', "AI Intelligence section"),
-                ('>SYSTEM ', "System section"),
-                ('class="bb-footer"', "approved footer"),
-            ),
-        )
+    require_all(html, (
+        ('<html lang="en">', "document language"),
+        ('name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"', "safe-area viewport"),
+        ('name="theme-color" content="#020406"', "browser theme color"),
+    ))
+    parser = parse_html(html)
+    if "bb-shell" in parser.classes:
+        require_classes(parser, (
+            ("bb-topbar", "approved top bar"), ("bb-brand", "approved owner brand link"),
+            ("bb-hero", "approved hero"), ("bb-section", "approved dashboard section"),
+            ("bb-card-grid", "approved dashboard card grid"), ("bb-footer", "approved footer"),
+        ))
+        require_all(html, (
+            ('id="bb-dashboard-title"', "dashboard title hook"),
+            ('>COMMAND CENTER</h1>', "approved dashboard identity"),
+            ('>LIVE OPS ', "Live Ops section"), ('>GROWTH ', "Growth section"),
+            ('>AI INTELLIGENCE ', "AI Intelligence section"), ('>SYSTEM ', "System section"),
+        ))
         return
-
-    require_all(
-        html,
-        (
-            ('<main class="command-shell">', "command shell"),
-            ('class="desktop-nav"', "desktop navigation"),
-            ('class="mobile-nav"', "mobile navigation"),
-            ('class="hero"', "hero"),
-            ('class="hero-crown"', "crown"),
-            ('class="jewel-rail jewel-rail-left"', "left jeweled rail"),
-            ('class="jewel-rail jewel-rail-right"', "right jeweled rail"),
-            ('class="project-grid"', "project grid"),
-            ('id="mission"', "mission board"),
-            ('id="quick"', "quick-access panel"),
-            ('role="status" aria-live="polite"', "live status region"),
-            ('assets/bb-command-center-logo.svg', "BB logo reference"),
-            ('BB COMMAND CENTER', "BB identity"),
-            ('<strong>LICENSE TO CHILL</strong>', "approved footer slogan"),
-        ),
-    )
+    require_classes(parser, (
+        ("command-shell", "command shell"), ("desktop-nav", "desktop navigation"),
+        ("mobile-nav", "mobile navigation"), ("hero", "hero"),
+        ("hero-crown", "crown"), ("jewel-rail-left", "left jeweled rail"),
+        ("jewel-rail-right", "right jeweled rail"), ("project-grid", "project grid"),
+    ))
+    require_all(html, (
+        ('id="mission"', "mission board"), ('id="quick"', "quick-access panel"),
+        ('role="status" aria-live="polite"', "live status region"),
+        ('assets/bb-command-center-logo.svg', "BB logo reference"),
+        ('BB COMMAND CENTER', "BB identity"),
+        ('<strong>LICENSE TO CHILL</strong>', "approved footer slogan"),
+    ))
 
 
 def main() -> None:
     for path in (HTML_PATH, CSS_PATH, JS_PATH, MANIFEST_PATH, LOGO_PATH):
         if not path.is_file():
             fail(f"Required BB Command Center asset is missing: {path.relative_to(ROOT)}")
-
     html = HTML_PATH.read_text(encoding="utf-8", errors="replace")
     css = CSS_PATH.read_text(encoding="utf-8", errors="replace")
     js = JS_PATH.read_text(encoding="utf-8", errors="replace")
@@ -232,20 +213,13 @@ def main() -> None:
     validate_local_references(html)
     validate_approved_reference_mode(js)
     validate_html_structure(html)
-
-    forbidden_shell_phrases = (
-        "CHILL PROS COMMAND CENTER",
-        "CHILL PROS OWNER",
-    )
-    for phrase in forbidden_shell_phrases:
+    for phrase in ("CHILL PROS COMMAND CENTER", "CHILL PROS OWNER"):
         if phrase in html.upper():
             fail(f"Personal owner shell contains forbidden Chill Pros branding: {phrase}")
-
     if len(re.findall(r"@media\s*\(", css)) < 2:
         fail("Expected at least two responsive media-query blocks")
     for selector in (".command-shell", ".jewel-rail", ".project-grid", ".mobile-nav"):
         require(css, selector, f"CSS selector {selector}")
-
     print("BB Command Center structural, navigation, approved-artwork, asset, and PWA contract is valid.")
     print("Manual gate still required: compare approved desktop and iPhone references side by side.")
 
