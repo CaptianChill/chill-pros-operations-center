@@ -10,8 +10,10 @@ on:
       - "assets/bb-command-center-logo.svg"
       - "scripts/check_bb_command_center_visual_contract.py"
       - "scripts/check_bb_command_center_document_base.py"
+      - "scripts/check_bb_command_center_form_targets.py"
       - "scripts/test_bb_command_center_visual_contract.py"
       - "scripts/test_bb_command_center_document_base.py"
+      - "scripts/test_bb_command_center_form_targets.py"
       - ".github/workflows/bb-command-center-visual-contract.yml"
   workflow_dispatch:
 
@@ -31,7 +33,11 @@ jobs:
         run: python3 -m unittest scripts/test_bb_command_center_visual_contract.py
       - name: Run document-base unit tests
         run: python3 -m unittest scripts/test_bb_command_center_document_base.py
+      - name: Run form-target unit tests
+        run: python3 -m unittest scripts/test_bb_command_center_form_targets.py
       - name: Reject document-base URL overrides
         run: python3 scripts/check_bb_command_center_document_base.py
+      - name: Validate form submission targets
+        run: python3 scripts/check_bb_command_center_form_targets.py
       - name: Validate BB Command Center structure
         run: python3 scripts/check_bb_command_center_visual_contract.py
