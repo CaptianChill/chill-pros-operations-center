@@ -65,6 +65,17 @@
       if (heading) heading.textContent = "Technician Sign-In";
       if (description) description.textContent = "Use your assigned Chill Pros technician account.";
       document.title = "Chill Pros Technician Sign-In";
+
+      if (auth.currentUser) {
+        errorBox.textContent = "Preparing a separate technician sign-in…";
+        try {
+          await auth.signOut();
+        } catch (error) {
+          console.error("Unable to clear the existing session for technician sign-in:", error);
+          errorBox.textContent = "Could not clear the existing account session. Use Sign out, then reopen the technician link.";
+          return;
+        }
+      }
     }
 
     emailInput.value = safeStorageGet(emailStorageKey);
