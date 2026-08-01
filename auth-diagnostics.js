@@ -13,7 +13,8 @@
     "auth/network-request-failed": "The sign-in request could not reach Firebase. Check the connection and retry.",
     "auth/unauthorized-domain": `This website domain is not authorized in Firebase. Add ${currentHost} under Authentication > Settings > Authorized domains.`,
     "auth/operation-not-allowed": "Email/Password sign-in is not enabled in Firebase Authentication.",
-    "auth/not-technician-account": "This account is not configured as a Chill Pros technician. Use the technician account assigned by the owner."
+    "auth/not-technician-account": "This account is not configured as a Chill Pros technician. Use the technician account assigned by the owner.",
+    "auth/technician-profile-unavailable": "Technician access could not be verified. Check the connection and try again; if it continues, ask the owner to confirm the Firebase technician profile and permissions."
   };
 
   const waitFor = (test, timeout = 12000) => new Promise((resolve, reject) => {
@@ -52,22 +53,47 @@
     return `${FRIENDLY_ERRORS[code] || error?.message || "Sign-in failed."} (${code})`;
   }
 
-  async function verifyTechnicianAccount(user, auth) {
-    const db = await waitFor(() => window.chillProsDb);
-    const snapshot = await db.collection("Users").doc(user.uid).get();
-    const profile = snapshot.exists ? (snapshot.data() || {}) : null;
-    const technicianName = typeof profile?.technicianName === "string"
-      ? profile.technicianName.trim()
-      : "";
-
-    if (!profile || profile.role !== "technician" || !technicianName) {
+  async function rejectTechnicianSession(auth, code, message, cause) {
+    try {
       await auth.signOut();
-      const error = new Error("Technician role profile is missing or invalid.");
-      error.code = "auth/not-technician-account";
-      throw error;
+    } catch (signOutError) {
+      console.error("Unable to clear rejected technician session:", signOutError);
     }
 
-    return profile;
+    const error = new Error(message);
+    error.code = code;
+    if (cause) error.cause = cause;
+    throw error;
+  }
+
+  async function verifyTechnicianAccount(user, auth) {
+    try {
+      const db = await waitFor(() => window.chillProsDb);
+      const snapshot = await db.collection("Users").doc(user.uid).get();
+      const profile = snapshot.exists ? (snapshot.data() || {}) : null;
+      const technicianName = typeof profile?.technicianName === "string"
+        ? profile.technicianName.trim()
+        : "";
+
+      if (!profile || profile.role !== "technician" || !technicianName) {
+        return rejectTechnicianSession(
+          auth,
+          "auth/not-technician-account",
+          "Technician role profile is missing or invalid."
+        );
+      }
+
+      return profile;
+    } catch (error) {
+      if (error?.code === "auth/not-technician-account") throw error;
+      console.error("Technician profile verification failed:", error);
+      return rejectTechnicianSession(
+        auth,
+        "auth/technician-profile-unavailable",
+        "Technician role profile could not be verified.",
+        error
+      );
+    }
   }
 
   async function install() {
