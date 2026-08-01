@@ -21,6 +21,13 @@
     return value;
   }
 
+  function preserveAuthError(cause, fallbackCode, fallbackMessage) {
+    if (cause && typeof cause.code === "string" && cause.code.startsWith("auth/")) {
+      return cause;
+    }
+    return authError(fallbackCode, fallbackMessage, cause);
+  }
+
   function normalizeProfile(snapshot) {
     if (!snapshot || typeof snapshot.exists !== "boolean" || !snapshot.exists) {
       throw authError("auth/owner-profile-missing", "The signed-in account has no authoritative owner profile.");
@@ -60,7 +67,11 @@
     try {
       user = await waitForAuthState(auth);
     } catch (cause) {
-      throw authError("auth/session-unavailable", "The current authentication session could not be verified.", cause);
+      throw preserveAuthError(
+        cause,
+        "auth/session-unavailable",
+        "The current authentication session could not be verified."
+      );
     }
 
     if (!user || typeof user.uid !== "string" || !user.uid.trim()) {
@@ -79,9 +90,11 @@
       }
       snapshot = await profileRef.get();
     } catch (cause) {
-      const error = cause && cause.code && String(cause.code).startsWith("auth/")
-        ? cause
-        : authError("auth/owner-profile-unavailable", "The owner profile could not be verified. Retry after checking network access and Firestore rules.", cause);
+      const error = preserveAuthError(
+        cause,
+        "auth/owner-profile-unavailable",
+        "The owner profile could not be verified. Retry after checking network access and Firestore rules."
+      );
       return rejectSession(auth, error);
     }
 
