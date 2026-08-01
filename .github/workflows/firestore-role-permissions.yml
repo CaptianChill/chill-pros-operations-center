@@ -1,0 +1,163 @@
+name: Firestore Role Permissions
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "firestore.rules"
+      - "firebase.emulator.json"
+      - "firebase-config.js"
+      - "tenant-config.js"
+      - "v1-access.js"
+      - "audit-events.js"
+      - "audited-customer-mutations.js"
+      - "customer-mutation-adapter.js"
+      - "customer-mutation-integration.js"
+      - "security-runtime-bootstrap.js"
+      - "app-audited-mutation-bridge.js"
+      - "scripts/v1-access-authoritative-role-contract.js"
+      - "scripts/firebase-config-auth.test.js"
+      - "scripts/audit-events.test.js"
+      - "scripts/audited-customer-mutations.test.js"
+      - "scripts/audit-metadata-firestore-values.test.js"
+      - "scripts/customer-mutation-adapter.test.js"
+      - "scripts/customer-mutation-integration.test.js"
+      - "scripts/security-runtime-bootstrap.test.js"
+      - "scripts/app-audited-mutation-bridge.test.js"
+      - "scripts/app-audited-mutation-classification.test.js"
+      - "scripts/firestore-role-permissions-contract.js"
+      - "scripts/firestore-role-permissions-emulator.test.js"
+      - "scripts/firestore-role-profile-escalation-emulator.test.js"
+      - "functions/package.json"
+      - "functions/package-lock.json"
+      - "functions/scripts/inventory-private-customer-data.js"
+      - "functions/scripts/inventory-private-customer-data.test.js"
+      - ".github/workflows/firestore-role-permissions.yml"
+  push:
+    branches:
+      - "security/issue-34-role-permissions"
+    paths:
+      - "firestore.rules"
+      - "firebase.emulator.json"
+      - "firebase-config.js"
+      - "tenant-config.js"
+      - "v1-access.js"
+      - "audit-events.js"
+      - "audited-customer-mutations.js"
+      - "customer-mutation-adapter.js"
+      - "customer-mutation-integration.js"
+      - "security-runtime-bootstrap.js"
+      - "app-audited-mutation-bridge.js"
+      - "scripts/v1-access-authoritative-role-contract.js"
+      - "scripts/firebase-config-auth.test.js"
+      - "scripts/audit-events.test.js"
+      - "scripts/audited-customer-mutations.test.js"
+      - "scripts/audit-metadata-firestore-values.test.js"
+      - "scripts/customer-mutation-adapter.test.js"
+      - "scripts/customer-mutation-integration.test.js"
+      - "scripts/security-runtime-bootstrap.test.js"
+      - "scripts/app-audited-mutation-bridge.test.js"
+      - "scripts/app-audited-mutation-classification.test.js"
+      - "scripts/firestore-role-permissions-contract.js"
+      - "scripts/firestore-role-permissions-emulator.test.js"
+      - "scripts/firestore-role-profile-escalation-emulator.test.js"
+      - "functions/package.json"
+      - "functions/package-lock.json"
+      - "functions/scripts/inventory-private-customer-data.js"
+      - "functions/scripts/inventory-private-customer-data.test.js"
+      - ".github/workflows/firestore-role-permissions.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: firestore-role-permissions-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  role-permissions-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Check contract syntax
+        run: node --check scripts/firestore-role-permissions-contract.js
+      - name: Validate Firestore role permissions
+        run: node scripts/firestore-role-permissions-contract.js
+      - name: Check legacy access syntax
+        run: node --check v1-access.js
+      - name: Check legacy authoritative role contract syntax
+        run: node --check scripts/v1-access-authoritative-role-contract.js
+      - name: Validate legacy authoritative role enforcement
+        run: node scripts/v1-access-authoritative-role-contract.js
+      - name: Check Firebase config syntax
+        run: node --check firebase-config.js
+      - name: Test Firebase Auth dependency exposure
+        run: node scripts/firebase-config-auth.test.js
+      - name: Check tenant runtime loader syntax
+        run: node --check tenant-config.js
+      - name: Check audit event client syntax
+        run: node --check audit-events.js
+      - name: Test authenticated audit event client
+        run: node scripts/audit-events.test.js
+      - name: Check audited mutation client syntax
+        run: node --check audited-customer-mutations.js
+      - name: Test atomic audited customer mutations
+        run: node scripts/audited-customer-mutations.test.js
+      - name: Test Firestore-safe audit metadata values
+        run: node scripts/audit-metadata-firestore-values.test.js
+      - name: Check customer mutation adapter syntax
+        run: node --check customer-mutation-adapter.js
+      - name: Test customer mutation adapter
+        run: node scripts/customer-mutation-adapter.test.js
+      - name: Check queue mutation integration syntax
+        run: node --check customer-mutation-integration.js
+      - name: Test queue mutation integration
+        run: node scripts/customer-mutation-integration.test.js
+      - name: Check security runtime bootstrap syntax
+        run: node --check security-runtime-bootstrap.js
+      - name: Test security runtime bootstrap
+        run: node scripts/security-runtime-bootstrap.test.js
+      - name: Check app audited mutation bridge syntax
+        run: node --check app-audited-mutation-bridge.js
+      - name: Test app audited mutation bridge
+        run: node scripts/app-audited-mutation-bridge.test.js
+      - name: Test sensitive audit action classification
+        run: node scripts/app-audited-mutation-classification.test.js
+
+  private-data-inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install backend dependencies
+        run: npm --prefix functions install --no-audit --no-fund
+      - name: Check inventory utility syntax
+        run: node --check functions/scripts/inventory-private-customer-data.js
+      - name: Test private-data inventory helpers
+        run: npm --prefix functions run test:private-data-inventory
+
+  role-permissions-emulator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install emulator test dependencies
+        run: npm install --no-save firebase@12.1.0 @firebase/rules-unit-testing@5.0.0 firebase-tools@14.12.0
+      - name: Check emulator test syntax
+        run: node --check scripts/firestore-role-permissions-emulator.test.js
+      - name: Check role-profile escalation test syntax
+        run: node --check scripts/firestore-role-profile-escalation-emulator.test.js
+      - name: Run Firestore emulator permission matrix
+        run: npx firebase emulators:exec --only firestore --project demo-chill-pros-role-permissions --config firebase.emulator.json "node scripts/firestore-role-permissions-emulator.test.js"
+      - name: Run role-profile escalation matrix
+        run: npx firebase emulators:exec --only firestore --project demo-chill-pros-role-profile-escalation --config firebase.emulator.json "node scripts/firestore-role-profile-escalation-emulator.test.js"

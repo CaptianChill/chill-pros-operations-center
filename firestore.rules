@@ -5,18 +5,31 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function hasUserProfile() {
+      return signedIn() && exists(/databases/$(database)/documents/Users/$(request.auth.uid));
+    }
+
     function userProfile() {
       return get(/databases/$(database)/documents/Users/$(request.auth.uid)).data;
     }
 
     function role() {
-      return signedIn() && exists(/databases/$(database)/documents/Users/$(request.auth.uid))
-        ? userProfile().role
-        : null;
+      return hasUserProfile() ? userProfile().role : null;
+    }
+
+    function technicianName() {
+      return hasUserProfile() ? userProfile().technicianName : null;
+    }
+
+    function technicianNameIsSafe(name) {
+      return name is string
+        && name.size() > 0
+        && name.size() <= 200
+        && name.matches('.*\\S.*');
     }
 
     function isOwner() {
-      return signedIn() && (role() == 'owner' || request.auth.token.email == 'chillprostx@gmail.com');
+      return signedIn() && role() == 'owner';
     }
 
     function isOffice() {
@@ -24,22 +37,205 @@ service cloud.firestore {
     }
 
     function isTechnician() {
-      return signedIn() && role() == 'technician';
+      return signedIn()
+        && role() == 'technician'
+        && technicianNameIsSafe(technicianName());
+    }
+
+    function authoritativeUserProfileIsSafe() {
+      return request.resource.data.role in ['owner', 'office', 'technician']
+        && (request.resource.data.role != 'technician'
+          || technicianNameIsSafe(request.resource.data.technicianName));
+    }
+
+    function assignedToCurrentTechnician(data) {
+      return isTechnician()
+        && data.assignedTechnician is string
+        && data.assignedTechnician == technicianName();
+    }
+
+    function technicianUpdateFieldsAreSafe() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'officeStatus',
+        'statusUpdatedAt',
+        'completedAt',
+        'findings',
+        'recommendation',
+        'workNotes',
+        'partsUsed',
+        'laborTimeNotes',
+        'photoNotes',
+        'photoReferences'
+      ]);
+    }
+
+    function optionalTextFieldIsSafe(fieldName) {
+      return !(fieldName in request.resource.data)
+        || (request.resource.data[fieldName] is string
+          && request.resource.data[fieldName].size() <= 20000);
+    }
+
+    function technicianWorkOrderValuesAreSafe() {
+      return request.resource.data.officeStatus is string
+        && optionalTextFieldIsSafe('findings')
+        && optionalTextFieldIsSafe('recommendation')
+        && optionalTextFieldIsSafe('workNotes')
+        && optionalTextFieldIsSafe('partsUsed')
+        && optionalTextFieldIsSafe('laborTimeNotes')
+        && optionalTextFieldIsSafe('photoNotes')
+        && (!('photoReferences' in request.resource.data)
+          || (request.resource.data.photoReferences is list
+            && request.resource.data.photoReferences.size() <= 50));
+    }
+
+    function technicianStatusTransitionIsSafe() {
+      return request.resource.data.officeStatus == resource.data.officeStatus
+        || request.resource.data.officeStatus in [
+          'Dispatched',
+          'In Progress',
+          'Paused',
+          'Waiting on Parts',
+          'Ready to Invoice',
+          'Completed'
+        ];
+    }
+
+    function technicianStatusTimestampIsSafe() {
+      return request.resource.data.officeStatus == resource.data.officeStatus
+        ? request.resource.data.statusUpdatedAt == resource.data.statusUpdatedAt
+        : request.resource.data.statusUpdatedAt == request.time;
+    }
+
+    function technicianCompletionStateIsSafe() {
+      return request.resource.data.officeStatus == 'Completed'
+        ? (resource.data.officeStatus == 'Completed'
+          ? request.resource.data.completedAt == resource.data.completedAt
+          : request.resource.data.completedAt == request.time)
+        : !('completedAt' in request.resource.data);
+    }
+
+    function auditChangedFieldIsSafe(changedFields, index) {
+      return changedFields.size() <= index
+        || (changedFields[index] is string
+          && changedFields[index].size() > 0
+          && changedFields[index].size() <= 100
+          && changedFields[index].matches('.*\\S.*'));
+    }
+
+    function auditChangedFieldsAreSafe(changedFields) {
+      return changedFields is list
+        && changedFields.size() <= 25
+        && auditChangedFieldIsSafe(changedFields, 0)
+        && auditChangedFieldIsSafe(changedFields, 1)
+        && auditChangedFieldIsSafe(changedFields, 2)
+        && auditChangedFieldIsSafe(changedFields, 3)
+        && auditChangedFieldIsSafe(changedFields, 4)
+        && auditChangedFieldIsSafe(changedFields, 5)
+        && auditChangedFieldIsSafe(changedFields, 6)
+        && auditChangedFieldIsSafe(changedFields, 7)
+        && auditChangedFieldIsSafe(changedFields, 8)
+        && auditChangedFieldIsSafe(changedFields, 9)
+        && auditChangedFieldIsSafe(changedFields, 10)
+        && auditChangedFieldIsSafe(changedFields, 11)
+        && auditChangedFieldIsSafe(changedFields, 12)
+        && auditChangedFieldIsSafe(changedFields, 13)
+        && auditChangedFieldIsSafe(changedFields, 14)
+        && auditChangedFieldIsSafe(changedFields, 15)
+        && auditChangedFieldIsSafe(changedFields, 16)
+        && auditChangedFieldIsSafe(changedFields, 17)
+        && auditChangedFieldIsSafe(changedFields, 18)
+        && auditChangedFieldIsSafe(changedFields, 19)
+        && auditChangedFieldIsSafe(changedFields, 20)
+        && auditChangedFieldIsSafe(changedFields, 21)
+        && auditChangedFieldIsSafe(changedFields, 22)
+        && auditChangedFieldIsSafe(changedFields, 23)
+        && auditChangedFieldIsSafe(changedFields, 24);
+    }
+
+    function auditMetadataIsSafe() {
+      return !('metadata' in request.resource.data)
+        || (request.resource.data.metadata is map
+          && request.resource.data.metadata.size() <= 4
+          && request.resource.data.metadata.keys().hasOnly([
+            'source', 'workflow', 'context', 'changedFields'
+          ])
+          && (!('source' in request.resource.data.metadata)
+            || (request.resource.data.metadata.source is string
+              && request.resource.data.metadata.source.size() > 0
+              && request.resource.data.metadata.source.size() <= 100))
+          && (!('workflow' in request.resource.data.metadata)
+            || (request.resource.data.metadata.workflow is string
+              && request.resource.data.metadata.workflow.size() > 0
+              && request.resource.data.metadata.workflow.size() <= 100))
+          && (!('context' in request.resource.data.metadata)
+            || (request.resource.data.metadata.context is string
+              && request.resource.data.metadata.context.size() > 0
+              && request.resource.data.metadata.context.size() <= 500))
+          && (!('changedFields' in request.resource.data.metadata)
+            || auditChangedFieldsAreSafe(request.resource.data.metadata.changedFields)));
+    }
+
+    function auditEventCreateIsSafe() {
+      return request.resource.data.keys().hasOnly([
+          'actorUid', 'actorRole', 'action', 'targetPath', 'createdAt', 'metadata'
+        ])
+        && request.resource.data.actorUid == request.auth.uid
+        && request.resource.data.actorRole == role()
+        && request.resource.data.action is string
+        && request.resource.data.action.size() > 0
+        && request.resource.data.action.size() <= 100
+        && request.resource.data.targetPath is string
+        && request.resource.data.targetPath.size() > 0
+        && request.resource.data.targetPath.size() <= 500
+        && request.resource.data.createdAt == request.time
+        && auditMetadataIsSafe();
     }
 
     match /Users/{userId} {
       allow read: if signedIn() && (request.auth.uid == userId || isOwner());
-      allow create, update, delete: if isOwner();
+      allow create: if isOwner() && authoritativeUserProfileIsSafe();
+      // Prevent the currently authenticated owner from changing the role that
+      // grants owner authority and locking the account out of administration.
+      allow update: if isOwner()
+        && authoritativeUserProfileIsSafe()
+        && (request.auth.uid != userId || request.resource.data.role == 'owner');
+      // Prevent the currently authenticated owner from deleting the profile
+      // that grants owner authority and locking the account out of recovery.
+      allow delete: if isOwner() && request.auth.uid != userId;
     }
 
     match /Customers/{customerId} {
-      allow read: if signedIn();
-      allow create, update: if isOwner() || isOffice() || isTechnician();
+      allow read: if isOwner() || isOffice() || assignedToCurrentTechnician(resource.data);
+      allow create: if isOwner() || isOffice();
+      allow update: if isOwner() || isOffice()
+        || (assignedToCurrentTechnician(resource.data)
+          && request.resource.data.assignedTechnician == resource.data.assignedTechnician
+          && technicianUpdateFieldsAreSafe()
+          && technicianWorkOrderValuesAreSafe()
+          && technicianStatusTransitionIsSafe()
+          && technicianStatusTimestampIsSafe()
+          && technicianCompletionStateIsSafe());
       allow delete: if isOwner() || isOffice();
     }
 
+    // Sensitive pricing and procurement data must live below this path instead
+    // of the technician-readable customer/job document.
+    match /Customers/{customerId}/Private/{privateDocumentId} {
+      allow read, create, update, delete: if isOwner() || isOffice();
+    }
+
+    // Audit records are append-only. Client-created events are restricted to
+    // owner/office actors and must bind identity, role, and timestamp to trusted
+    // authentication/request values. Backend automation can add additional
+    // events through the Admin SDK, which bypasses client security rules.
+    match /AuditEvents/{eventId} {
+      allow read: if isOwner() || isOffice();
+      allow create: if (isOwner() || isOffice()) && auditEventCreateIsSafe();
+      allow update, delete: if false;
+    }
+
     match /Technicians/{technicianId} {
-      allow read: if signedIn();
+      allow read: if isOwner() || isOffice() || isTechnician();
       allow create, update, delete: if isOwner() || isOffice();
     }
 
