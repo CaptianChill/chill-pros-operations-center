@@ -25,6 +25,41 @@ async function testWaitForAuthState() {
   await expectReject(waitForAuthState({}), "auth/dependency-unavailable");
 }
 
+async function testAuthStateTimeoutCleanup() {
+  let authResolve;
+  let timeoutCallback;
+  let scheduledDelay;
+  let unsubscribeCalls = 0;
+  let clearTimeoutCalls = 0;
+  const auth = {
+    onAuthStateChanged(resolve) {
+      authResolve = resolve;
+      return () => { unsubscribeCalls += 1; };
+    }
+  };
+
+  const pending = waitForAuthState(auth, {
+    timeoutMs: 2500,
+    setTimeout(callback, delay) {
+      timeoutCallback = callback;
+      scheduledDelay = delay;
+      return "timer-1";
+    },
+    clearTimeout(timerId) {
+      assert.strictEqual(timerId, "timer-1");
+      clearTimeoutCalls += 1;
+    }
+  });
+
+  assert.strictEqual(scheduledDelay, 2500);
+  timeoutCallback();
+  await expectReject(pending, "auth/session-timeout");
+  assert.strictEqual(unsubscribeCalls, 1);
+  assert.strictEqual(clearTimeoutCalls, 1);
+  authResolve({ uid: "late-owner" });
+  assert.strictEqual(unsubscribeCalls, 1);
+}
+
 async function testSynchronousAuthStateCleanup() {
   let unsubscribeCalls = 0;
   let callbackCalls = 0;
@@ -201,6 +236,7 @@ async function testRejectedHandlerCannotMaskAuthorizationError() {
 
 (async function run() {
   await testWaitForAuthState();
+  await testAuthStateTimeoutCleanup();
   await testSynchronousAuthStateCleanup();
   await testSynchronousAuthErrorCleanup();
   await testAuthorizedBootstrap();
