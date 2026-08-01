@@ -12,7 +12,8 @@
     "auth/too-many-requests": "Firebase temporarily blocked attempts after repeated failures. Wait a few minutes or reset the password.",
     "auth/network-request-failed": "The sign-in request could not reach Firebase. Check the connection and retry.",
     "auth/unauthorized-domain": `This website domain is not authorized in Firebase. Add ${currentHost} under Authentication > Settings > Authorized domains.`,
-    "auth/operation-not-allowed": "Email/Password sign-in is not enabled in Firebase Authentication."
+    "auth/operation-not-allowed": "Email/Password sign-in is not enabled in Firebase Authentication.",
+    "auth/not-technician-account": "This account is not configured as a Chill Pros technician. Use the technician account assigned by the owner."
   };
 
   const waitFor = (test, timeout = 12000) => new Promise((resolve, reject) => {
@@ -49,6 +50,24 @@
   function formatError(error) {
     const code = error?.code || "auth/unknown";
     return `${FRIENDLY_ERRORS[code] || error?.message || "Sign-in failed."} (${code})`;
+  }
+
+  async function verifyTechnicianAccount(user, auth) {
+    const db = await waitFor(() => window.chillProsDb);
+    const snapshot = await db.collection("Users").doc(user.uid).get();
+    const profile = snapshot.exists ? (snapshot.data() || {}) : null;
+    const technicianName = typeof profile?.technicianName === "string"
+      ? profile.technicianName.trim()
+      : "";
+
+    if (!profile || profile.role !== "technician" || !technicianName) {
+      await auth.signOut();
+      const error = new Error("Technician role profile is missing or invalid.");
+      error.code = "auth/not-technician-account";
+      throw error;
+    }
+
+    return profile;
   }
 
   async function install() {
@@ -120,7 +139,11 @@
       submitButton.textContent = "SIGNING IN…";
       try {
         safeStorageSet(emailStorageKey, email);
-        await auth.signInWithEmailAndPassword(email, password);
+        const credential = await auth.signInWithEmailAndPassword(email, password);
+        if (technicianPortal) {
+          errorBox.textContent = "Verifying technician access…";
+          await verifyTechnicianAccount(credential.user, auth);
+        }
         errorBox.textContent = technicianPortal
           ? "Sign-in successful. Loading technician workspace…"
           : "Sign-in successful. Loading your workspace…";
