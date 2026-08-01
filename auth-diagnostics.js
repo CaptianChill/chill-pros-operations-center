@@ -1,4 +1,5 @@
 (() => {
+  const currentHost = window.location.hostname;
   const FRIENDLY_ERRORS = {
     "auth/invalid-credential": "Firebase rejected the email/password combination. Re-enter the password or use Forgot password.",
     "auth/wrong-password": "The password does not match this Firebase user.",
@@ -7,7 +8,7 @@
     "auth/invalid-email": "The email address format is invalid.",
     "auth/too-many-requests": "Firebase temporarily blocked attempts after repeated failures. Wait a few minutes or reset the password.",
     "auth/network-request-failed": "The sign-in request could not reach Firebase. Check the connection and retry.",
-    "auth/unauthorized-domain": "This website domain is not authorized in Firebase. Add captianchill.github.io under Authentication > Settings > Authorized domains.",
+    "auth/unauthorized-domain": `This website domain is not authorized in Firebase. Add ${currentHost} under Authentication > Settings > Authorized domains.`,
     "auth/operation-not-allowed": "Email/Password sign-in is not enabled in Firebase Authentication."
   };
 
@@ -38,7 +39,7 @@
     const errorBox = document.getElementById("authError");
     const submitButton = form.querySelector('button[type="submit"]');
 
-    emailInput.value = localStorage.getItem("chillProsLastEmail") || emailInput.value || "chillprostx@gmail.com";
+    emailInput.value = localStorage.getItem("chillProsLastEmail") || "";
 
     const controls = document.createElement("div");
     controls.className = "auth-recovery-controls";
@@ -57,7 +58,7 @@
     document.getElementById("forgotAuthPassword").addEventListener("click", async () => {
       const email = emailInput.value.trim().toLowerCase();
       if (!email) {
-        errorBox.textContent = "Enter the owner email first.";
+        errorBox.textContent = "Enter your account email first.";
         return;
       }
       errorBox.textContent = "Sending password reset email…";
@@ -81,9 +82,9 @@
       try {
         localStorage.setItem("chillProsLastEmail", email);
         await auth.signInWithEmailAndPassword(email, password);
-        errorBox.textContent = "Sign-in successful. Loading owner dashboard…";
+        errorBox.textContent = "Sign-in successful. Loading your workspace…";
       } catch (error) {
-        console.error("Firebase owner sign-in failed:", error);
+        console.error("Firebase sign-in failed:", error);
         errorBox.textContent = formatError(error);
       } finally {
         submitButton.disabled = false;
