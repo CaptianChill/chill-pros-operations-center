@@ -1,0 +1,104 @@
+(function initOwnerCommandAuth(root, factory) {
+  const api = factory();
+  if (typeof module === "object" && module.exports) module.exports = api;
+  if (root) root.ChillProsOwnerCommandAuth = api;
+})(typeof globalThis !== "undefined" ? globalThis : this, function ownerCommandAuthFactory() {
+  "use strict";
+
+  const OWNER_ROLE = "owner";
+
+  function authError(code, message, cause) {
+    const error = new Error(message);
+    error.code = code;
+    if (cause) error.cause = cause;
+    return error;
+  }
+
+  function requireFunction(value, label) {
+    if (typeof value !== "function") {
+      throw authError("auth/dependency-unavailable", `${label} is unavailable.`);
+    }
+    return value;
+  }
+
+  function normalizeProfile(snapshot) {
+    if (!snapshot || typeof snapshot.exists !== "boolean" || !snapshot.exists) {
+      throw authError("auth/owner-profile-missing", "The signed-in account has no authoritative owner profile.");
+    }
+    const data = typeof snapshot.data === "function" ? snapshot.data() : null;
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+      throw authError("auth/owner-profile-invalid", "The owner profile is malformed.");
+    }
+    if (data.role !== OWNER_ROLE) {
+      throw authError("auth/not-owner-account", "This account is not authorized for the Owner Command Center.");
+    }
+    return Object.freeze({ role: OWNER_ROLE });
+  }
+
+  async function rejectSession(auth, error) {
+    try {
+      if (auth && typeof auth.signOut === "function") await auth.signOut();
+    } catch (signOutError) {
+      if (typeof console !== "undefined" && typeof console.error === "function") {
+        console.error("Owner Command Center sign-out failed after authorization rejection.", signOutError);
+      }
+    }
+    throw error;
+  }
+
+  async function authorizeOwnerSession(options) {
+    const settings = options && typeof options === "object" ? options : {};
+    const auth = settings.auth;
+    const firestore = settings.firestore;
+
+    if (!auth || !firestore) {
+      throw authError("auth/dependency-unavailable", "Firebase Authentication and Firestore are required.");
+    }
+
+    const waitForAuthState = requireFunction(settings.waitForAuthState, "Authentication state resolver");
+    let user;
+    try {
+      user = await waitForAuthState(auth);
+    } catch (cause) {
+      throw authError("auth/session-unavailable", "The current authentication session could not be verified.", cause);
+    }
+
+    if (!user || typeof user.uid !== "string" || !user.uid.trim()) {
+      throw authError("auth/signed-out", "Sign in with the owner account to continue.");
+    }
+
+    let snapshot;
+    try {
+      const usersCollection = requireFunction(firestore.collection, "Firestore collection resolver").call(firestore, "Users");
+      if (!usersCollection || typeof usersCollection.doc !== "function") {
+        throw authError("auth/dependency-unavailable", "Firestore user profile lookup is unavailable.");
+      }
+      const profileRef = usersCollection.doc(user.uid);
+      if (!profileRef || typeof profileRef.get !== "function") {
+        throw authError("auth/dependency-unavailable", "Firestore owner profile lookup is unavailable.");
+      }
+      snapshot = await profileRef.get();
+    } catch (cause) {
+      const error = cause && cause.code && String(cause.code).startsWith("auth/")
+        ? cause
+        : authError("auth/owner-profile-unavailable", "The owner profile could not be verified. Retry after checking network access and Firestore rules.", cause);
+      return rejectSession(auth, error);
+    }
+
+    let profile;
+    try {
+      profile = normalizeProfile(snapshot);
+    } catch (error) {
+      return rejectSession(auth, error);
+    }
+
+    return Object.freeze({
+      authorized: true,
+      uid: user.uid,
+      role: profile.role,
+      user
+    });
+  }
+
+  return Object.freeze({ authorizeOwnerSession, normalizeProfile });
+});
