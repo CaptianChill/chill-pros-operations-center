@@ -62,6 +62,11 @@ def require(text: str, token: str, label: str) -> None:
         fail(f"Missing {label}: {token}")
 
 
+def require_all(text: str, requirements: tuple[tuple[str, str], ...]) -> None:
+    for token, label in requirements:
+        require(text, token, label)
+
+
 def read_manifest() -> dict[str, object]:
     try:
         manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
@@ -163,6 +168,58 @@ def validate_approved_reference_mode(js: str) -> None:
         fail("Approved artwork reference mode must not crop source assets")
 
 
+def validate_html_structure(html: str) -> None:
+    """Accept the approved shell while retaining compatibility with the prior RC shell."""
+    require_all(
+        html,
+        (
+            ('<html lang="en">', "document language"),
+            ('name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"', "safe-area viewport"),
+            ('name="theme-color" content="#020406"', "browser theme color"),
+        ),
+    )
+
+    if '<main class="bb-shell" id="main-content">' in html:
+        require_all(
+            html,
+            (
+                ('class="bb-topbar"', "approved top bar"),
+                ('class="bb-brand"', "approved owner brand link"),
+                ('class="bb-hero"', "approved hero"),
+                ('id="bb-dashboard-title"', "dashboard title hook"),
+                ('>COMMAND CENTER</h1>', "approved dashboard identity"),
+                ('class="bb-section"', "approved dashboard sections"),
+                ('class="bb-card-grid"', "approved dashboard card grid"),
+                ('>LIVE OPS ', "Live Ops section"),
+                ('>GROWTH ', "Growth section"),
+                ('>AI INTELLIGENCE ', "AI Intelligence section"),
+                ('>SYSTEM ', "System section"),
+                ('class="bb-footer"', "approved footer"),
+            ),
+        )
+        return
+
+    require_all(
+        html,
+        (
+            ('<main class="command-shell">', "command shell"),
+            ('class="desktop-nav"', "desktop navigation"),
+            ('class="mobile-nav"', "mobile navigation"),
+            ('class="hero"', "hero"),
+            ('class="hero-crown"', "crown"),
+            ('class="jewel-rail jewel-rail-left"', "left jeweled rail"),
+            ('class="jewel-rail jewel-rail-right"', "right jeweled rail"),
+            ('class="project-grid"', "project grid"),
+            ('id="mission"', "mission board"),
+            ('id="quick"', "quick-access panel"),
+            ('role="status" aria-live="polite"', "live status region"),
+            ('assets/bb-command-center-logo.svg', "BB logo reference"),
+            ('BB COMMAND CENTER', "BB identity"),
+            ('<strong>LICENSE TO CHILL</strong>', "approved footer slogan"),
+        ),
+    )
+
+
 def main() -> None:
     for path in (HTML_PATH, CSS_PATH, JS_PATH, MANIFEST_PATH, LOGO_PATH):
         if not path.is_file():
@@ -174,27 +231,7 @@ def main() -> None:
     validate_manifest(read_manifest())
     validate_local_references(html)
     validate_approved_reference_mode(js)
-
-    for token, label in (
-        ('<html lang="en">', "document language"),
-        ('name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"', "safe-area viewport"),
-        ('name="theme-color" content="#020406"', "browser theme color"),
-        ('<main class="command-shell">', "command shell"),
-        ('class="desktop-nav"', "desktop navigation"),
-        ('class="mobile-nav"', "mobile navigation"),
-        ('class="hero"', "hero"),
-        ('class="hero-crown"', "crown"),
-        ('class="jewel-rail jewel-rail-left"', "left jeweled rail"),
-        ('class="jewel-rail jewel-rail-right"', "right jeweled rail"),
-        ('class="project-grid"', "project grid"),
-        ('id="mission"', "mission board"),
-        ('id="quick"', "quick-access panel"),
-        ('role="status" aria-live="polite"', "live status region"),
-        ('assets/bb-command-center-logo.svg', "BB logo reference"),
-        ('BB COMMAND CENTER', "BB identity"),
-        ('<strong>LICENSE TO CHILL</strong>', "approved footer slogan"),
-    ):
-        require(html, token, label)
+    validate_html_structure(html)
 
     forbidden_shell_phrases = (
         "CHILL PROS COMMAND CENTER",
