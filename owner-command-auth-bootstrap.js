@@ -93,6 +93,14 @@
 
     const onAuthorized = typeof settings.onAuthorized === "function" ? settings.onAuthorized : function noop() {};
     const onRejected = typeof settings.onRejected === "function" ? settings.onRejected : function noop() {};
+    const authStateResolver = typeof settings.waitForAuthState === "function"
+      ? settings.waitForAuthState
+      : waitForAuthState;
+    const authStateOptions = Object.freeze({
+      timeoutMs: settings.authStateTimeoutMs,
+      setTimeout: settings.setTimeout,
+      clearTimeout: settings.clearTimeout
+    });
     let state = "idle";
 
     async function start() {
@@ -112,7 +120,9 @@
         const session = await authorizationApi.authorizeOwnerSession({
           auth,
           firestore,
-          waitForAuthState: settings.waitForAuthState || waitForAuthState
+          waitForAuthState(currentAuth) {
+            return authStateResolver(currentAuth, authStateOptions);
+          }
         });
 
         await onAuthorized(session);
