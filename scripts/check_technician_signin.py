@@ -30,5 +30,9 @@ assert "emailInput.value = safeStorageGet(emailStorageKey)" in diagnostics, "ema
 assert "safeStorageSet(emailStorageKey, email)" in diagnostics, "email persistence must use the guarded storage writer"
 assert "localStorage.getItem(emailStorageKey)" not in diagnostics, "unguarded storage reads can break iPhone/private browsing sign-in"
 assert "localStorage.setItem(emailStorageKey, email)" not in diagnostics, "unguarded storage writes can break authentication"
+assert "if (auth.currentUser)" in diagnostics, "technician portal must detect an existing owner or office session"
+assert "await auth.signOut()" in diagnostics, "technician portal must clear an existing session before accepting credentials"
+assert '"Preparing a separate technician sign-in…"' in diagnostics, "session isolation must be visible to the user"
+assert '"Could not clear the existing account session.' in diagnostics, "session-isolation failure must fail closed with recovery guidance"
 
 print("Technician sign-in contract passed.")
