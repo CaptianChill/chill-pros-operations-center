@@ -29,6 +29,23 @@
     }, 100);
   });
 
+  function safeStorageGet(key) {
+    try {
+      return window.localStorage?.getItem(key) || "";
+    } catch (error) {
+      console.warn("Saved sign-in email is unavailable; continuing without it:", error);
+      return "";
+    }
+  }
+
+  function safeStorageSet(key, value) {
+    try {
+      window.localStorage?.setItem(key, value);
+    } catch (error) {
+      console.warn("Unable to save the sign-in email; authentication will continue:", error);
+    }
+  }
+
   function formatError(error) {
     const code = error?.code || "auth/unknown";
     return `${FRIENDLY_ERRORS[code] || error?.message || "Sign-in failed."} (${code})`;
@@ -50,7 +67,7 @@
       document.title = "Chill Pros Technician Sign-In";
     }
 
-    emailInput.value = localStorage.getItem(emailStorageKey) || "";
+    emailInput.value = safeStorageGet(emailStorageKey);
 
     const controls = document.createElement("div");
     controls.className = "auth-recovery-controls";
@@ -91,7 +108,7 @@
       submitButton.disabled = true;
       submitButton.textContent = "SIGNING IN…";
       try {
-        localStorage.setItem(emailStorageKey, email);
+        safeStorageSet(emailStorageKey, email);
         await auth.signInWithEmailAndPassword(email, password);
         errorBox.textContent = technicianPortal
           ? "Sign-in successful. Loading technician workspace…"
