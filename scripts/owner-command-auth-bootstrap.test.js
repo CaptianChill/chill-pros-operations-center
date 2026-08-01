@@ -103,8 +103,10 @@ async function testAuthorizedBootstrap() {
   await expectReject(bootstrap.start(), "auth/bootstrap-already-started");
 }
 
-async function testRejectedBootstrap() {
-  const expectedError = Object.assign(new Error("Denied"), { code: "auth/not-owner-account" });
+async function testRejectedBootstrapCanRetry() {
+  const expectedError = Object.assign(new Error("Temporary profile failure"), { code: "auth/owner-profile-unavailable" });
+  const expectedSession = Object.freeze({ authorized: true, uid: "owner-1", role: "owner" });
+  let attempts = 0;
   let rejectedError;
   const bootstrap = createOwnerCommandAuthBootstrap({
     scope: {
@@ -115,7 +117,9 @@ async function testRejectedBootstrap() {
     },
     authorizationApi: {
       async authorizeOwnerSession() {
-        throw expectedError;
+        attempts += 1;
+        if (attempts === 1) throw expectedError;
+        return expectedSession;
       }
     },
     onRejected(error) {
@@ -123,8 +127,37 @@ async function testRejectedBootstrap() {
     }
   });
 
-  await expectReject(bootstrap.start(), "auth/not-owner-account");
+  await expectReject(bootstrap.start(), "auth/owner-profile-unavailable");
   assert.strictEqual(rejectedError, expectedError);
+  assert.strictEqual(await bootstrap.start(), expectedSession);
+  assert.strictEqual(attempts, 2);
+  await expectReject(bootstrap.start(), "auth/bootstrap-already-started");
+}
+
+async function testConcurrentBootstrapIsRejected() {
+  let releaseAuthorization;
+  const pendingAuthorization = new Promise((resolve) => {
+    releaseAuthorization = resolve;
+  });
+  const expectedSession = Object.freeze({ authorized: true, uid: "owner-1", role: "owner" });
+  const bootstrap = createOwnerCommandAuthBootstrap({
+    scope: {
+      firebase: {
+        auth: () => ({}),
+        firestore: () => ({})
+      }
+    },
+    authorizationApi: {
+      authorizeOwnerSession() {
+        return pendingAuthorization;
+      }
+    }
+  });
+
+  const firstStart = bootstrap.start();
+  await expectReject(bootstrap.start(), "auth/bootstrap-already-started");
+  releaseAuthorization(expectedSession);
+  assert.strictEqual(await firstStart, expectedSession);
 }
 
 async function testFailClosedDependencies() {
@@ -137,6 +170,7 @@ async function testFailClosedDependencies() {
     scope: {},
     authorizationApi: { authorizeOwnerSession: async () => ({}) }
   });
+  await expectReject(bootstrap.start(), "auth/dependency-unavailable");
   await expectReject(bootstrap.start(), "auth/dependency-unavailable");
 }
 
@@ -170,7 +204,8 @@ async function testRejectedHandlerCannotMaskAuthorizationError() {
   await testSynchronousAuthStateCleanup();
   await testSynchronousAuthErrorCleanup();
   await testAuthorizedBootstrap();
-  await testRejectedBootstrap();
+  await testRejectedBootstrapCanRetry();
+  await testConcurrentBootstrapIsRejected();
   await testFailClosedDependencies();
   await testRejectedHandlerCannotMaskAuthorizationError();
   console.log("Owner command authorization bootstrap contract passed.");
