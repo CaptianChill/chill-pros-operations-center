@@ -20,19 +20,39 @@
       }
 
       let unsubscribe;
-      try {
-        unsubscribe = auth.onAuthStateChanged(
-          (user) => {
-            if (typeof unsubscribe === "function") unsubscribe();
-            resolve(user || null);
-          },
-          (cause) => {
-            if (typeof unsubscribe === "function") unsubscribe();
-            reject(bootstrapError("auth/session-unavailable", "The authentication session could not be verified.", cause));
-          }
-        );
-      } catch (cause) {
+      let cleanupPending = false;
+      let settled = false;
+
+      function cleanup() {
+        if (typeof unsubscribe === "function") {
+          const release = unsubscribe;
+          unsubscribe = null;
+          cleanupPending = false;
+          release();
+          return;
+        }
+        cleanupPending = true;
+      }
+
+      function resolveOnce(user) {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        resolve(user || null);
+      }
+
+      function rejectOnce(cause) {
+        if (settled) return;
+        settled = true;
+        cleanup();
         reject(bootstrapError("auth/session-unavailable", "The authentication session could not be verified.", cause));
+      }
+
+      try {
+        unsubscribe = auth.onAuthStateChanged(resolveOnce, rejectOnce);
+        if (cleanupPending) cleanup();
+      } catch (cause) {
+        rejectOnce(cause);
       }
     });
   }
