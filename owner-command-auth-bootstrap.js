@@ -5,6 +5,8 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function ownerCommandAuthBootstrapFactory() {
   "use strict";
 
+  const DEFAULT_AUTH_STATE_TIMEOUT_MS = 10000;
+
   function bootstrapError(code, message, cause) {
     const error = new Error(message);
     error.code = code;
@@ -12,18 +14,29 @@
     return error;
   }
 
-  function waitForAuthState(auth) {
+  function waitForAuthState(auth, options) {
     return new Promise((resolve, reject) => {
       if (!auth || typeof auth.onAuthStateChanged !== "function") {
         reject(bootstrapError("auth/dependency-unavailable", "Firebase Authentication state monitoring is unavailable."));
         return;
       }
 
+      const settings = options && typeof options === "object" ? options : {};
+      const timeoutMs = Number.isFinite(settings.timeoutMs) && settings.timeoutMs > 0
+        ? settings.timeoutMs
+        : DEFAULT_AUTH_STATE_TIMEOUT_MS;
+      const scheduleTimeout = typeof settings.setTimeout === "function" ? settings.setTimeout : setTimeout;
+      const cancelTimeout = typeof settings.clearTimeout === "function" ? settings.clearTimeout : clearTimeout;
       let unsubscribe;
       let cleanupPending = false;
+      let timeoutId;
       let settled = false;
 
       function cleanup() {
+        if (timeoutId !== undefined) {
+          cancelTimeout(timeoutId);
+          timeoutId = undefined;
+        }
         if (typeof unsubscribe === "function") {
           const release = unsubscribe;
           unsubscribe = null;
@@ -48,9 +61,17 @@
         reject(bootstrapError("auth/session-unavailable", "The authentication session could not be verified.", cause));
       }
 
+      function rejectTimeout() {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        reject(bootstrapError("auth/session-timeout", "The authentication session did not resolve in time."));
+      }
+
       try {
         unsubscribe = auth.onAuthStateChanged(resolveOnce, rejectOnce);
         if (cleanupPending) cleanup();
+        if (!settled) timeoutId = scheduleTimeout(rejectTimeout, timeoutMs);
       } catch (cause) {
         rejectOnce(cause);
       }
