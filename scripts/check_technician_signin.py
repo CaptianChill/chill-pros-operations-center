@@ -4,6 +4,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 route = (ROOT / "technician.html").read_text(encoding="utf-8")
 diagnostics = (ROOT / "auth-diagnostics.js").read_text(encoding="utf-8")
+access = (ROOT / "v1-access.js").read_text(encoding="utf-8")
 
 required_route_fragments = [
     '<meta name="robots" content="noindex">',
@@ -42,5 +43,16 @@ assert 'error.code = "auth/not-technician-account"' in diagnostics, "invalid tec
 assert '"Verifying technician access…"' in diagnostics, "technician role verification must be visible during sign-in"
 assert "await verifyTechnicianAccount(credential.user, auth)" in diagnostics, "successful credentials must be role-verified before loading"
 assert '"This account is not configured as a Chill Pros technician.' in diagnostics, "wrong-role accounts must receive actionable guidance"
+
+assert 'new URLSearchParams(window.location.search).get("portal") === "technician"' in access, "shared access control must detect technician portal intent"
+assert "if (!snapshot.exists) return technicianPortal ? null : fallback" in access, "missing technician profiles must fail closed before data listeners start"
+assert 'profile.role !== "technician"' in access, "shared access control must reject non-technician roles on the technician portal"
+assert '!String(profile.technicianName || "").trim()' in access, "shared access control must require technician identity"
+assert "return technicianPortal ? null : fallback" in access, "profile read failures must fail closed on the technician portal"
+assert "if (!currentProfile)" in access, "auth listener must stop when technician authorization fails"
+assert "startRealtimeListeners();" in access, "authorized sessions must retain realtime behavior"
+assert access.index("if (!currentProfile)") < access.index("startRealtimeListeners();"), "authorization rejection must occur before realtime listeners start"
+assert "await auth.signOut();" in access, "rejected technician sessions must be cleared"
+assert 'Ask the owner to activate the technician profile.' in access, "rejected technician sessions need actionable guidance"
 
 print("Technician sign-in contract passed.")
