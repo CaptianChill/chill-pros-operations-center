@@ -1,0 +1,250 @@
+/* Second-pass mobile polish for iphone.html.
+   Presentation only: no workflow, authentication, role, or Firestore behavior. */
+
+.iphone-field-mode{
+  color-scheme:dark;
+  overscroll-behavior-y:contain;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+
+.iphone-field-mode main,
+.iphone-field-mode .main-panel{
+  min-width:0;
+}
+
+.iphone-field-mode h1,
+.iphone-field-mode h2,
+.iphone-field-mode h3,
+.iphone-field-mode p{
+  overflow-wrap:anywhere;
+}
+
+/* Clear state hierarchy */
+.iphone-field-mode .badge,
+.iphone-field-mode .status-badge,
+.iphone-field-mode [class*="status-pill"],
+.iphone-field-mode [class*="status-chip"]{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:28px;
+  max-width:100%;
+  padding:5px 9px;
+  border:1px solid var(--cp-border);
+  border-radius:999px;
+  background:rgba(156,176,191,.09);
+  color:var(--cp-text);
+  font-size:.68rem;
+  font-weight:750;
+  line-height:1.15;
+  letter-spacing:.015em;
+  white-space:normal;
+}
+
+.iphone-field-mode [class*="success"],
+.iphone-field-mode [data-status="complete"],
+.iphone-field-mode [data-status="completed"]{
+  --state-color:var(--cp-success);
+}
+
+.iphone-field-mode [class*="warning"],
+.iphone-field-mode [data-status="pending"]{
+  --state-color:var(--cp-warning);
+}
+
+.iphone-field-mode [class*="danger"],
+.iphone-field-mode [class*="error"],
+.iphone-field-mode [data-status="cancelled"]{
+  --state-color:var(--cp-danger);
+}
+
+.iphone-field-mode [class*="success"],
+.iphone-field-mode [class*="warning"],
+.iphone-field-mode [class*="danger"],
+.iphone-field-mode [class*="error"]{
+  border-color:color-mix(in srgb,var(--state-color,currentColor) 34%,transparent);
+}
+
+/* Dense operational content */
+.iphone-field-mode table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:.76rem;
+}
+
+.iphone-field-mode th,
+.iphone-field-mode td{
+  padding:10px 9px;
+  border-bottom:1px solid var(--cp-border);
+  text-align:left;
+  vertical-align:top;
+}
+
+.iphone-field-mode th{
+  color:var(--cp-muted);
+  font-size:.66rem;
+  font-weight:800;
+  letter-spacing:.05em;
+  text-transform:uppercase;
+}
+
+.iphone-field-mode .table-wrap,
+.iphone-field-mode [class*="table-container"]{
+  width:100%;
+  max-width:100%;
+  overflow-x:auto;
+  border:1px solid var(--cp-border);
+  border-radius:var(--cp-radius-md);
+  background:var(--cp-surface);
+  -webkit-overflow-scrolling:touch;
+}
+
+/* Better action feedback */
+.iphone-field-mode button,
+.iphone-field-mode [role="button"]{
+  touch-action:manipulation;
+}
+
+.iphone-field-mode button:disabled,
+.iphone-field-mode input:disabled,
+.iphone-field-mode select:disabled,
+.iphone-field-mode textarea:disabled,
+.iphone-field-mode [aria-disabled="true"]{
+  cursor:not-allowed;
+  opacity:.48;
+  filter:saturate(.55);
+}
+
+.iphone-field-mode button[aria-busy="true"],
+.iphone-field-mode .is-loading{
+  position:relative;
+  pointer-events:none;
+}
+
+.iphone-field-mode button[aria-busy="true"]::after,
+.iphone-field-mode .is-loading::after{
+  content:"";
+  width:16px;
+  height:16px;
+  margin-left:8px;
+  border:2px solid currentColor;
+  border-right-color:transparent;
+  border-radius:50%;
+  animation:cp-mobile-spin .7s linear infinite;
+}
+
+@keyframes cp-mobile-spin{to{transform:rotate(1turn)}}
+
+/* Dialogs and overlays */
+.iphone-field-mode dialog,
+.iphone-field-mode .modal,
+.iphone-field-mode [role="dialog"]{
+  width:min(calc(100% - 24px),560px);
+  max-height:calc(100dvh - var(--iphone-nav-height) - 36px);
+  margin:auto;
+  padding:16px;
+  overflow:auto;
+  border:1px solid var(--cp-border-strong);
+  border-radius:var(--cp-radius-lg);
+  background:var(--cp-surface);
+  color:var(--cp-text);
+  box-shadow:0 22px 64px rgba(0,0,0,.55);
+}
+
+.iphone-field-mode dialog::backdrop{
+  background:rgba(0,5,9,.72);
+  backdrop-filter:blur(3px);
+}
+
+/* Field-level guidance and validation */
+.iphone-field-mode .help-text,
+.iphone-field-mode .field-hint,
+.iphone-field-mode small{
+  color:var(--cp-muted);
+  line-height:1.4;
+}
+
+.iphone-field-mode .field-error,
+.iphone-field-mode [aria-invalid="true"] + .help-text{
+  color:var(--cp-danger);
+}
+
+.iphone-field-mode input[aria-invalid="true"],
+.iphone-field-mode select[aria-invalid="true"],
+.iphone-field-mode textarea[aria-invalid="true"]{
+  border-color:var(--cp-danger);
+}
+
+/* More readable cards and lists */
+.iphone-field-mode .queue-item + .queue-item,
+.iphone-field-mode .panel + .panel,
+.iphone-field-mode .glass-card + .glass-card{
+  margin-top:10px;
+}
+
+.iphone-field-mode .queue-item h3,
+.iphone-field-mode .panel h3,
+.iphone-field-mode .glass-card h3{
+  margin-top:0;
+  color:var(--cp-text);
+  font-size:.98rem;
+  line-height:1.25;
+}
+
+.iphone-field-mode hr{
+  height:1px;
+  margin:16px 0;
+  border:0;
+  background:var(--cp-border);
+}
+
+/* Preserve information when text is enlarged */
+@media(max-width:430px){
+  .iphone-field-mode .page-header{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+  }
+
+  .iphone-field-mode .page-header p{
+    grid-column:1/-1;
+  }
+
+  .iphone-field-mode .page-header button,
+  .iphone-field-mode .page-header select{
+    max-width:44vw;
+  }
+}
+
+@media(max-width:350px){
+  .iphone-field-mode .queue-actions{
+    grid-template-columns:1fr;
+  }
+
+  .iphone-field-mode .queue-actions select{
+    grid-column:auto;
+  }
+
+  .iphone-field-mode .side-link::after{
+    font-size:.52rem;
+  }
+}
+
+@media(forced-colors:active){
+  .iphone-field-mode button,
+  .iphone-field-mode input,
+  .iphone-field-mode select,
+  .iphone-field-mode textarea,
+  .iphone-field-mode .glass-card,
+  .iphone-field-mode .panel,
+  .iphone-field-mode .queue-item{
+    border:1px solid CanvasText;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  .iphone-field-mode button[aria-busy="true"]::after,
+  .iphone-field-mode .is-loading::after{
+    animation-duration:1.4s;
+  }
+}

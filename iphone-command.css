@@ -1,0 +1,399 @@
+/* Direction C mobile command-center pass.
+   Presentation only: preserves all existing IDs, hooks, routing, and data behavior. */
+
+.iphone-field-mode{
+  --cp-bg:#081018;
+  --cp-surface:#101a24;
+  --cp-surface-raised:#162330;
+  --cp-border:rgba(180,211,228,.12);
+  --cp-border-strong:rgba(114,215,255,.28);
+  --cp-text:#f7fbfd;
+  --cp-muted:#a6b7c2;
+  --cp-accent:#72d7ff;
+  --cp-accent-strong:#22a8e6;
+  background:
+    radial-gradient(circle at 100% 0%,rgba(34,168,230,.12),transparent 34%),
+    linear-gradient(180deg,#0a141d 0%,#071018 58%,#060c12 100%);
+}
+
+.iphone-field-mode .owner-mobile-strip{
+  min-height:64px;
+  padding-top:calc(10px + env(safe-area-inset-top,0px));
+  background:rgba(8,16,24,.96);
+  border-bottom-color:rgba(180,211,228,.1);
+}
+
+.iphone-field-mode .owner-mobile-strip strong{
+  font-size:.84rem;
+  letter-spacing:.025em;
+  text-transform:none;
+}
+
+.iphone-field-mode .owner-mobile-strip span{
+  font-size:.68rem;
+  color:#8fa5b3;
+}
+
+.iphone-field-mode .owner-mobile-strip button{
+  min-width:54px;
+  border-color:rgba(114,215,255,.22);
+  background:rgba(114,215,255,.06);
+  color:var(--cp-accent);
+}
+
+/* Replace the oversized promotional banner with a compact operational masthead. */
+.iphone-field-mode .hero-banner{
+  min-height:72px;
+  margin:10px 0 14px;
+  border:1px solid rgba(114,215,255,.12);
+  border-radius:18px;
+  background-image:none !important;
+  background:
+    linear-gradient(135deg,rgba(114,215,255,.09),transparent 58%),
+    #0d1822 !important;
+}
+
+.iphone-field-mode .hero-overlay{
+  min-height:72px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  padding:14px 16px;
+  background:none !important;
+}
+
+.iphone-field-mode .hero-overlay .eyebrow{
+  margin:0 0 3px;
+  color:var(--cp-accent);
+  font-size:.62rem;
+  letter-spacing:.12em;
+}
+
+.iphone-field-mode .hero-overlay h1{
+  font-size:1.22rem;
+  letter-spacing:-.02em;
+}
+
+.iphone-field-mode .tagline{
+  margin-top:4px;
+  font-size:.61rem;
+  letter-spacing:.08em;
+  color:#8fa5b3;
+}
+
+/* KPI cards become a compact, scan-first ribbon. */
+.iphone-field-mode .metrics-grid{
+  display:grid;
+  grid-auto-flow:column;
+  grid-auto-columns:minmax(142px,42vw);
+  grid-template-columns:none;
+  gap:9px;
+  margin:0 -14px 16px;
+  padding:0 14px 4px;
+  overflow-x:auto;
+  overscroll-behavior-inline:contain;
+  scroll-snap-type:x proximity;
+  scrollbar-width:none;
+}
+
+.iphone-field-mode .metrics-grid::-webkit-scrollbar{display:none}
+
+.iphone-field-mode .metric-card,
+.iphone-field-mode .metric-card:last-child{
+  grid-column:auto;
+  min-height:78px;
+  padding:12px;
+  scroll-snap-align:start;
+  background:linear-gradient(180deg,rgba(255,255,255,.018),transparent),var(--cp-surface);
+}
+
+.iphone-field-mode .metric-icon{
+  width:32px;
+  height:32px;
+  flex-basis:32px;
+  border-radius:10px;
+}
+
+.iphone-field-mode .metric-card strong{font-size:1.18rem}
+
+/* Reduce promotional card weight and prioritize operations. */
+.iphone-field-mode .feature-grid,
+.iphone-field-mode .lower-grid{
+  gap:9px;
+}
+
+.iphone-field-mode .feature-card,
+.iphone-field-mode .glass-card,
+.iphone-field-mode .panel,
+.iphone-field-mode .form-panel,
+.iphone-field-mode .queue-item,
+.iphone-field-mode .simple-view{
+  border-color:rgba(180,211,228,.11);
+  background:linear-gradient(180deg,rgba(255,255,255,.014),transparent 48%),var(--cp-surface);
+}
+
+.iphone-field-mode .feature-card{
+  grid-template-columns:42px minmax(0,1fr);
+  grid-template-areas:'art title' 'art text' 'button button';
+  padding:13px;
+}
+
+.iphone-field-mode .feature-art{
+  width:38px;
+  height:38px;
+  opacity:.78;
+}
+
+.iphone-field-mode .feature-card h2{font-size:.94rem}
+.iphone-field-mode .feature-card p{font-size:.74rem}
+
+.iphone-field-mode .primary-action,
+.iphone-field-mode button.primary-action{
+  min-height:46px;
+  border:1px solid rgba(114,215,255,.22);
+  background:linear-gradient(180deg,#2eb3ec,#1487bf);
+  color:#041019;
+  font-weight:800;
+  box-shadow:0 8px 18px rgba(14,117,164,.18);
+}
+
+.iphone-field-mode .secondary-action,
+.iphone-field-mode button:not(.side-link):not(.primary-action):not(#ownerMoreButton){
+  border-color:rgba(180,211,228,.16);
+}
+
+/* Mobile forms: clear labels, full-width controls, and no iOS zoom on focus. */
+.iphone-field-mode .form-panel,
+.iphone-field-mode form{
+  min-width:0;
+}
+
+.iphone-field-mode label{
+  display:block;
+  margin-bottom:6px;
+  color:#d8e5ec;
+  font-size:.76rem;
+  font-weight:700;
+  line-height:1.35;
+}
+
+.iphone-field-mode input,
+.iphone-field-mode select,
+.iphone-field-mode textarea{
+  width:100%;
+  max-width:100%;
+  min-height:46px;
+  box-sizing:border-box;
+  border:1px solid rgba(180,211,228,.16);
+  border-radius:12px;
+  background:#0b1620;
+  color:var(--cp-text);
+  font-size:16px;
+  line-height:1.4;
+}
+
+.iphone-field-mode textarea{
+  min-height:112px;
+  resize:vertical;
+}
+
+.iphone-field-mode input::placeholder,
+.iphone-field-mode textarea::placeholder{
+  color:#78909e;
+  opacity:1;
+}
+
+.iphone-field-mode fieldset{
+  min-width:0;
+  margin:0;
+  padding:14px;
+  border:1px solid rgba(180,211,228,.12);
+  border-radius:14px;
+}
+
+.iphone-field-mode legend{
+  padding:0 6px;
+  color:#dce8ee;
+  font-size:.78rem;
+  font-weight:800;
+}
+
+/* Dense operational content remains readable without forcing the page wider. */
+.iphone-field-mode table{
+  width:100%;
+  border-collapse:separate;
+  border-spacing:0;
+  font-size:.76rem;
+}
+
+.iphone-field-mode .table-wrap,
+.iphone-field-mode [class*="table-container"]{
+  max-width:100%;
+  overflow-x:auto;
+  overscroll-behavior-inline:contain;
+  -webkit-overflow-scrolling:touch;
+}
+
+.iphone-field-mode th,
+.iphone-field-mode td{
+  padding:10px 9px;
+  text-align:left;
+  vertical-align:top;
+}
+
+.iphone-field-mode th{
+  color:#b8cad4;
+  font-size:.68rem;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+}
+
+/* Cleaner mobile command navigation. */
+.iphone-field-mode .sidebar{
+  background:rgba(7,14,21,.97);
+  border-top-color:rgba(180,211,228,.1);
+}
+
+.iphone-field-mode .side-link{
+  min-width:44px;
+  min-height:44px;
+  border-radius:12px;
+}
+
+.iphone-field-mode .side-link span,
+.iphone-field-mode .side-link .label{
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.iphone-field-mode .side-link.active,
+.iphone-field-mode .side-link[aria-current="page"]{
+  color:var(--cp-accent);
+  background:rgba(114,215,255,.08);
+  border-color:rgba(114,215,255,.12);
+}
+
+.iphone-field-mode .side-link.active::before,
+.iphone-field-mode .side-link[aria-current="page"]::before{
+  content:"";
+  position:absolute;
+  top:2px;
+  width:20px;
+  height:2px;
+  border-radius:999px;
+  background:var(--cp-accent);
+}
+
+.iphone-field-mode .empty-state,
+.iphone-field-mode [class*="empty-state"]{
+  min-height:132px;
+  display:grid;
+  place-items:center;
+  padding:24px 16px;
+  border:1px dashed rgba(180,211,228,.18);
+  border-radius:16px;
+  background:rgba(255,255,255,.012);
+  color:var(--cp-muted);
+  text-align:center;
+}
+
+/* Action and feedback states stay legible without introducing new behavior. */
+.iphone-field-mode button,
+.iphone-field-mode [role="button"]{
+  min-height:44px;
+}
+
+.iphone-field-mode :where(button,input,select,textarea):disabled,
+.iphone-field-mode [aria-disabled="true"]{
+  cursor:not-allowed;
+  opacity:.56;
+  filter:saturate(.55);
+}
+
+.iphone-field-mode :where(input,select,textarea)[aria-invalid="true"],
+.iphone-field-mode .field-error :where(input,select,textarea){
+  border-color:#ff8e98;
+  box-shadow:0 0 0 3px rgba(255,97,113,.11);
+}
+
+.iphone-field-mode :where(.error-message,.field-error-message,[role="alert"]){
+  color:#ffb5bc;
+  font-size:.74rem;
+  line-height:1.4;
+}
+
+.iphone-field-mode :where(.success-message,.status-success){
+  color:#8fe2bf;
+}
+
+.iphone-field-mode :where(.warning-message,.status-warning){
+  color:#ffd68a;
+}
+
+.iphone-field-mode :where(.badge,.status-badge,[class*="status-pill"]){
+  display:inline-flex;
+  align-items:center;
+  min-height:24px;
+  max-width:100%;
+  padding:3px 8px;
+  border:1px solid rgba(180,211,228,.14);
+  border-radius:999px;
+  font-size:.68rem;
+  font-weight:750;
+  line-height:1.2;
+  white-space:normal;
+}
+
+/* Consistent, high-visibility keyboard focus without persistent tap outlines. */
+.iphone-field-mode :where(a,button,input,select,textarea,[tabindex]):focus-visible{
+  outline:3px solid rgba(114,215,255,.9);
+  outline-offset:3px;
+  box-shadow:0 0 0 5px rgba(114,215,255,.12);
+}
+
+.iphone-field-mode :where(button,a,.side-link){
+  -webkit-tap-highlight-color:rgba(114,215,255,.16);
+  touch-action:manipulation;
+}
+
+@media(max-width:374px){
+  .iphone-field-mode .metrics-grid{grid-auto-columns:minmax(132px,74vw)}
+  .iphone-field-mode .hero-overlay h1{font-size:1.08rem}
+  .iphone-field-mode .side-link{padding-inline:6px}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .iphone-field-mode *,
+  .iphone-field-mode *::before,
+  .iphone-field-mode *::after{
+    scroll-behavior:auto !important;
+    animation-duration:.01ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.01ms !important;
+  }
+}
+
+@media(forced-colors:active){
+  .iphone-field-mode .hero-banner,
+  .iphone-field-mode .metric-card,
+  .iphone-field-mode .feature-card,
+  .iphone-field-mode .panel,
+  .iphone-field-mode .form-panel,
+  .iphone-field-mode .empty-state{
+    border:1px solid CanvasText;
+  }
+
+  .iphone-field-mode :where(a,button,input,select,textarea,[tabindex]):focus-visible{
+    outline:3px solid Highlight;
+    box-shadow:none;
+  }
+
+  .iphone-field-mode :where(button,input,select,textarea):disabled,
+  .iphone-field-mode [aria-disabled="true"]{
+    opacity:1;
+    color:GrayText;
+    border-color:GrayText;
+  }
+}
