@@ -25,6 +25,45 @@ async function testWaitForAuthState() {
   await expectReject(waitForAuthState({}), "auth/dependency-unavailable");
 }
 
+async function testSynchronousAuthStateCleanup() {
+  let unsubscribeCalls = 0;
+  let callbackCalls = 0;
+  const user = { uid: "owner-sync" };
+  const auth = {
+    onAuthStateChanged(resolve, reject) {
+      callbackCalls += 1;
+      resolve(user);
+      callbackCalls += 1;
+      resolve({ uid: "ignored-user" });
+      callbackCalls += 1;
+      reject(new Error("ignored error"));
+      return () => { unsubscribeCalls += 1; };
+    }
+  };
+
+  assert.strictEqual(await waitForAuthState(auth), user);
+  assert.strictEqual(callbackCalls, 3);
+  assert.strictEqual(unsubscribeCalls, 1);
+}
+
+async function testSynchronousAuthErrorCleanup() {
+  let unsubscribeCalls = 0;
+  const expectedCause = new Error("session failed");
+  const auth = {
+    onAuthStateChanged(resolve, reject) {
+      reject(expectedCause);
+      resolve({ uid: "ignored-user" });
+      return () => { unsubscribeCalls += 1; };
+    }
+  };
+
+  await assert.rejects(
+    waitForAuthState(auth),
+    (error) => error && error.code === "auth/session-unavailable" && error.cause === expectedCause
+  );
+  assert.strictEqual(unsubscribeCalls, 1);
+}
+
 async function testAuthorizedBootstrap() {
   const auth = { name: "auth" };
   const firestore = { name: "firestore" };
@@ -128,6 +167,8 @@ async function testRejectedHandlerCannotMaskAuthorizationError() {
 
 (async function run() {
   await testWaitForAuthState();
+  await testSynchronousAuthStateCleanup();
+  await testSynchronousAuthErrorCleanup();
   await testAuthorizedBootstrap();
   await testRejectedBootstrap();
   await testFailClosedDependencies();
