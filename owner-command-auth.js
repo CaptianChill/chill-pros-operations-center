@@ -145,7 +145,12 @@
       );
     }
 
-    if (!user || typeof user.uid !== "string" || !user.uid.trim()) {
+    if (
+      !user ||
+      typeof user.uid !== "string" ||
+      !user.uid.trim() ||
+      user.uid.trim() !== user.uid
+    ) {
       throw authError("auth/signed-out", "Sign in with the owner account to continue.");
     }
 
