@@ -6,6 +6,7 @@
   "use strict";
 
   const OWNER_ROLE = "owner";
+  const DEFAULT_PROFILE_TIMEOUT_MS = 10000;
 
   function authError(code, message, cause) {
     const error = new Error(message);
@@ -40,6 +41,44 @@
       throw authError("auth/not-owner-account", "This account is not authorized for the Owner Command Center.");
     }
     return Object.freeze({ role: OWNER_ROLE });
+  }
+
+  function waitForProfileSnapshot(profileRef, options) {
+    const settings = options && typeof options === "object" ? options : {};
+    const timeoutMs = Number.isFinite(settings.timeoutMs) && settings.timeoutMs > 0
+      ? settings.timeoutMs
+      : DEFAULT_PROFILE_TIMEOUT_MS;
+    const scheduleTimeout = typeof settings.setTimeout === "function" ? settings.setTimeout : setTimeout;
+    const cancelTimeout = typeof settings.clearTimeout === "function" ? settings.clearTimeout : clearTimeout;
+
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      let timeoutId;
+
+      function settle(callback, value) {
+        if (settled) return;
+        settled = true;
+        if (timeoutId !== undefined) {
+          cancelTimeout(timeoutId);
+          timeoutId = undefined;
+        }
+        callback(value);
+      }
+
+      timeoutId = scheduleTimeout(() => {
+        settle(reject, authError(
+          "auth/owner-profile-timeout",
+          "The owner profile verification did not resolve in time."
+        ));
+      }, timeoutMs);
+
+      Promise.resolve()
+        .then(() => profileRef.get())
+        .then(
+          snapshot => settle(resolve, snapshot),
+          cause => settle(reject, cause)
+        );
+    });
   }
 
   async function rejectSession(auth, error) {
@@ -88,7 +127,11 @@
       if (!profileRef || typeof profileRef.get !== "function") {
         throw authError("auth/dependency-unavailable", "Firestore owner profile lookup is unavailable.");
       }
-      snapshot = await profileRef.get();
+      snapshot = await waitForProfileSnapshot(profileRef, {
+        timeoutMs: settings.profileTimeoutMs,
+        setTimeout: settings.setTimeout,
+        clearTimeout: settings.clearTimeout
+      });
     } catch (cause) {
       const error = preserveAuthError(
         cause,
@@ -113,5 +156,5 @@
     });
   }
 
-  return Object.freeze({ authorizeOwnerSession, normalizeProfile });
+  return Object.freeze({ authorizeOwnerSession, normalizeProfile, waitForProfileSnapshot });
 });
