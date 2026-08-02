@@ -8,6 +8,7 @@ on:
       - owner-command-auth-bootstrap.js
       - scripts/owner-command-auth.test.js
       - scripts/owner-command-auth-bootstrap.test.js
+      - scripts/owner-command-auth-signout.test.js
       - .github/workflows/owner-command-auth-contract.yml
   push:
     branches:
@@ -17,6 +18,7 @@ on:
       - owner-command-auth-bootstrap.js
       - scripts/owner-command-auth.test.js
       - scripts/owner-command-auth-bootstrap.test.js
+      - scripts/owner-command-auth-signout.test.js
       - .github/workflows/owner-command-auth-contract.yml
   workflow_dispatch:
 
@@ -44,7 +46,11 @@ jobs:
         run: node --check scripts/owner-command-auth.test.js
       - name: Check bootstrap test syntax
         run: node --check scripts/owner-command-auth-bootstrap.test.js
+      - name: Check sign-out failure test syntax
+        run: node --check scripts/owner-command-auth-signout.test.js
       - name: Run authorization contract
         run: node scripts/owner-command-auth.test.js
       - name: Run bootstrap contract
         run: node scripts/owner-command-auth-bootstrap.test.js
+      - name: Run sign-out failure contract
+        run: node scripts/owner-command-auth-signout.test.js
