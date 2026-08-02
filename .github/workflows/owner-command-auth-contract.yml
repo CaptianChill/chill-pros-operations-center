@@ -7,6 +7,7 @@ on:
       - owner-command-auth.js
       - owner-command-auth-bootstrap.js
       - scripts/owner-command-auth.test.js
+      - scripts/owner-command-auth-result-boundary.test.js
       - scripts/owner-command-auth-bootstrap.test.js
       - scripts/owner-command-auth-bootstrap-cleanup.test.js
       - scripts/owner-command-auth-signout.test.js
@@ -23,6 +24,7 @@ on:
       - owner-command-auth.js
       - owner-command-auth-bootstrap.js
       - scripts/owner-command-auth.test.js
+      - scripts/owner-command-auth-result-boundary.test.js
       - scripts/owner-command-auth-bootstrap.test.js
       - scripts/owner-command-auth-bootstrap-cleanup.test.js
       - scripts/owner-command-auth-signout.test.js
@@ -56,6 +58,8 @@ jobs:
         run: node --check owner-command-auth-bootstrap.js
       - name: Check contract test syntax
         run: node --check scripts/owner-command-auth.test.js
+      - name: Check result-boundary test syntax
+        run: node --check scripts/owner-command-auth-result-boundary.test.js
       - name: Check bootstrap test syntax
         run: node --check scripts/owner-command-auth-bootstrap.test.js
       - name: Check bootstrap cleanup failure test syntax
@@ -74,6 +78,8 @@ jobs:
         run: node --check scripts/owner-command-auth-firestore-failures.test.js
       - name: Run authorization contract
         run: node scripts/owner-command-auth.test.js
+      - name: Run minimal result-boundary contract
+        run: node scripts/owner-command-auth-result-boundary.test.js
       - name: Run bootstrap contract
         run: node scripts/owner-command-auth-bootstrap.test.js
       - name: Run bootstrap cleanup failure contract
