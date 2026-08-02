@@ -13,6 +13,7 @@ on:
       - scripts/owner-command-auth-timer-cleanup.test.js
       - scripts/owner-command-auth-profile-accessor.test.js
       - scripts/owner-command-auth-profile-shape.test.js
+      - scripts/owner-command-auth-session-race.test.js
       - .github/workflows/owner-command-auth-contract.yml
   push:
     branches:
@@ -27,6 +28,7 @@ on:
       - scripts/owner-command-auth-timer-cleanup.test.js
       - scripts/owner-command-auth-profile-accessor.test.js
       - scripts/owner-command-auth-profile-shape.test.js
+      - scripts/owner-command-auth-session-race.test.js
       - .github/workflows/owner-command-auth-contract.yml
   workflow_dispatch:
 
@@ -64,6 +66,8 @@ jobs:
         run: node --check scripts/owner-command-auth-profile-accessor.test.js
       - name: Check profile-shape test syntax
         run: node --check scripts/owner-command-auth-profile-shape.test.js
+      - name: Check session-race test syntax
+        run: node --check scripts/owner-command-auth-session-race.test.js
       - name: Run authorization contract
         run: node scripts/owner-command-auth.test.js
       - name: Run bootstrap contract
@@ -78,3 +82,5 @@ jobs:
         run: node scripts/owner-command-auth-profile-accessor.test.js
       - name: Run strict profile-shape contract
         run: node scripts/owner-command-auth-profile-shape.test.js
+      - name: Run session-race contract
+        run: node scripts/owner-command-auth-session-race.test.js
