@@ -16,6 +16,7 @@ on:
       - scripts/owner-command-auth-profile-shape.test.js
       - scripts/owner-command-auth-session-race.test.js
       - scripts/owner-command-auth-firestore-failures.test.js
+      - scripts/owner-command-auth-late-profile.test.js
       - .github/workflows/owner-command-auth-contract.yml
   push:
     branches:
@@ -33,6 +34,7 @@ on:
       - scripts/owner-command-auth-profile-shape.test.js
       - scripts/owner-command-auth-session-race.test.js
       - scripts/owner-command-auth-firestore-failures.test.js
+      - scripts/owner-command-auth-late-profile.test.js
       - .github/workflows/owner-command-auth-contract.yml
   workflow_dispatch:
 
@@ -76,6 +78,8 @@ jobs:
         run: node --check scripts/owner-command-auth-session-race.test.js
       - name: Check Firestore failure test syntax
         run: node --check scripts/owner-command-auth-firestore-failures.test.js
+      - name: Check late profile resolution test syntax
+        run: node --check scripts/owner-command-auth-late-profile.test.js
       - name: Run authorization contract
         run: node scripts/owner-command-auth.test.js
       - name: Run minimal result-boundary contract
@@ -96,3 +100,5 @@ jobs:
         run: node scripts/owner-command-auth-session-race.test.js
       - name: Run Firestore failure contract
         run: node scripts/owner-command-auth-firestore-failures.test.js
+      - name: Run late profile resolution contract
+        run: node scripts/owner-command-auth-late-profile.test.js
