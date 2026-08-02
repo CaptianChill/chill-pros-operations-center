@@ -120,6 +120,9 @@
         const session = await authorizationApi.authorizeOwnerSession({
           auth,
           firestore,
+          profileTimeoutMs: settings.profileTimeoutMs,
+          setTimeout: settings.setTimeout,
+          clearTimeout: settings.clearTimeout,
           waitForAuthState(currentAuth) {
             return authStateResolver(currentAuth, authStateOptions);
           }
