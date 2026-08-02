@@ -14,6 +14,12 @@
     return error;
   }
 
+  function reportCleanupFailure(error) {
+    if (typeof console !== "undefined" && typeof console.error === "function") {
+      console.error("Owner Command Center auth-state cleanup failed.", error);
+    }
+  }
+
   function waitForAuthState(auth, options) {
     return new Promise((resolve, reject) => {
       if (!auth || typeof auth.onAuthStateChanged !== "function") {
@@ -34,14 +40,23 @@
 
       function cleanup() {
         if (timeoutId !== undefined) {
-          cancelTimeout(timeoutId);
+          const timerToCancel = timeoutId;
           timeoutId = undefined;
+          try {
+            cancelTimeout(timerToCancel);
+          } catch (error) {
+            reportCleanupFailure(error);
+          }
         }
         if (typeof unsubscribe === "function") {
           const release = unsubscribe;
           unsubscribe = null;
           cleanupPending = false;
-          release();
+          try {
+            release();
+          } catch (error) {
+            reportCleanupFailure(error);
+          }
           return;
         }
         cleanupPending = true;
