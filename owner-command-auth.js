@@ -30,6 +30,12 @@
     return authError(fallbackCode, fallbackMessage, cause);
   }
 
+  function reportTimerCleanupFailure(error) {
+    if (typeof console !== "undefined" && typeof console.error === "function") {
+      console.error("Owner Command Center profile timer cleanup failed.", error);
+    }
+  }
+
   function normalizeProfile(snapshot) {
     if (!snapshot || typeof snapshot.exists !== "boolean" || !snapshot.exists) {
       throw authError("auth/owner-profile-missing", "The signed-in account has no authoritative owner profile.");
@@ -60,8 +66,13 @@
         if (settled) return;
         settled = true;
         if (timeoutId !== undefined) {
-          cancelTimeout(timeoutId);
+          const timerToCancel = timeoutId;
           timeoutId = undefined;
+          try {
+            cancelTimeout(timerToCancel);
+          } catch (error) {
+            reportTimerCleanupFailure(error);
+          }
         }
         callback(value);
       }
