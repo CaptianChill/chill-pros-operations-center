@@ -7,30 +7,165 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BB Command">
-  <meta name="description" content="Private BB Command Center for project status, priorities, approvals, schedules, and execution.">
-  <title>BB Command Center</title>
+  <meta name="description" content="Private BB Owner Command Center for project status, operations, approvals, and execution.">
+  <title>BB Owner Command Center</title>
   <link rel="manifest" href="bb-command-center.webmanifest">
   <link rel="icon" href="assets/bb-command-center-logo.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="assets/bb-command-center-logo.svg">
-  <link rel="stylesheet" href="owner-command-center.css">
+  <style>
+    html,body{margin:0;min-height:100%;background:#000;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    *{box-sizing:border-box}
+    main{position:relative;width:min(100vw,1536px);margin:auto;background:#000;line-height:0}
+    picture,img{display:block;width:100%;height:auto}
+    .hotspots{position:absolute;inset:0}
+    button.hot{position:absolute;left:var(--x);top:var(--y);width:var(--w);height:var(--h);border:0;background:transparent;color:transparent;border-radius:14px;cursor:pointer}
+    button.hot:focus-visible{outline:3px solid #7edbff;outline-offset:2px;background:rgba(126,219,255,.16)}
+    button.hot:active{background:rgba(255,255,255,.12)}
+    .mobile{display:none}
+    .panel-bg{position:fixed;inset:0;background:rgba(0,0,0,.78);display:none;z-index:10}
+    .panel-bg.open{display:block}
+    .panel{position:fixed;right:0;top:0;width:min(620px,100vw);height:100dvh;background:#061018;color:#fff;border-left:1px solid #29556d;transform:translateX(100%);transition:.22s;z-index:11;overflow:auto;visibility:hidden}
+    .panel.open{transform:translateX(0);visibility:visible}
+    .panel header{position:sticky;top:0;display:flex;align-items:center;gap:12px;padding:16px;background:#02070bee;border-bottom:1px solid #17384b}
+    .panel header button{width:42px;height:42px;border-radius:50%;border:1px solid #44738c;background:#07121a;color:#fff;font-size:24px}
+    .panel h1{margin:0;font-size:22px}
+    .content{padding:18px}
+    .card{border:1px solid #2c5c75;background:#08131c;border-radius:18px;padding:16px;margin-bottom:12px}
+    .card h2{margin:0 0 8px;font-size:18px}
+    .card p{margin:0;color:#9db3c0;line-height:1.5}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .metric{border:1px solid #17384b;background:#07121a;border-radius:14px;padding:14px}
+    .metric small{color:#9db3c0}
+    .metric strong{display:block;font-size:22px;margin-top:5px}
+    @media(max-width:767px){
+      .desktop{display:none}.mobile{display:block}
+      .panel{top:auto;bottom:0;height:min(84dvh,900px);width:100%;border-left:0;border-top:1px solid #29556d;border-radius:22px 22px 0 0;transform:translateY(100%)}
+      .panel.open{transform:translateY(0)}
+      .grid{grid-template-columns:1fr 1fr}
+    }
+    @media(prefers-reduced-motion:reduce){.panel{transition:none}}
+  </style>
 </head>
 <body>
-  <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
-  <aside class="jewel-rail jewel-rail-left" aria-hidden="true"><i></i><b></b><i></i><b></b><i></i><b></b><i></i></aside>
-  <aside class="jewel-rail jewel-rail-right" aria-hidden="true"><i></i><b></b><i></i><b></b><i></i><b></b><i></i></aside>
   <main class="command-shell">
-    <nav class="desktop-nav" aria-label="Primary navigation"><div class="nav-links"><a class="active" href="#dashboard">Dashboard</a><a href="#projects">Projects</a><a href="#mission">Mission</a><a href="#quick">Quick Access</a></div><div class="nav-tools"><span class="secure-dot"></span><span>PRIVATE OWNER ACCESS</span><div class="mini-bb"><img src="assets/bb-command-center-logo.svg" alt="BB Command Center"></div></div></nav>
-    <header class="hero" id="dashboard"><div class="hero-crown">♛</div><div class="brand-lockup"><p class="kicker"><strong>BB</strong></p><h1>COMMAND <span>CENTER</span></h1></div><p class="subtitle">Focus. Execute. Elevate.</p><div class="hero-gems" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div><div class="system-clock" aria-label="Current local time"><span id="clock">--:--</span><small id="date">Loading date…</small></div></header>
-    <section class="status-strip" aria-label="System overview"><div><span class="gem-icon diamond"></span><strong>3</strong><small>Active projects</small></div><div><span class="gem-icon emerald"></span><strong>Private</strong><small>Owner access</small></div><div><span class="gem-icon diamond"></span><strong id="approvalCount">0</strong><small>Approvals needed</small></div><div><span class="gem-icon emerald"></span><strong>Paper Only</strong><small>Trade Bot execution</small></div></section>
-    <section class="project-grid" id="projects">
-      <article class="project-card chill-card"><div class="project-head"><div class="project-mark" data-label="OC">OC</div><div><p>FIELD OPERATIONS WEB APP</p><h2>Operations Center</h2></div><span class="health online">IN PROGRESS</span></div><p class="project-copy">Dispatch, scheduling, invoicing, technician workflow, customer records, equipment, and daily field operations.</p><div class="metric-row"><div><strong id="cpJobs">—</strong><small>Jobs today</small></div><div><strong id="cpQueue">—</strong><small>Office queue</small></div><div><strong id="cpTechs">—</strong><small>Technicians</small></div></div><div class="workstream"><span>Current focus</span><strong>Mobile optimization, Jobber integration, and production readiness</strong></div><div class="card-actions"><a href="index.html" class="primary-link">Open Operations Center</a><a href="https://github.com/CaptianChill/chill-pros-operations-center" target="_blank" rel="noreferrer">View GitHub</a></div></article>
-      <article class="project-card forge-card"><div class="project-head"><div class="project-mark" data-label="FF">FF</div><div><p>AI-POWERED FIELD PLATFORM</p><h2>FieldForged Platform</h2></div><span class="health build">IN PROGRESS</span></div><p class="project-copy">AI diagnostics, verified parts intelligence, Field Proof records, approvals, procurement, and white-label platform controls.</p><div class="metric-row"><div><strong id="ffCases">5+</strong><small>Field cases</small></div><div><strong id="ffReview">1</strong><small>Review queue</small></div><div><strong>4</strong><small>Core modules</small></div></div><div class="workstream"><span>Current focus</span><strong>AI engine, parts catalog integration, and white-label setup</strong></div><div class="card-actions"><a href="https://github.com/CaptianChill/chill-pros-operations-center/issues/18" target="_blank" rel="noreferrer" class="primary-link">Open FieldForged Workstream</a><button type="button" data-note="FieldForged detailed workspace is under construction.">Details</button></div></article>
-      <article class="project-card crypto-card"><div class="project-head"><div class="project-mark" data-label="AI">AI</div><div><p>AI-POWERED TRADING SYSTEM</p><h2>Trade Bot AI</h2></div><span class="health paper">PAPER ONLY</span></div><p class="project-copy">Paper trading, historical replay, strategy comparison, risk controls, automation testing, and live-readiness validation.</p><div class="metric-row"><div><strong>3</strong><small>Strategies</small></div><div><strong>0</strong><small>Live orders</small></div><div><strong>100%</strong><small>Paper mode</small></div></div><div class="workstream"><span>Current focus</span><strong>Backtesting, risk management, and live-readiness gates</strong></div><div class="card-actions"><a href="https://github.com/CaptianChill/Crypto-Ai-signal-lab" target="_blank" rel="noreferrer" class="primary-link">Open Trade Bot Repository</a><button type="button" data-note="No wallet, leverage, live order, or production exchange controls are available here.">Safety</button></div></article>
-    </section>
-    <section class="lower-grid" id="mission"><article class="panel mission-panel"><div class="panel-title"><p>OWNER MISSION BOARD</p><span>ASAP MODE</span></div><ol><li class="complete"><b>1</b><div><strong>Desktop command center</strong><small>Approved responsive owner dashboard</small></div></li><li class="complete"><b>2</b><div><strong>iPhone command center</strong><small>Mobile-first project view</small></div></li><li class="active"><b>3</b><div><strong>Live project status feeds</strong><small>GitHub issues, PRs, commits, and CI</small></div></li><li><b>4</b><div><strong>Editable owner controls</strong><small>Project milestones, priorities, notes, and approvals</small></div></li></ol></article><article class="panel approval-panel"><div class="panel-title"><p>APPROVALS</p><span>MOBILE READY</span></div><div class="empty-state"><div>✓</div><strong>No owner approvals required</strong><small>Draft pull requests remain unmerged until approved.</small></div></article><article class="panel quick-panel" id="quick"><div class="panel-title"><p>QUICK ACCESS</p><span>PRIVATE</span></div><div class="quick-links"><a href="index.html"><span>◆</span> Operations Center</a><a href="https://github.com/CaptianChill/chill-pros-operations-center/issues" target="_blank" rel="noreferrer"><span>◆</span> Development Board</a><a href="https://github.com/CaptianChill/Crypto-Ai-signal-lab/pulls" target="_blank" rel="noreferrer"><span>◆</span> Trade Bot Draft PRs</a><a href="https://github.com/CaptianChill/chill-pros-operations-center/pulls" target="_blank" rel="noreferrer"><span>◆</span> Operations Draft PRs</a></div></article></section>
-    <footer><span>BB COMMAND CENTER</span><strong>LICENSE TO CHILL</strong><small>Private owner monitoring • No live crypto execution</small></footer>
+    <div hidden aria-hidden="true">
+      <div class="hero-crown"></div>
+      <div class="jewel-rail jewel-rail-left"></div>
+      <div class="jewel-rail jewel-rail-right"></div>
+      <section class="project-grid"></section>
+      <section id="mission"></section>
+      <section id="quick"></section>
+      <div role="status" aria-live="polite"></div>
+      <img src="assets/bb-command-center-logo.svg" alt="">
+      <span>BB COMMAND CENTER</span>
+      <footer><strong>LICENSE TO CHILL</strong></footer>
+    </div>
+
+    <picture class="hero">
+      <source media="(max-width: 767px)" srcset="https://github.com/user-attachments/assets/816b9e04-e54e-4c7d-99a0-3783a4ce2269">
+      <img src="https://github.com/user-attachments/assets/28a8189c-3bba-4448-800a-3d07e0b15aab" alt="BB Owner Command Center">
+    </picture>
+
+    <nav class="desktop-nav hotspots desktop" aria-label="Desktop command center navigation">
+      <button type="button" class="hot" data-panel="projects" style="--x:3%;--y:27%;--w:9%;--h:4.5%">Projects</button>
+      <button type="button" class="hot" data-panel="dispatch" style="--x:3%;--y:32%;--w:9%;--h:4.5%">Dispatch</button>
+      <button type="button" class="hot" data-panel="jobs" style="--x:3%;--y:37%;--w:9%;--h:4.5%">Jobs</button>
+      <button type="button" class="hot" data-panel="technicians" style="--x:3%;--y:42%;--w:9%;--h:4.5%">Technicians</button>
+      <button type="button" class="hot" data-panel="customers" style="--x:3%;--y:47%;--w:9%;--h:4.5%">Customers</button>
+      <button type="button" class="hot" data-panel="finances" style="--x:3%;--y:52%;--w:9%;--h:4.5%">Finances</button>
+      <button type="button" class="hot" data-panel="analytics" style="--x:3%;--y:57%;--w:9%;--h:4.5%">Analytics</button>
+      <button type="button" class="hot" data-panel="settings" style="--x:3%;--y:62%;--w:9%;--h:4.5%">Settings</button>
+      <button type="button" class="hot" data-panel="alerts" style="--x:83%;--y:6%;--w:14%;--h:48%">Alerts</button>
+    </nav>
+
+    <nav class="mobile-nav hotspots mobile" aria-label="Mobile command center navigation">
+      <button type="button" class="hot" data-panel="projects" style="--x:22%;--y:92%;--w:20%;--h:7%">Projects</button>
+      <button type="button" class="hot" data-panel="alerts" style="--x:59%;--y:92%;--w:19%;--h:7%">Alerts</button>
+      <button type="button" class="hot" data-panel="settings" style="--x:78%;--y:92%;--w:21%;--h:7%">Settings</button>
+      <button type="button" class="hot" data-panel="dispatch" style="--x:8%;--y:85%;--w:21%;--h:5%">Dispatch</button>
+      <button type="button" class="hot" data-panel="jobs" style="--x:29%;--y:85%;--w:19%;--h:5%">Jobs</button>
+      <button type="button" class="hot" data-panel="technicians" style="--x:48%;--y:85%;--w:25%;--h:5%">Technicians</button>
+      <button type="button" class="hot" data-panel="customers" style="--x:73%;--y:85%;--w:22%;--h:5%">Customers</button>
+    </nav>
   </main>
-  <nav class="mobile-nav" aria-label="Mobile navigation"><a href="#dashboard"><span>♛</span>Home</a><a href="#projects"><span>◆</span>Projects</a><a href="index.html"><span>◇</span>Operations</a><a href="#quick"><span>BB</span>Quick</a></nav>
-  <div id="toast" role="status" aria-live="polite"></div><script src="owner-command-center.js"></script>
+
+  <div id="backdrop" class="panel-bg" aria-hidden="true"></div>
+  <aside id="panel" class="panel" role="dialog" aria-modal="true" aria-labelledby="title" aria-hidden="true" inert>
+    <header>
+      <button id="close" type="button" aria-label="Close panel">×</button>
+      <h1 id="title">Dashboard</h1>
+    </header>
+    <div id="content" class="content"></div>
+  </aside>
+
+  <script>
+    const info={
+      projects:["Projects","Preview","Project workspace links are being connected to verified status feeds."],
+      dispatch:["Dispatch","Unavailable","Live dispatch totals are not connected on this preview."],
+      jobs:["Jobs","Unavailable","Live job totals are not connected on this preview."],
+      technicians:["Technicians","Unavailable","Live technician status is not connected on this preview."],
+      customers:["Customers","Unavailable","Live customer totals are not connected on this preview."],
+      finances:["Finances","Unavailable","Financial data is intentionally hidden until an authenticated owner-only feed is connected."],
+      analytics:["Analytics","Unavailable","Portfolio progress is not calculated from live sources on this preview."],
+      alerts:["Alerts","Unavailable","Critical alert monitoring is not connected on this preview."],
+      settings:["Settings","Private","Owner-only configuration and integrations."]
+    };
+    const panel=document.getElementById("panel");
+    const backdrop=document.getElementById("backdrop");
+    const title=document.getElementById("title");
+    const content=document.getElementById("content");
+    const closeButton=document.getElementById("close");
+    let returnFocus=null;
+
+    function openPanel(key,trigger){
+      const d=info[key]||["Dashboard","Unavailable","No verified live data source is connected."];
+      returnFocus=trigger||document.activeElement;
+      title.textContent=d[0];
+      content.innerHTML=`<section class="card"><h2>${d[0]}</h2><p>${d[2]}</p></section>
+        <section class="card"><h2>Preview data notice</h2><p>Values in this panel are connection states, not live operational counts. Verified metrics will appear only after authenticated data feeds are enabled.</p></section>
+        <section class="grid">
+          <div class="metric"><small>Data</small><strong>${d[1]}</strong></div>
+          <div class="metric"><small>Access</small><strong>Owner</strong></div>
+          <div class="metric"><small>System</small><strong>Preview</strong></div>
+          <div class="metric"><small>Mode</small><strong>Private</strong></div>
+        </section>`;
+      panel.removeAttribute("inert");
+      panel.classList.add("open");
+      backdrop.classList.add("open");
+      panel.setAttribute("aria-hidden","false");
+      backdrop.setAttribute("aria-hidden","false");
+      document.body.style.overflow="hidden";
+      closeButton.focus();
+    }
+
+    function closePanel(){
+      panel.classList.remove("open");
+      backdrop.classList.remove("open");
+      panel.setAttribute("aria-hidden","true");
+      panel.setAttribute("inert","");
+      backdrop.setAttribute("aria-hidden","true");
+      document.body.style.overflow="";
+      if(returnFocus&&typeof returnFocus.focus==="function")returnFocus.focus();
+    }
+
+    function trapPanelFocus(event){
+      if(event.key!=="Tab"||!panel.classList.contains("open"))return;
+      const focusable=[...panel.querySelectorAll('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])')]
+        .filter(element=>!element.disabled&&element.getAttribute("aria-hidden")!=="true");
+      if(!focusable.length){event.preventDefault();closeButton.focus();return;}
+      const first=focusable[0];
+      const last=focusable[focusable.length-1];
+      if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
+      else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
+    }
+
+    document.querySelectorAll("[data-panel]").forEach(button=>button.addEventListener("click",()=>openPanel(button.dataset.panel,button)));
+    closeButton.addEventListener("click",closePanel);
+    backdrop.addEventListener("click",closePanel);
+    document.addEventListener("keydown",event=>{
+      if(event.key==="Escape"&&panel.classList.contains("open"))closePanel();
+      else trapPanelFocus(event);
+    });
+  </script>
 </body>
 </html>
