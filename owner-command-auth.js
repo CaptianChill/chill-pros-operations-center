@@ -40,7 +40,18 @@
     if (!snapshot || typeof snapshot.exists !== "boolean" || !snapshot.exists) {
       throw authError("auth/owner-profile-missing", "The signed-in account has no authoritative owner profile.");
     }
-    const data = typeof snapshot.data === "function" ? snapshot.data() : null;
+
+    let data;
+    try {
+      data = typeof snapshot.data === "function" ? snapshot.data() : null;
+    } catch (cause) {
+      throw authError(
+        "auth/owner-profile-invalid",
+        "The owner profile is malformed.",
+        cause
+      );
+    }
+
     if (!data || typeof data !== "object" || Array.isArray(data)) {
       throw authError("auth/owner-profile-invalid", "The owner profile is malformed.");
     }
