@@ -197,8 +197,7 @@
     return Object.freeze({
       authorized: true,
       uid: user.uid,
-      role: profile.role,
-      user
+      role: profile.role
     });
   }
 
