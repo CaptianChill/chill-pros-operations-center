@@ -70,6 +70,14 @@ async function testProfileTimeoutCleanup() {
 
 (async function run() {
   assert.deepEqual(normalizeProfile(makeSnapshot({ role: "owner" })), { role: "owner" });
+  const nullPrototypeOwner = Object.create(null);
+  nullPrototypeOwner.role = "owner";
+  assert.deepEqual(normalizeProfile(makeSnapshot(nullPrototypeOwner)), { role: "owner" });
+  const inheritedOwner = Object.create({ role: "owner" });
+  assert.throws(
+    () => normalizeProfile(makeSnapshot(inheritedOwner)),
+    error => error.code === "auth/not-owner-account"
+  );
   assert.throws(() => normalizeProfile(makeSnapshot(null, false)), error => error.code === "auth/owner-profile-missing");
   assert.throws(() => normalizeProfile(makeSnapshot({ role: "office" })), error => error.code === "auth/not-owner-account");
 
