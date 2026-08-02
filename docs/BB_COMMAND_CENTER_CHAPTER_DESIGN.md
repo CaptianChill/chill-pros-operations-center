@@ -22,6 +22,19 @@ Every chapter uses the same world and identity as the approved cover:
 
 Do not substitute a photorealistic, semi-realistic, or differently proportioned character. Do not generate a new interpretation and treat it as approved.
 
+## Canonical owner-character lock
+
+The owner approved one illustrated character reference as the permanent likeness standard for every chapter. Future artwork must preserve that reference's:
+
+- facial structure, face shape, eyebrows, nose, smile, beard/goatee, ears, and skin tone;
+- large rounded afro silhouette, density, hairline, and warm rim-light treatment;
+- black rectangular sunglasses and diamond stud earrings;
+- wide, highly detailed diamond grill with individually readable stones;
+- layered diamond chains, rings, bracelets, watch, and Chill Pros pendant with strong controlled sparkle;
+- energetic cartoon/anime proportions and confident expression.
+
+The approved chapter scene may change clothing, pose, room, tools, and supporting characters, but it must not reinterpret the owner's face or hair. A close-enough replacement is not acceptable. Production chapter art remains gated until the final asset visibly matches the canonical reference.
+
 ## Story sequence
 
 The pages should read as chapters in one continuous story:
@@ -65,17 +78,50 @@ The first production increment should support safe unavailable states before aut
 
 No preview number may be presented as a live operational count. Cards must visibly distinguish `Live`, `Stale`, `Unavailable`, and `Preview` states.
 
-## Asset gate
+## Technicians chapter — approved composition
 
-The Jobs chapter hero cannot be considered visually complete until the owner supplies or approves a Jobs illustration using the exact existing cartoon character. Until then, development may implement only the chapter shell, responsive layout, accessibility, navigation, state contracts, and artwork slot.
+The landscape Technicians / Field Command draft is approved as the composition and information architecture baseline, subject to one required art correction: replace the central owner's face and hair with the canonical owner-character likeness without changing the surrounding scene or dashboard.
+
+### Approved scene
+
+- full-width command hangar with Chill Pros vans, technicians, tools, cylinders, and a live San Antonio technician map;
+- owner centered as team leader, standing behind or beside a technician and directing field operations;
+- jeweled `COMMAND CENTER` title with `TECHNICIANS` subtitle;
+- `LICENSED TO CHILL` environmental sign inside the hangar;
+- black glass, chrome, diamond, emerald, and cyan visual system matching the Jobs chapter;
+- desktop landscape composition first, followed by a dedicated upright mobile composition using the same scene and data hierarchy.
+
+### Approved functional hierarchy
+
+- Technicians Online and availability states
+- Live Technician Map and route optimization
+- Technician Performance
+- Time Clock
+- Certifications
+- Live Locations
+- Equipment Status
+- Today's Scheduled Maintenance
+- persistent chapter navigation and alert state
+
+### Required correction before production use
+
+- Copy the canonical owner's facial structure, afro, sunglasses, smile, grill, beard, skin tone, and jewelry treatment into the approved Technicians composition.
+- Do not alter the vans, supporting technicians, module arrangement, copy hierarchy, title treatment, diamond border, or overall hangar composition while correcting the owner likeness.
+- The current draft is an approved layout reference, not yet the final production asset.
+
+## Asset gates
+
+- The Jobs chapter hero cannot be considered visually complete until the owner supplies or approves a Jobs illustration using the canonical character.
+- The Technicians chapter cannot be considered visually complete until the approved draft receives the canonical face-and-hair correction.
+- Until each asset gate clears, development may implement the chapter shell, responsive layout, accessibility, navigation, state contracts, and artwork slot, but must not ship substitute character art.
 
 ## Acceptance criteria
 
 - The Command Center cover is byte-for-byte or visually unchanged except for safe navigation hooks.
-- Jobs opens as a full-screen branded chapter on iPhone and desktop, not as the current generic sheet.
+- Jobs and Technicians open as full-screen branded chapters on iPhone and desktop, not as generic sheets.
 - Back navigation returns to the cover and restores keyboard focus.
-- The chapter title matches the approved desktop title branding.
-- The approved character asset is used without redrawing or reinterpretation.
+- Chapter titles match the approved desktop title branding.
+- The canonical owner character is used without redrawing or reinterpretation.
 - Missing live feeds remain explicit and fail closed.
 - Reduced motion, keyboard navigation, screen-reader labels, and iPhone safe areas remain supported.
 - PR remains draft and is not merged without explicit owner approval and device-level visual review.
