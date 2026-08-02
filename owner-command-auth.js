@@ -93,6 +93,15 @@
     throw error;
   }
 
+  function sessionMatches(auth, uid) {
+    const currentUser = auth && auth.currentUser;
+    return Boolean(
+      currentUser &&
+      typeof currentUser.uid === "string" &&
+      currentUser.uid === uid
+    );
+  }
+
   async function authorizeOwnerSession(options) {
     const settings = options && typeof options === "object" ? options : {};
     const auth = settings.auth;
@@ -116,6 +125,13 @@
 
     if (!user || typeof user.uid !== "string" || !user.uid.trim()) {
       throw authError("auth/signed-out", "Sign in with the owner account to continue.");
+    }
+
+    if (!sessionMatches(auth, user.uid)) {
+      return rejectSession(auth, authError(
+        "auth/session-changed",
+        "The authenticated account changed before owner access could be verified. Sign in again."
+      ));
     }
 
     let snapshot;
@@ -149,8 +165,7 @@
       return rejectSession(auth, error);
     }
 
-    const currentUser = auth.currentUser;
-    if (!currentUser || typeof currentUser.uid !== "string" || currentUser.uid !== user.uid) {
+    if (!sessionMatches(auth, user.uid)) {
       return rejectSession(auth, authError(
         "auth/session-changed",
         "The authenticated account changed while owner access was being verified. Sign in again."
