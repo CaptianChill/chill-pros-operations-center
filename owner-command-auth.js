@@ -148,6 +148,14 @@
       return rejectSession(auth, error);
     }
 
+    const currentUser = auth.currentUser;
+    if (!currentUser || typeof currentUser.uid !== "string" || currentUser.uid !== user.uid) {
+      return rejectSession(auth, authError(
+        "auth/session-changed",
+        "The authenticated account changed while owner access was being verified. Sign in again."
+      ));
+    }
+
     return Object.freeze({
       authorized: true,
       uid: user.uid,
