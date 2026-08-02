@@ -7,6 +7,7 @@
 
   const OWNER_ROLE = "owner";
   const DEFAULT_PROFILE_TIMEOUT_MS = 10000;
+  const hasOwn = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
 
   function authError(code, message, cause) {
     const error = new Error(message);
@@ -37,7 +38,7 @@
     if (!data || typeof data !== "object" || Array.isArray(data)) {
       throw authError("auth/owner-profile-invalid", "The owner profile is malformed.");
     }
-    if (data.role !== OWNER_ROLE) {
+    if (!hasOwn(data, "role") || data.role !== OWNER_ROLE) {
       throw authError("auth/not-owner-account", "This account is not authorized for the Owner Command Center.");
     }
     return Object.freeze({ role: OWNER_ROLE });
