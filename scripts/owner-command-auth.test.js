@@ -102,13 +102,44 @@ async function testProfileTimeoutCleanup() {
   assert.equal(signOutCalls, 0);
   assert.ok(Object.isFrozen(accepted));
 
+  let staleProfileLookups = 0;
   auth.currentUser = { uid: "different-uid" };
   await expectCode(authorizeOwnerSession({
     auth,
-    firestore: makeFirestore(makeSnapshot({ role: "owner" })),
+    firestore: {
+      collection() {
+        staleProfileLookups += 1;
+        return { doc() { return { get: async () => makeSnapshot({ role: "owner" }) }; } };
+      }
+    },
     waitForAuthState: waitForOwner
   }), "auth/session-changed");
-  assert.equal(signOutCalls, 1, "account changes during verification must be signed out");
+  assert.equal(staleProfileLookups, 0, "stale sessions must be rejected before profile lookup");
+  assert.equal(signOutCalls, 1, "pre-verification account changes must be signed out");
+
+  auth.currentUser = owner;
+  const changingFirestore = {
+    collection(name) {
+      assert.equal(name, "Users");
+      return {
+        doc(uid) {
+          assert.equal(uid, "owner-uid");
+          return {
+            async get() {
+              auth.currentUser = { uid: "different-uid" };
+              return makeSnapshot({ role: "owner" });
+            }
+          };
+        }
+      };
+    }
+  };
+  await expectCode(authorizeOwnerSession({
+    auth,
+    firestore: changingFirestore,
+    waitForAuthState: waitForOwner
+  }), "auth/session-changed");
+  assert.equal(signOutCalls, 2, "account changes during verification must be signed out");
   auth.currentUser = owner;
 
   await expectCode(authorizeOwnerSession({
@@ -116,14 +147,14 @@ async function testProfileTimeoutCleanup() {
     firestore: makeFirestore(makeSnapshot({ role: "technician", technicianName: "Tech" })),
     waitForAuthState: waitForOwner
   }), "auth/not-owner-account");
-  assert.equal(signOutCalls, 2, "wrong-role accounts must be signed out");
+  assert.equal(signOutCalls, 3, "wrong-role accounts must be signed out");
 
   await expectCode(authorizeOwnerSession({
     auth,
     firestore: makeFirestore(makeSnapshot(null, false)),
     waitForAuthState: waitForOwner
   }), "auth/owner-profile-missing");
-  assert.equal(signOutCalls, 3, "missing profiles must be signed out");
+  assert.equal(signOutCalls, 4, "missing profiles must be signed out");
 
   const permissionDenied = Object.assign(new Error("denied"), { code: "permission-denied" });
   await expectCode(authorizeOwnerSession({
@@ -131,7 +162,7 @@ async function testProfileTimeoutCleanup() {
     firestore: makeFirestore(null, permissionDenied),
     waitForAuthState: waitForOwner
   }), "auth/owner-profile-unavailable");
-  assert.equal(signOutCalls, 4, "profile lookup failures must be signed out");
+  assert.equal(signOutCalls, 5, "profile lookup failures must be signed out");
 
   let timeoutCallback;
   const hangingFirestore = {
@@ -159,14 +190,14 @@ async function testProfileTimeoutCleanup() {
     }
   }), "auth/owner-profile-timeout");
   assert.equal(typeof timeoutCallback, "function");
-  assert.equal(signOutCalls, 5, "profile timeout must sign out the unresolved session");
+  assert.equal(signOutCalls, 6, "profile timeout must sign out the unresolved session");
 
   await expectCode(authorizeOwnerSession({
     auth,
     firestore: makeFirestore(makeSnapshot({ role: "owner" })),
     waitForAuthState: async () => null
   }), "auth/signed-out");
-  assert.equal(signOutCalls, 5, "signed-out state must not call signOut again");
+  assert.equal(signOutCalls, 6, "signed-out state must not call signOut again");
 
   const timeout = Object.assign(new Error("timed out"), { code: "auth/session-timeout" });
   await expectCode(authorizeOwnerSession({
@@ -174,16 +205,16 @@ async function testProfileTimeoutCleanup() {
     firestore: makeFirestore(makeSnapshot({ role: "owner" })),
     waitForAuthState: async () => { throw timeout; }
   }), "auth/session-timeout");
-  assert.equal(signOutCalls, 5, "session resolution failures must not call signOut");
+  assert.equal(signOutCalls, 6, "session resolution failures must not call signOut");
 
   await expectCode(authorizeOwnerSession({
     auth,
     firestore: makeFirestore(makeSnapshot({ role: "owner" })),
     waitForAuthState: async () => { throw new Error("listener failed"); }
   }), "auth/session-unavailable");
-  assert.equal(signOutCalls, 5, "generic session failures must not call signOut");
+  assert.equal(signOutCalls, 6, "generic session failures must not call signOut");
 
-  await expectCode(authorizeOwnerSession({ auth: {}, firestore: {}, waitForAuthState: async () => owner }), "auth/dependency-unavailable");
+  await expectCode(authorizeOwnerSession({ auth: { currentUser: owner }, firestore: {}, waitForAuthState: async () => owner }), "auth/dependency-unavailable");
   await expectCode(authorizeOwnerSession({ auth, firestore: makeFirestore(makeSnapshot({ role: "owner" })) }), "auth/dependency-unavailable");
 
   console.log("Owner Command Center authorization boundary tests passed.");
