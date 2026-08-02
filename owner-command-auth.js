@@ -55,7 +55,19 @@
     if (!data || typeof data !== "object" || Array.isArray(data)) {
       throw authError("auth/owner-profile-invalid", "The owner profile is malformed.");
     }
-    if (!hasOwn(data, "role") || data.role !== OWNER_ROLE) {
+
+    let role;
+    try {
+      role = hasOwn(data, "role") ? data.role : undefined;
+    } catch (cause) {
+      throw authError(
+        "auth/owner-profile-invalid",
+        "The owner profile is malformed.",
+        cause
+      );
+    }
+
+    if (role !== OWNER_ROLE) {
       throw authError("auth/not-owner-account", "This account is not authorized for the Owner Command Center.");
     }
     return Object.freeze({ role: OWNER_ROLE });
