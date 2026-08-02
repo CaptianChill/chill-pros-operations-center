@@ -14,6 +14,7 @@ on:
       - scripts/owner-command-auth-timer-cleanup.test.js
       - scripts/owner-command-auth-profile-accessor.test.js
       - scripts/owner-command-auth-profile-shape.test.js
+      - scripts/owner-command-auth-uid-shape.test.js
       - scripts/owner-command-auth-session-race.test.js
       - scripts/owner-command-auth-firestore-failures.test.js
       - scripts/owner-command-auth-late-profile.test.js
@@ -32,6 +33,7 @@ on:
       - scripts/owner-command-auth-timer-cleanup.test.js
       - scripts/owner-command-auth-profile-accessor.test.js
       - scripts/owner-command-auth-profile-shape.test.js
+      - scripts/owner-command-auth-uid-shape.test.js
       - scripts/owner-command-auth-session-race.test.js
       - scripts/owner-command-auth-firestore-failures.test.js
       - scripts/owner-command-auth-late-profile.test.js
@@ -74,6 +76,8 @@ jobs:
         run: node --check scripts/owner-command-auth-profile-accessor.test.js
       - name: Check profile-shape test syntax
         run: node --check scripts/owner-command-auth-profile-shape.test.js
+      - name: Check UID-shape test syntax
+        run: node --check scripts/owner-command-auth-uid-shape.test.js
       - name: Check session-race test syntax
         run: node --check scripts/owner-command-auth-session-race.test.js
       - name: Check Firestore failure test syntax
@@ -96,6 +100,8 @@ jobs:
         run: node scripts/owner-command-auth-profile-accessor.test.js
       - name: Run strict profile-shape contract
         run: node scripts/owner-command-auth-profile-shape.test.js
+      - name: Run strict UID-shape contract
+        run: node scripts/owner-command-auth-uid-shape.test.js
       - name: Run session-race contract
         run: node scripts/owner-command-auth-session-race.test.js
       - name: Run Firestore failure contract
