@@ -14,6 +14,7 @@ on:
       - scripts/owner-command-auth-timer-cleanup.test.js
       - scripts/owner-command-auth-timer-scheduler.test.js
       - scripts/owner-command-auth-profile-accessor.test.js
+      - scripts/owner-command-auth-role-accessor.test.js
       - scripts/owner-command-auth-profile-shape.test.js
       - scripts/owner-command-auth-uid-shape.test.js
       - scripts/owner-command-auth-session-race.test.js
@@ -34,6 +35,7 @@ on:
       - scripts/owner-command-auth-timer-cleanup.test.js
       - scripts/owner-command-auth-timer-scheduler.test.js
       - scripts/owner-command-auth-profile-accessor.test.js
+      - scripts/owner-command-auth-role-accessor.test.js
       - scripts/owner-command-auth-profile-shape.test.js
       - scripts/owner-command-auth-uid-shape.test.js
       - scripts/owner-command-auth-session-race.test.js
@@ -78,6 +80,8 @@ jobs:
         run: node --check scripts/owner-command-auth-timer-scheduler.test.js
       - name: Check profile accessor failure test syntax
         run: node --check scripts/owner-command-auth-profile-accessor.test.js
+      - name: Check role accessor failure test syntax
+        run: node --check scripts/owner-command-auth-role-accessor.test.js
       - name: Check profile-shape test syntax
         run: node --check scripts/owner-command-auth-profile-shape.test.js
       - name: Check UID-shape test syntax
@@ -104,6 +108,8 @@ jobs:
         run: node scripts/owner-command-auth-timer-scheduler.test.js
       - name: Run profile accessor failure contract
         run: node scripts/owner-command-auth-profile-accessor.test.js
+      - name: Run role accessor failure contract
+        run: node scripts/owner-command-auth-role-accessor.test.js
       - name: Run strict profile-shape contract
         run: node scripts/owner-command-auth-profile-shape.test.js
       - name: Run strict UID-shape contract
