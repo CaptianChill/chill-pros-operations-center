@@ -1,0 +1,242 @@
+"use strict";
+
+const assert = require("assert");
+const { waitForAuthState } = require("../owner-command-auth-bootstrap.js");
+
+async function captureConsoleError(run) {
+  const original = console.error;
+  const calls = [];
+  console.error = (...args) => calls.push(args);
+  try {
+    await run(calls);
+  } finally {
+    console.error = original;
+  }
+}
+
+async function testResolvedSessionSurvivesCleanupFailures() {
+  const user = { uid: "owner-cleanup" };
+
+  await captureConsoleError(async (calls) => {
+    const auth = {
+      onAuthStateChanged(resolve) {
+        queueMicrotask(() => resolve(user));
+        return () => { throw new Error("unsubscribe failed"); };
+      }
+    };
+
+    const result = await waitForAuthState(auth, {
+      setTimeout() { return "timer-1"; },
+      clearTimeout() { throw new Error("clear timeout failed"); }
+    });
+
+    assert.strictEqual(result, user);
+    assert.strictEqual(calls.length, 2);
+    assert.match(calls[0][0], /auth-state cleanup failed/);
+    assert.match(calls[1][0], /auth-state cleanup failed/);
+  });
+}
+
+async function testRejectedSessionSurvivesCleanupFailures() {
+  const expectedCause = new Error("firebase listener failed");
+
+  await captureConsoleError(async (calls) => {
+    const auth = {
+      onAuthStateChanged(resolve, reject) {
+        queueMicrotask(() => reject(expectedCause));
+        return () => { throw new Error("unsubscribe failed"); };
+      }
+    };
+
+    await assert.rejects(
+      waitForAuthState(auth, {
+        setTimeout() { return "timer-2"; },
+        clearTimeout() { throw new Error("clear timeout failed"); }
+      }),
+      (error) => error && error.code === "auth/session-unavailable" && error.cause === expectedCause
+    );
+
+    assert.strictEqual(calls.length, 2);
+  });
+}
+
+async function testTimeoutSurvivesCleanupFailures() {
+  let timeoutCallback;
+
+  await captureConsoleError(async (calls) => {
+    const auth = {
+      onAuthStateChanged() {
+        return () => { throw new Error("unsubscribe failed"); };
+      }
+    };
+
+    const pending = waitForAuthState(auth, {
+      setTimeout(callback) {
+        timeoutCallback = callback;
+        return "timer-3";
+      },
+      clearTimeout() { throw new Error("clear timeout failed"); }
+    });
+
+    timeoutCallback();
+    await assert.rejects(pending, (error) => error && error.code === "auth/session-timeout");
+    assert.strictEqual(calls.length, 2);
+  });
+}
+
+async function testSynchronousAuthCallbackReleasesLateSubscriptionOnce() {
+  const user = { uid: "owner-sync" };
+  let unsubscribeCalls = 0;
+  let timeoutSchedules = 0;
+  let timeoutCancellations = 0;
+
+  const auth = {
+    onAuthStateChanged(resolve) {
+      resolve(user);
+      return () => { unsubscribeCalls += 1; };
+    }
+  };
+
+  const result = await waitForAuthState(auth, {
+    setTimeout() {
+      timeoutSchedules += 1;
+      return "timer-sync";
+    },
+    clearTimeout() {
+      timeoutCancellations += 1;
+    }
+  });
+
+  assert.strictEqual(result, user);
+  assert.strictEqual(unsubscribeCalls, 1, "late subscription handle must be released exactly once");
+  assert.strictEqual(timeoutSchedules, 0, "resolved synchronous listeners must not schedule a timeout");
+  assert.strictEqual(timeoutCancellations, 0, "no unscheduled timeout should be cancelled");
+}
+
+async function testSynchronousAuthRejectionReleasesLateSubscriptionOnce() {
+  const expectedCause = new Error("synchronous firebase listener failure");
+  let unsubscribeCalls = 0;
+  let timeoutSchedules = 0;
+  let timeoutCancellations = 0;
+
+  const auth = {
+    onAuthStateChanged(resolve, reject) {
+      reject(expectedCause);
+      return () => { unsubscribeCalls += 1; };
+    }
+  };
+
+  await assert.rejects(
+    waitForAuthState(auth, {
+      setTimeout() {
+        timeoutSchedules += 1;
+        return "timer-sync-reject";
+      },
+      clearTimeout() {
+        timeoutCancellations += 1;
+      }
+    }),
+    (error) => error && error.code === "auth/session-unavailable" && error.cause === expectedCause
+  );
+
+  assert.strictEqual(unsubscribeCalls, 1, "rejected synchronous listeners must release the late subscription exactly once");
+  assert.strictEqual(timeoutSchedules, 0, "rejected synchronous listeners must not schedule a timeout");
+  assert.strictEqual(timeoutCancellations, 0, "no unscheduled timeout should be cancelled after rejection");
+}
+
+async function testSynchronousTimeoutSchedulerCancelsReturnedHandle() {
+  let unsubscribeCalls = 0;
+  const cancelled = [];
+
+  const auth = {
+    onAuthStateChanged() {
+      return () => { unsubscribeCalls += 1; };
+    }
+  };
+
+  await assert.rejects(
+    waitForAuthState(auth, {
+      setTimeout(callback) {
+        callback();
+        return "timer-sync-timeout";
+      },
+      clearTimeout(timerId) {
+        cancelled.push(timerId);
+      }
+    }),
+    (error) => error && error.code === "auth/session-timeout"
+  );
+
+  assert.strictEqual(unsubscribeCalls, 1, "synchronous timeout settlement must release the auth listener");
+  assert.deepStrictEqual(cancelled, ["timer-sync-timeout"], "the scheduler handle returned after settlement must be cancelled");
+}
+
+async function testSynchronousTimeoutCancellationFailureIsContained() {
+  const cleanupFailure = new Error("late timer cancellation failed");
+  let unsubscribeCalls = 0;
+
+  await captureConsoleError(async (calls) => {
+    const auth = {
+      onAuthStateChanged() {
+        return () => { unsubscribeCalls += 1; };
+      }
+    };
+
+    await assert.rejects(
+      waitForAuthState(auth, {
+        setTimeout(callback) {
+          callback();
+          return "timer-sync-timeout-failure";
+        },
+        clearTimeout(timerId) {
+          assert.strictEqual(timerId, "timer-sync-timeout-failure");
+          throw cleanupFailure;
+        }
+      }),
+      (error) => error && error.code === "auth/session-timeout"
+    );
+
+    assert.strictEqual(unsubscribeCalls, 1, "timeout settlement must still release the auth listener");
+    assert.strictEqual(calls.length, 1, "late timer cancellation failure should be reported once");
+    assert.match(calls[0][0], /auth-state cleanup failed/);
+    assert.strictEqual(calls[0][1], cleanupFailure);
+  });
+}
+
+async function testInvalidAsyncSubscriptionFailsClosed() {
+  let timeoutSchedules = 0;
+
+  await assert.rejects(
+    waitForAuthState({
+      onAuthStateChanged() {
+        return { unsubscribe: true };
+      }
+    }, {
+      setTimeout() {
+        timeoutSchedules += 1;
+        return "invalid-subscription-timer";
+      }
+    }),
+    (error) => error
+      && error.code === "auth/session-unavailable"
+      && error.cause instanceof TypeError
+      && /unsubscribe function/.test(error.cause.message)
+  );
+
+  assert.strictEqual(timeoutSchedules, 0, "an invalid listener subscription must fail before scheduling a timeout");
+}
+
+(async function run() {
+  await testResolvedSessionSurvivesCleanupFailures();
+  await testRejectedSessionSurvivesCleanupFailures();
+  await testTimeoutSurvivesCleanupFailures();
+  await testSynchronousAuthCallbackReleasesLateSubscriptionOnce();
+  await testSynchronousAuthRejectionReleasesLateSubscriptionOnce();
+  await testSynchronousTimeoutSchedulerCancelsReturnedHandle();
+  await testSynchronousTimeoutCancellationFailureIsContained();
+  await testInvalidAsyncSubscriptionFailsClosed();
+  console.log("Owner auth bootstrap cleanup failure contract passed.");
+})().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
