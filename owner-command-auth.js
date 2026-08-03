@@ -139,12 +139,16 @@
   }
 
   function sessionMatches(auth, uid) {
-    const currentUser = auth && auth.currentUser;
-    return Boolean(
-      currentUser &&
-      typeof currentUser.uid === "string" &&
-      currentUser.uid === uid
-    );
+    try {
+      const currentUser = auth && auth.currentUser;
+      return Boolean(
+        currentUser &&
+        typeof currentUser.uid === "string" &&
+        currentUser.uid === uid
+      );
+    } catch (cause) {
+      return false;
+    }
   }
 
   async function authorizeOwnerSession(options) {
