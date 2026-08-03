@@ -75,6 +75,48 @@ async function expectSessionChanged(options, expectedCause) {
     assert.equal(signOutCalls, 1, "a throwing resolved-user UID must trigger fail-closed sign-out");
   }
 
+  {
+    const owner = { uid: "owner-uid" };
+    let profileLookups = 0;
+    let signOutCalls = 0;
+    let profileResolved = false;
+    const accessorFailure = new Error("post-profile currentUser accessor failed");
+    const auth = {
+      get currentUser() {
+        if (profileResolved) throw accessorFailure;
+        return owner;
+      },
+      async signOut() {
+        signOutCalls += 1;
+      }
+    };
+
+    await expectSessionChanged({
+      auth,
+      firestore: {
+        collection(name) {
+          assert.equal(name, "Users");
+          profileLookups += 1;
+          return {
+            doc(uid) {
+              assert.equal(uid, owner.uid);
+              return {
+                async get() {
+                  profileResolved = true;
+                  return { exists: true, data: () => ({ role: "owner" }) };
+                }
+              };
+            }
+          };
+        }
+      },
+      waitForAuthState: async () => owner
+    });
+
+    assert.equal(profileLookups, 1, "the post-profile accessor path must verify the authoritative profile first");
+    assert.equal(signOutCalls, 1, "a malformed post-profile session must trigger fail-closed sign-out");
+  }
+
   console.log("Owner Command Center session-accessor tests passed.");
 })().catch(error => {
   console.error(error);
