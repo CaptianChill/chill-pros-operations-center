@@ -86,7 +86,18 @@
       try {
         unsubscribe = auth.onAuthStateChanged(resolveOnce, rejectOnce);
         if (cleanupPending) cleanup();
-        if (!settled) timeoutId = scheduleTimeout(rejectTimeout, timeoutMs);
+        if (!settled) {
+          const scheduledTimeoutId = scheduleTimeout(rejectTimeout, timeoutMs);
+          if (settled) {
+            try {
+              cancelTimeout(scheduledTimeoutId);
+            } catch (error) {
+              reportCleanupFailure(error);
+            }
+          } else {
+            timeoutId = scheduledTimeoutId;
+          }
+        }
       } catch (cause) {
         rejectOnce(cause);
       }
