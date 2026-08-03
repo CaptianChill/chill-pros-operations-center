@@ -85,6 +85,9 @@
 
       try {
         unsubscribe = auth.onAuthStateChanged(resolveOnce, rejectOnce);
+        if (!settled && typeof unsubscribe !== "function") {
+          rejectOnce(new TypeError("Firebase Authentication state monitoring did not return an unsubscribe function."));
+        }
         if (cleanupPending) cleanup();
         if (!settled) {
           const scheduledTimeoutId = scheduleTimeout(rejectTimeout, timeoutMs);
