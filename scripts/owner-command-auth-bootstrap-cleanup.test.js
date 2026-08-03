@@ -113,11 +113,43 @@ async function testSynchronousAuthCallbackReleasesLateSubscriptionOnce() {
   assert.strictEqual(timeoutCancellations, 0, "no unscheduled timeout should be cancelled");
 }
 
+async function testSynchronousAuthRejectionReleasesLateSubscriptionOnce() {
+  const expectedCause = new Error("synchronous firebase listener failure");
+  let unsubscribeCalls = 0;
+  let timeoutSchedules = 0;
+  let timeoutCancellations = 0;
+
+  const auth = {
+    onAuthStateChanged(resolve, reject) {
+      reject(expectedCause);
+      return () => { unsubscribeCalls += 1; };
+    }
+  };
+
+  await assert.rejects(
+    waitForAuthState(auth, {
+      setTimeout() {
+        timeoutSchedules += 1;
+        return "timer-sync-reject";
+      },
+      clearTimeout() {
+        timeoutCancellations += 1;
+      }
+    }),
+    (error) => error && error.code === "auth/session-unavailable" && error.cause === expectedCause
+  );
+
+  assert.strictEqual(unsubscribeCalls, 1, "rejected synchronous listeners must release the late subscription exactly once");
+  assert.strictEqual(timeoutSchedules, 0, "rejected synchronous listeners must not schedule a timeout");
+  assert.strictEqual(timeoutCancellations, 0, "no unscheduled timeout should be cancelled after rejection");
+}
+
 (async function run() {
   await testResolvedSessionSurvivesCleanupFailures();
   await testRejectedSessionSurvivesCleanupFailures();
   await testTimeoutSurvivesCleanupFailures();
   await testSynchronousAuthCallbackReleasesLateSubscriptionOnce();
+  await testSynchronousAuthRejectionReleasesLateSubscriptionOnce();
   console.log("Owner auth bootstrap cleanup failure contract passed.");
 })().catch((error) => {
   console.error(error);
