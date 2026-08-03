@@ -172,9 +172,13 @@
       );
     }
 
+    if (user == null) {
+      throw authError("auth/signed-out", "Sign in with the owner account to continue.");
+    }
+
     let uid;
     try {
-      uid = user && user.uid;
+      uid = user.uid;
     } catch (cause) {
       return rejectSession(auth, authError(
         "auth/session-changed",
@@ -188,7 +192,10 @@
       !uid.trim() ||
       uid.trim() !== uid
     ) {
-      throw authError("auth/signed-out", "Sign in with the owner account to continue.");
+      return rejectSession(auth, authError(
+        "auth/session-changed",
+        "The authenticated account is malformed and could not be verified. Sign in again."
+      ));
     }
 
     if (!sessionMatches(auth, uid)) {
