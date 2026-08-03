@@ -37,7 +37,18 @@
   }
 
   function normalizeProfile(snapshot) {
-    if (!snapshot || typeof snapshot.exists !== "boolean" || !snapshot.exists) {
+    let exists;
+    try {
+      exists = snapshot && snapshot.exists;
+    } catch (cause) {
+      throw authError(
+        "auth/owner-profile-invalid",
+        "The owner profile is malformed.",
+        cause
+      );
+    }
+
+    if (typeof exists !== "boolean" || !exists) {
       throw authError("auth/owner-profile-missing", "The signed-in account has no authoritative owner profile.");
     }
 
