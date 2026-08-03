@@ -144,12 +144,40 @@ async function testSynchronousAuthRejectionReleasesLateSubscriptionOnce() {
   assert.strictEqual(timeoutCancellations, 0, "no unscheduled timeout should be cancelled after rejection");
 }
 
+async function testSynchronousTimeoutSchedulerCancelsReturnedHandle() {
+  let unsubscribeCalls = 0;
+  const cancelled = [];
+
+  const auth = {
+    onAuthStateChanged() {
+      return () => { unsubscribeCalls += 1; };
+    }
+  };
+
+  await assert.rejects(
+    waitForAuthState(auth, {
+      setTimeout(callback) {
+        callback();
+        return "timer-sync-timeout";
+      },
+      clearTimeout(timerId) {
+        cancelled.push(timerId);
+      }
+    }),
+    (error) => error && error.code === "auth/session-timeout"
+  );
+
+  assert.strictEqual(unsubscribeCalls, 1, "synchronous timeout settlement must release the auth listener");
+  assert.deepStrictEqual(cancelled, ["timer-sync-timeout"], "the scheduler handle returned after settlement must be cancelled");
+}
+
 (async function run() {
   await testResolvedSessionSurvivesCleanupFailures();
   await testRejectedSessionSurvivesCleanupFailures();
   await testTimeoutSurvivesCleanupFailures();
   await testSynchronousAuthCallbackReleasesLateSubscriptionOnce();
   await testSynchronousAuthRejectionReleasesLateSubscriptionOnce();
+  await testSynchronousTimeoutSchedulerCancelsReturnedHandle();
   console.log("Owner auth bootstrap cleanup failure contract passed.");
 })().catch((error) => {
   console.error(error);
