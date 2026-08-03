@@ -84,10 +84,40 @@ async function testTimeoutSurvivesCleanupFailures() {
   });
 }
 
+async function testSynchronousAuthCallbackReleasesLateSubscriptionOnce() {
+  const user = { uid: "owner-sync" };
+  let unsubscribeCalls = 0;
+  let timeoutSchedules = 0;
+  let timeoutCancellations = 0;
+
+  const auth = {
+    onAuthStateChanged(resolve) {
+      resolve(user);
+      return () => { unsubscribeCalls += 1; };
+    }
+  };
+
+  const result = await waitForAuthState(auth, {
+    setTimeout() {
+      timeoutSchedules += 1;
+      return "timer-sync";
+    },
+    clearTimeout() {
+      timeoutCancellations += 1;
+    }
+  });
+
+  assert.strictEqual(result, user);
+  assert.strictEqual(unsubscribeCalls, 1, "late subscription handle must be released exactly once");
+  assert.strictEqual(timeoutSchedules, 0, "resolved synchronous listeners must not schedule a timeout");
+  assert.strictEqual(timeoutCancellations, 0, "no unscheduled timeout should be cancelled");
+}
+
 (async function run() {
   await testResolvedSessionSurvivesCleanupFailures();
   await testRejectedSessionSurvivesCleanupFailures();
   await testTimeoutSurvivesCleanupFailures();
+  await testSynchronousAuthCallbackReleasesLateSubscriptionOnce();
   console.log("Owner auth bootstrap cleanup failure contract passed.");
 })().catch((error) => {
   console.error(error);
