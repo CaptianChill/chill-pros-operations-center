@@ -172,16 +172,26 @@
       );
     }
 
+    let uid;
+    try {
+      uid = user && user.uid;
+    } catch (cause) {
+      return rejectSession(auth, authError(
+        "auth/session-changed",
+        "The authenticated account changed before owner access could be verified. Sign in again.",
+        cause
+      ));
+    }
+
     if (
-      !user ||
-      typeof user.uid !== "string" ||
-      !user.uid.trim() ||
-      user.uid.trim() !== user.uid
+      typeof uid !== "string" ||
+      !uid.trim() ||
+      uid.trim() !== uid
     ) {
       throw authError("auth/signed-out", "Sign in with the owner account to continue.");
     }
 
-    if (!sessionMatches(auth, user.uid)) {
+    if (!sessionMatches(auth, uid)) {
       return rejectSession(auth, authError(
         "auth/session-changed",
         "The authenticated account changed before owner access could be verified. Sign in again."
@@ -194,7 +204,7 @@
       if (!usersCollection || typeof usersCollection.doc !== "function") {
         throw authError("auth/dependency-unavailable", "Firestore user profile lookup is unavailable.");
       }
-      const profileRef = usersCollection.doc(user.uid);
+      const profileRef = usersCollection.doc(uid);
       if (!profileRef || typeof profileRef.get !== "function") {
         throw authError("auth/dependency-unavailable", "Firestore owner profile lookup is unavailable.");
       }
@@ -219,7 +229,7 @@
       return rejectSession(auth, error);
     }
 
-    if (!sessionMatches(auth, user.uid)) {
+    if (!sessionMatches(auth, uid)) {
       return rejectSession(auth, authError(
         "auth/session-changed",
         "The authenticated account changed while owner access was being verified. Sign in again."
@@ -228,7 +238,7 @@
 
     return Object.freeze({
       authorized: true,
-      uid: user.uid,
+      uid,
       role: profile.role
     });
   }
