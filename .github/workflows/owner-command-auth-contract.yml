@@ -18,6 +18,7 @@ on:
       - scripts/owner-command-auth-profile-shape.test.js
       - scripts/owner-command-auth-uid-shape.test.js
       - scripts/owner-command-auth-session-race.test.js
+      - scripts/owner-command-auth-session-accessor.test.js
       - scripts/owner-command-auth-firestore-failures.test.js
       - scripts/owner-command-auth-late-profile.test.js
       - .github/workflows/owner-command-auth-contract.yml
@@ -39,6 +40,7 @@ on:
       - scripts/owner-command-auth-profile-shape.test.js
       - scripts/owner-command-auth-uid-shape.test.js
       - scripts/owner-command-auth-session-race.test.js
+      - scripts/owner-command-auth-session-accessor.test.js
       - scripts/owner-command-auth-firestore-failures.test.js
       - scripts/owner-command-auth-late-profile.test.js
       - .github/workflows/owner-command-auth-contract.yml
@@ -88,6 +90,8 @@ jobs:
         run: node --check scripts/owner-command-auth-uid-shape.test.js
       - name: Check session-race test syntax
         run: node --check scripts/owner-command-auth-session-race.test.js
+      - name: Check session-accessor test syntax
+        run: node --check scripts/owner-command-auth-session-accessor.test.js
       - name: Check Firestore failure test syntax
         run: node --check scripts/owner-command-auth-firestore-failures.test.js
       - name: Check late profile resolution test syntax
@@ -116,6 +120,8 @@ jobs:
         run: node scripts/owner-command-auth-uid-shape.test.js
       - name: Run session-race contract
         run: node scripts/owner-command-auth-session-race.test.js
+      - name: Run session-accessor contract
+        run: node scripts/owner-command-auth-session-accessor.test.js
       - name: Run Firestore failure contract
         run: node scripts/owner-command-auth-firestore-failures.test.js
       - name: Run late profile resolution contract
