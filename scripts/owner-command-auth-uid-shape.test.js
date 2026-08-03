@@ -8,8 +8,31 @@ async function expectCode(promise, code) {
 }
 
 (async function run() {
-  const invalidUsers = [
-    null,
+  {
+    let profileLookups = 0;
+    let signOutCalls = 0;
+    const auth = {
+      currentUser: null,
+      async signOut() { signOutCalls += 1; }
+    };
+    const firestore = {
+      collection() {
+        profileLookups += 1;
+        return { doc() { return { get: async () => ({ exists: true, data: () => ({ role: "owner" }) }) }; } };
+      }
+    };
+
+    await expectCode(authorizeOwnerSession({
+      auth,
+      firestore,
+      waitForAuthState: async () => null
+    }), "auth/signed-out");
+
+    assert.equal(profileLookups, 0, "signed-out sessions must be rejected before Firestore access");
+    assert.equal(signOutCalls, 0, "signed-out sessions must not trigger redundant sign-out");
+  }
+
+  const malformedUsers = [
     {},
     { uid: "" },
     { uid: "   " },
@@ -18,7 +41,7 @@ async function expectCode(promise, code) {
     { uid: 42 }
   ];
 
-  for (const user of invalidUsers) {
+  for (const user of malformedUsers) {
     let profileLookups = 0;
     let signOutCalls = 0;
     const auth = {
@@ -36,10 +59,10 @@ async function expectCode(promise, code) {
       auth,
       firestore,
       waitForAuthState: async () => user
-    }), "auth/signed-out");
+    }), "auth/session-changed");
 
-    assert.equal(profileLookups, 0, "invalid UIDs must be rejected before Firestore access");
-    assert.equal(signOutCalls, 0, "invalid signed-out session shapes must not trigger redundant sign-out");
+    assert.equal(profileLookups, 0, "malformed authenticated users must be rejected before Firestore access");
+    assert.equal(signOutCalls, 1, "malformed authenticated users must be cleared exactly once");
   }
 
   console.log("Owner Command Center UID-shape contract passed.");
