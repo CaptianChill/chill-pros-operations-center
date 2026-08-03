@@ -171,6 +171,38 @@ async function testSynchronousTimeoutSchedulerCancelsReturnedHandle() {
   assert.deepStrictEqual(cancelled, ["timer-sync-timeout"], "the scheduler handle returned after settlement must be cancelled");
 }
 
+async function testSynchronousTimeoutCancellationFailureIsContained() {
+  const cleanupFailure = new Error("late timer cancellation failed");
+  let unsubscribeCalls = 0;
+
+  await captureConsoleError(async (calls) => {
+    const auth = {
+      onAuthStateChanged() {
+        return () => { unsubscribeCalls += 1; };
+      }
+    };
+
+    await assert.rejects(
+      waitForAuthState(auth, {
+        setTimeout(callback) {
+          callback();
+          return "timer-sync-timeout-failure";
+        },
+        clearTimeout(timerId) {
+          assert.strictEqual(timerId, "timer-sync-timeout-failure");
+          throw cleanupFailure;
+        }
+      }),
+      (error) => error && error.code === "auth/session-timeout"
+    );
+
+    assert.strictEqual(unsubscribeCalls, 1, "timeout settlement must still release the auth listener");
+    assert.strictEqual(calls.length, 1, "late timer cancellation failure should be reported once");
+    assert.match(calls[0][0], /auth-state cleanup failed/);
+    assert.strictEqual(calls[0][1], cleanupFailure);
+  });
+}
+
 (async function run() {
   await testResolvedSessionSurvivesCleanupFailures();
   await testRejectedSessionSurvivesCleanupFailures();
@@ -178,6 +210,7 @@ async function testSynchronousTimeoutSchedulerCancelsReturnedHandle() {
   await testSynchronousAuthCallbackReleasesLateSubscriptionOnce();
   await testSynchronousAuthRejectionReleasesLateSubscriptionOnce();
   await testSynchronousTimeoutSchedulerCancelsReturnedHandle();
+  await testSynchronousTimeoutCancellationFailureIsContained();
   console.log("Owner auth bootstrap cleanup failure contract passed.");
 })().catch((error) => {
   console.error(error);
