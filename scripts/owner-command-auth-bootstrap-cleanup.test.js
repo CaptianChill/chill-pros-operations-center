@@ -203,6 +203,29 @@ async function testSynchronousTimeoutCancellationFailureIsContained() {
   });
 }
 
+async function testInvalidAsyncSubscriptionFailsClosed() {
+  let timeoutSchedules = 0;
+
+  await assert.rejects(
+    waitForAuthState({
+      onAuthStateChanged() {
+        return { unsubscribe: true };
+      }
+    }, {
+      setTimeout() {
+        timeoutSchedules += 1;
+        return "invalid-subscription-timer";
+      }
+    }),
+    (error) => error
+      && error.code === "auth/session-unavailable"
+      && error.cause instanceof TypeError
+      && /unsubscribe function/.test(error.cause.message)
+  );
+
+  assert.strictEqual(timeoutSchedules, 0, "an invalid listener subscription must fail before scheduling a timeout");
+}
+
 (async function run() {
   await testResolvedSessionSurvivesCleanupFailures();
   await testRejectedSessionSurvivesCleanupFailures();
@@ -211,6 +234,7 @@ async function testSynchronousTimeoutCancellationFailureIsContained() {
   await testSynchronousAuthRejectionReleasesLateSubscriptionOnce();
   await testSynchronousTimeoutSchedulerCancelsReturnedHandle();
   await testSynchronousTimeoutCancellationFailureIsContained();
+  await testInvalidAsyncSubscriptionFailsClosed();
   console.log("Owner auth bootstrap cleanup failure contract passed.");
 })().catch((error) => {
   console.error(error);
