@@ -19,3 +19,85 @@
   background: rgba(66, 210, 255, 0.45);
   border-radius: 10px;
 }
+
+/* ── Status-select color coding ── */
+.status-select { border-radius: 8px; font-weight: 800; font-size: .78rem; padding: 7px 10px; cursor: pointer; transition: border-color .2s, color .2s; }
+.status-select[data-status="Needs Review"] { border-color: #ffd634; color: #ffd634; }
+.status-select[data-status="Needs Quote"] { border-color: #ffd634; color: #ffd634; }
+.status-select[data-status="Scheduled"] { border-color: #7edbff; color: #7edbff; }
+.status-select[data-status="Dispatched"] { border-color: #008cff; color: #008cff; }
+.status-select[data-status="In Progress"] { border-color: #6cff66; color: #6cff66; }
+.status-select[data-status="Paused"] { border-color: #ff9900; color: #ff9900; }
+.status-select[data-status="Waiting on Parts"] { border-color: #ff5f6d; color: #ff5f6d; }
+.status-select[data-status="Ready to Invoice"] { border-color: #b4ff6c; color: #b4ff6c; }
+.status-select[data-status="Completed"] { border-color: #6cff66; color: #6cff66; }
+
+/* ── Technician form panel ── */
+.panel { background: linear-gradient(180deg,rgba(8,24,36,.96),rgba(2,8,13,.99)); border: 1px solid #245b79; border-radius: 16px; padding: 20px; margin-bottom: 14px; box-shadow: var(--shadow); }
+.technician-form-panel { border-color: #008cff; }
+.form-panel-title { margin: 0 0 14px; color: var(--ice); font-family: Georgia, serif; font-style: italic; }
+.technician-list { display: flex; flex-direction: column; gap: 10px; }
+.technician-dashboard-panel { margin-top: 0; }
+.tech-card { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 16px; background: rgba(255,255,255,.03); border: 1px solid rgba(126,219,255,.15); border-radius: 11px; }
+.tech-card h3 { margin: 0 0 4px; }
+.tech-card p { margin: 2px 0; color: var(--muted); font-size: .84rem; }
+.tech-status { padding: 4px 10px; border-radius: 999px; font-size: .7rem; font-weight: 800; background: rgba(76,255,103,.12); color: #6cff66; border: 1px solid #6cff66; }
+.tech-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+/* ── Mobile bottom navigation ── */
+.mobile-bottom-nav { display: none; }
+
+@media (max-width: 780px) {
+  body { padding-bottom: max(72px, calc(64px + env(safe-area-inset-bottom))); }
+
+  .mobile-bottom-nav {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    position: fixed;
+    z-index: 50;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 6px max(8px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+    background: rgba(2, 7, 12, .97);
+    border-top: 1px solid #1e6a9c;
+    backdrop-filter: blur(18px);
+    box-shadow: 0 -8px 24px rgba(0,0,0,.5);
+  }
+
+  .mob-nav-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    border: 0;
+    background: transparent;
+    color: #6a8fa8;
+    font-size: .6rem;
+    font-weight: 800;
+    letter-spacing: .04em;
+    padding: 6px 2px;
+    cursor: pointer;
+    transition: color .2s;
+  }
+  .mob-nav-btn span { font-size: 1.2rem; line-height: 1; color: inherit; }
+  .mob-nav-btn.active { color: #7edbff; }
+
+  /* Hide the heavy sidebar on small screens */
+  .sidebar { display: none; }
+  .app-shell { grid-template-columns: 1fr; }
+
+  /* Queue item improvements on mobile */
+  .queue-item { flex-direction: column; }
+  .queue-actions { flex-direction: row; flex-wrap: wrap; gap: 6px; }
+  .queue-actions .status-select { flex: 1 1 100%; }
+
+  /* Today's jobs dispatch grid on mobile */
+  .todays-job-card .queue-tools { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .todays-job-card .save-job { grid-column: 1 / -1; }
+  .todays-job-card .copy-job { grid-column: 1 / -1; }
+
+  /* Form improvements on mobile */
+  .form-grid.two, .form-grid.three { grid-template-columns: 1fr; }
+  .queue-tools { grid-template-columns: 1fr; }
+}

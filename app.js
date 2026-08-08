@@ -82,6 +82,7 @@ function normalizeRecord(data = {}, firestoreId = "") {
 function showView(id) {
   views.forEach((view) => view.classList.toggle("active", view.id === id));
   navButtons.forEach((button) => button.classList.toggle("active", button.dataset.view === id));
+  document.querySelectorAll(".mob-nav-btn").forEach((btn) => btn.classList.toggle("active", btn.dataset.view === id));
 
   if (id === "office-queue") renderQueue();
   if (id === "today-jobs") renderTodayJobs();
@@ -288,10 +289,12 @@ function renderQueue() {
     const statusElement = node.querySelector(".status-select");
     statusElement.innerHTML = buildStatusOptions(record.officeStatus);
     statusElement.value = record.officeStatus;
+    statusElement.dataset.status = record.officeStatus;
     statusElement.addEventListener("change", async () => {
       const previousStatus = record.officeStatus;
       const changes = { officeStatus: statusElement.value, statusUpdatedAt: new Date().toISOString() };
       Object.assign(record, changes);
+      statusElement.dataset.status = statusElement.value;
       try {
         await updateCustomerInFirebase(record, changes);
         persistQueue();
@@ -300,6 +303,7 @@ function renderQueue() {
         console.error("Status update failed:", error);
         record.officeStatus = previousStatus;
         statusElement.value = previousStatus;
+        statusElement.dataset.status = previousStatus;
         toast("Status update failed");
       }
     });
@@ -387,8 +391,8 @@ function renderTechnicians() {
   } else {
     technicians.forEach((technician) => {
       const card = document.createElement("article");
-      card.className = "queue-item";
-      card.innerHTML = `<div><h3>${escapeHtml(technician.name)}</h3><p class="queue-meta">${escapeHtml(technician.phone || "No phone")} • ${escapeHtml(technician.email || "No email")}</p><p>${escapeHtml(technician.skills || "Skills not entered")}</p></div><div><strong>${escapeHtml(technician.status || "Active")}</strong><button class="delete-technician">Delete</button></div>`;
+      card.className = "tech-card";
+      card.innerHTML = `<div><h3>${escapeHtml(technician.name)}</h3><p>${escapeHtml(technician.phone || "No phone")} • ${escapeHtml(technician.email || "No email")}</p><p>${escapeHtml(technician.skills || "Skills not entered")}</p></div><div class="tech-actions"><span class="tech-status">${escapeHtml(technician.status || "Active")}</span><button class="mini-button delete-technician">Delete</button></div>`;
       card.querySelector(".delete-technician")?.addEventListener("click", () => {
         technicians = technicians.filter((item) => item.id !== technician.id);
         saveTechnicians();
@@ -422,6 +426,7 @@ function renderTechnicianDashboard() {
 }
 
 navButtons.forEach((button) => button.addEventListener("click", () => showView(button.dataset.view)));
+document.querySelectorAll(".mob-nav-btn").forEach((button) => button.addEventListener("click", () => showView(button.dataset.view)));
 document.querySelectorAll("[data-view-target]").forEach((button) => button.addEventListener("click", () => showView(button.dataset.viewTarget)));
 
 intakeForm?.addEventListener("submit", async (event) => {
@@ -475,21 +480,36 @@ addSampleJob?.addEventListener("click", () => {
   toast("Sample job added");
 });
 
+const technicianForm = document.getElementById("technicianForm");
+const technicianFormPanel = document.getElementById("technicianFormPanel");
+const cancelTechnicianForm = document.getElementById("cancelTechnicianForm");
+
 addTechnicianButton?.addEventListener("click", () => {
-  const name = prompt("Technician name:");
-  if (!name?.trim()) return;
-  const phone = prompt("Phone number:") || "";
-  const email = prompt("Email address:") || "";
-  const skills = prompt("Skills: HVAC, Refrigeration, Ice Machines, Kitchen Equipment") || "";
+  if (technicianFormPanel) technicianFormPanel.hidden = false;
+  technicianForm?.reset();
+  technicianForm?.querySelector("input")?.focus();
+});
+
+cancelTechnicianForm?.addEventListener("click", () => {
+  if (technicianFormPanel) technicianFormPanel.hidden = true;
+  technicianForm?.reset();
+});
+
+technicianForm?.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const data = Object.fromEntries(new FormData(technicianForm).entries());
+  if (!data.techName?.trim()) return;
   technicians.push({
     id: crypto.randomUUID?.() || String(Date.now()),
-    name: name.trim(),
-    phone: phone.trim(),
-    email: email.trim(),
-    skills: skills.trim(),
+    name: data.techName.trim(),
+    phone: (data.techPhone || "").trim(),
+    email: (data.techEmail || "").trim(),
+    skills: (data.techSkills || "").trim(),
     status: "Active"
   });
   saveTechnicians();
+  technicianForm.reset();
+  if (technicianFormPanel) technicianFormPanel.hidden = true;
   toast("Technician added");
 });
 
