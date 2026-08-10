@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#05090d">
   <title>Chill Pros Operations Center</title>
   <link rel="stylesheet" href="styles.css">
@@ -216,8 +216,25 @@
       <section id="technicians" class="view">
         <div class="page-header">
           <div><p class="eyebrow">DISPATCH OPERATIONS</p><h2>Technician Management</h2></div>
-          <button id="addTechnicianButton" class="secondary-button">Add Technician</button>
+          <button id="addTechnicianButton" class="secondary-action">+ Add Technician</button>
         </div>
+
+        <div class="panel technician-form-panel" id="technicianFormPanel" hidden>
+          <h3 class="form-panel-title">Add Technician</h3>
+          <form id="technicianForm">
+            <div class="form-grid two">
+              <label>Full Name <input name="techName" required placeholder="e.g. Carlos Rivera"></label>
+              <label>Phone <input name="techPhone" type="tel" placeholder="(210) 555-0100"></label>
+              <label>Email <input name="techEmail" type="email" placeholder="tech@chillpros.com"></label>
+              <label>Skills <input name="techSkills" placeholder="HVAC, Refrigeration, Ice Machines"></label>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="primary-action">Save Technician</button>
+              <button type="button" class="secondary-action" id="cancelTechnicianForm">Cancel</button>
+            </div>
+          </form>
+        </div>
+
         <div class="panel">
           <div id="technicianList" class="technician-list"><p>No technicians added yet.</p></div>
         </div>
@@ -245,7 +262,13 @@
     </main>
   </div>
 
-  <template id="queueItemTemplate">
+  <nav class="mobile-bottom-nav" aria-label="Mobile navigation">
+    <button class="mob-nav-btn active" data-view="dashboard"><span>⌂</span>Home</button>
+    <button class="mob-nav-btn" data-view="new-customer"><span>＋</span>Intake</button>
+    <button class="mob-nav-btn" data-view="office-queue"><span>▤</span>Queue</button>
+    <button class="mob-nav-btn" data-view="today-jobs"><span>▦</span>Jobs</button>
+    <button class="mob-nav-btn" data-view="technicians"><span>👷</span>Techs</button>
+  </nav>
     <article class="queue-item">
       <div>
         <h3 class="queue-customer"></h3>
