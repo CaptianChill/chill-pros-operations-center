@@ -6,33 +6,36 @@
   <meta name="theme-color" content="#05090d">
   <title>Chill Pros Operations Center</title>
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="standalone-workflows.css">
 </head>
 <body>
   <div class="app-shell">
     <aside class="sidebar">
       <div class="brand-block">
         <img src="chill-pros-logo.jpeg" alt="Chill Pros logo" class="brand-logo">
-        <p>Powered by FieldForged</p>
+        <p>Chill Pros Private Operations</p>
       </div>
 
       <nav class="side-nav" aria-label="Main navigation">
         <button class="side-link active" data-view="dashboard"><span>⌂</span> Dashboard</button>
-        <button class="side-link" data-view="new-customer"><span>＋</span> New Customer</button>
+        <button class="side-link" data-view="new-customer"><span>＋</span> Service Intake</button>
         <button class="side-link" data-view="office-queue"><span>▤</span> Office Queue <b id="queueCount">0</b></button>
-        <button class="side-link" data-view="today-jobs"><span>▦</span> Today's Jobs</button>
+        <button class="side-link" data-view="today-jobs"><span>▦</span> Dispatch / Jobs</button>
+        <button class="side-link" data-view="quotes"><span>＄</span> Quotes <b id="standaloneQuotesCount">0</b></button>
+        <button class="side-link" data-view="invoices"><span>▧</span> Invoices <b id="standaloneInvoicesCount">0</b></button>
+        <button class="side-link" data-view="ai"><span>❄</span> Parts Intelligence</button>
+        <button class="side-link" data-view="parts"><span>◒</span> Parts Library</button>
         <button class="side-link" data-view="technicians"><span>👷</span> Technicians</button>
-        <button class="side-link" data-view="maintenance"><span>◆</span> Maintenance</button>
         <button class="side-link" data-view="equipment"><span>⬡</span> Equipment</button>
-        <button class="side-link" data-view="parts"><span>◒</span> Parts Orders <b>2</b></button>
-        <button class="side-link" data-view="ai"><span>❄</span> AI Diagnostics</button>
+        <button class="side-link" data-view="maintenance"><span>◆</span> Maintenance</button>
         <button class="side-link" data-view="reports"><span>▥</span> Reports</button>
         <button class="side-link" data-view="settings"><span>⚙</span> Settings</button>
       </nav>
 
       <div class="ice-message">
-        <strong>WE KEEP IT</strong>
-        <span>ICE COLD</span>
-        <small>SO YOU STAY COOL</small>
+        <strong>ONE SYSTEM</strong>
+        <span>CHILL PROS</span>
+        <small>DISPATCH → PAYMENT</small>
       </div>
     </aside>
 
@@ -41,246 +44,113 @@
         <div class="hero-overlay">
           <p class="eyebrow">CHILL PROS</p>
           <h1>OPERATIONS CENTER</h1>
-          <p class="tagline">★ LICENSE TO CHILL. ★</p>
+          <p class="tagline">SERVICE CALL TO PAYMENT. ONE WORKFLOW.</p>
         </div>
         <div class="profile-box">
           <div class="avatar">CP</div>
-          <div>
-            <strong>Owner Console</strong>
-            <small><span class="online-dot"></span> Online</small>
-          </div>
+          <div><strong>Owner Console</strong><small><span class="online-dot"></span> Online</small></div>
         </div>
       </header>
 
       <section id="dashboard" class="view active">
         <div class="metrics-grid">
-          <article class="metric-card">
-            <div class="metric-icon">▣</div>
-            <div><span>Today's Jobs</span><strong id="jobsCount">0</strong><small class="success">Active Jobs</small></div>
-          </article>
-          <article class="metric-card">
-            <div class="metric-icon">▦</div>
-            <div><span>PM Visits</span><strong id="pmCount">3</strong><small class="warning">1 In Progress</small></div>
-          </article>
-          <article class="metric-card">
-            <div class="metric-icon">◷</div>
-            <div><span>Office Queue</span><strong id="dashboardQueueCount">0</strong><small class="warning">Needs Attention</small></div>
-          </article>
-          <article class="metric-card">
-            <div class="metric-icon">◒</div>
-            <div><span>Parts Orders</span><strong id="partsCount">2</strong><small class="warning">Awaiting Pickup</small></div>
-          </article>
-          <article class="metric-card">
-            <div class="metric-icon">$</div>
-            <div><span>Est. Revenue</span><strong id="revenueCount">$8,450</strong><small class="success">This Week</small></div>
-          </article>
+          <article class="metric-card"><div class="metric-icon">▣</div><div><span>Today's Jobs</span><strong id="jobsCount">0</strong><small class="success">Active Jobs</small></div></article>
+          <article class="metric-card"><div class="metric-icon">▦</div><div><span>PM Visits</span><strong id="pmCount">0</strong><small class="warning">Due / Scheduled</small></div></article>
+          <article class="metric-card"><div class="metric-icon">◷</div><div><span>Office Queue</span><strong id="dashboardQueueCount">0</strong><small class="warning">Needs Attention</small></div></article>
+          <article class="metric-card"><div class="metric-icon">◒</div><div><span>Parts Orders</span><strong id="partsCount">0</strong><small class="warning">Open Parts</small></div></article>
+          <article class="metric-card"><div class="metric-icon">$</div><div><span>Est. Revenue</span><strong id="revenueCount">$0</strong><small class="success">Open Work</small></div></article>
         </div>
 
         <div class="feature-grid">
-          <article class="feature-card">
-            <div class="feature-art clipboard-art"></div>
-            <h2>NEW CUSTOMER</h2>
-            <p>Capture customer, site, equipment, complaint, photos and technician notes in one workflow.</p>
-            <button class="primary-action" data-view-target="new-customer">START INTAKE →</button>
-          </article>
-          <article class="feature-card">
-            <div class="feature-art van-art"></div>
-            <h2>TODAY'S JOBS</h2>
-            <p>Review scheduled jobs, directions, assigned technician, equipment history and service notes.</p>
-            <button class="primary-action" data-view-target="today-jobs">VIEW JOBS →</button>
-          </article>
-          <article class="feature-card">
-            <div class="feature-art queue-art"></div>
-            <h2>OFFICE QUEUE</h2>
-            <p>See new submissions waiting for quote, invoice, parts ordering or office review.</p>
-            <button class="primary-action" data-view-target="office-queue">OPEN QUEUE →</button>
-          </article>
-          <article class="feature-card">
-            <div class="feature-art brain-art"></div>
-            <h2>AI DIAGNOSTICS</h2>
-            <p>Start the FieldForged diagnostic workflow for troubleshooting and smart parts recommendations.</p>
-            <button class="primary-action" data-view-target="ai">LAUNCH AI →</button>
-          </article>
+          <article class="feature-card"><div class="feature-art clipboard-art"></div><h2>SERVICE INTAKE</h2><p>Capture customer, site, equipment and complaint once. Reuse it through dispatch, quote and invoice.</p><button class="primary-action" data-view-target="new-customer">START INTAKE →</button></article>
+          <article class="feature-card"><div class="feature-art van-art"></div><h2>DISPATCH</h2><p>Assign technicians, schedule work and move jobs through field status without duplicate records.</p><button class="primary-action" data-view-target="today-jobs">OPEN DISPATCH →</button></article>
+          <article class="feature-card"><div class="feature-art queue-art"></div><h2>QUOTES & INVOICES</h2><p>Build customer pricing from the service call, approve it, then convert approved work to an invoice.</p><button class="primary-action" data-view-target="quotes">OPEN QUOTES →</button></article>
+          <article class="feature-card"><div class="feature-art brain-art"></div><h2>PARTS INTELLIGENCE</h2><p>Research parts in the active job context and transfer approved parts directly into pricing.</p><button class="primary-action" data-view-target="ai">RESEARCH PARTS →</button></article>
         </div>
 
         <div class="lower-grid">
-          <article class="glass-card">
-            <div class="section-title"><h3>UPCOMING SCHEDULE</h3><button id="addSampleJob">+ Add Sample</button></div>
-            <div id="scheduleList" class="schedule-list"></div>
-          </article>
-          <article class="glass-card">
-            <div class="section-title"><h3>RECENT ACTIVITY</h3></div>
-            <div id="activityList" class="activity-list"></div>
-          </article>
-          <article class="glass-card weather-card">
-            <div class="section-title"><h3>WEATHER ALERT</h3></div>
-            <div class="weather-main"><strong>96°F</strong><span>☀</span></div>
-            <p>San Antonio, TX</p>
-            <small>Heat Index: 103°F</small>
-            <div class="weather-note">Stay hydrated and take breaks. Beat the heat. Stay safe.</div>
-          </article>
+          <article class="glass-card"><div class="section-title"><h3>UPCOMING SCHEDULE</h3><button id="addSampleJob">+ Add Sample</button></div><div id="scheduleList" class="schedule-list"></div></article>
+          <article class="glass-card"><div class="section-title"><h3>RECENT ACTIVITY</h3></div><div id="activityList" class="activity-list"></div></article>
+          <article class="glass-card weather-card"><div class="section-title"><h3>OPERATIONS</h3></div><div class="weather-main"><strong>READY</strong><span>❄</span></div><p>Standalone Chill Pros workflow</p><small>Custom development environment</small><div class="weather-note">Production remains isolated until the full request-to-payment test passes.</div></article>
         </div>
       </section>
 
       <section id="new-customer" class="view">
-        <div class="page-header">
-          <div><p class="eyebrow">FIELD INTAKE</p><h2>New Customer & Equipment Intake</h2></div>
-          <button class="secondary-action" id="clearIntake">Clear Form</button>
-        </div>
+        <div class="page-header"><div><p class="eyebrow">SERVICE INTAKE</p><h2>New Service Call</h2></div><button class="secondary-action" id="clearIntake">Clear Form</button></div>
         <form id="intakeForm" class="form-panel">
-          <div class="form-section">
-            <h3>Customer Information</h3>
-            <div class="form-grid two">
-              <label>Customer / Company<input name="customerName" required></label>
-              <label>Contact Name<input name="contactName"></label>
-              <label>Phone<input name="phone" type="tel"></label>
-              <label>Email<input name="email" type="email"></label>
-            </div>
-            <label>Service Address<input name="address"></label>
-          </div>
-          <div class="form-section">
-            <h3>Equipment Information</h3>
-            <div class="form-grid three">
-              <label>Equipment Type
-                <select name="equipmentType">
-                  <option>HVAC</option><option>Refrigeration</option><option>Ice Machine</option>
-                  <option>Commercial Kitchen Equipment</option><option>Kitchen Exhaust</option><option>Other</option>
-                </select>
-              </label>
-              <label>Manufacturer<input name="manufacturer"></label>
-              <label>Model Number<input name="modelNumber"></label>
-              <label>Serial Number<input name="serialNumber"></label>
-              <label>Asset ID<input name="assetId" placeholder="CP-SA-000001"></label>
-              <label>Site Location<input name="siteLocation" placeholder="Kitchen, rooftop, walk-in..."></label>
-            </div>
-          </div>
-          <div class="form-section">
-            <h3>Service Details</h3>
-            <label>Customer Complaint<textarea name="complaint" rows="3" required></textarea></label>
-            <label>Technician Findings<textarea name="findings" rows="4"></textarea></label>
-            <label>Recommended Repair<textarea name="recommendation" rows="3"></textarea></label>
-            <div class="form-grid two">
-              <label>Office Status
-                <select name="officeStatus">
-                  <option>Needs Review</option><option>Needs Quote</option><option>Ready to Invoice</option>
-                  <option>Waiting on Parts</option><option>Completed</option>
-                </select>
-              </label>
-              <label>Estimated Amount<input name="estimatedAmount" type="number" step="0.01"></label>
-            </div>
-            <label>Photo Notes / File References<textarea name="photoNotes" rows="2"></textarea></label>
-          </div>
-          <div class="form-actions">
-            <button type="submit" class="primary-action">SUBMIT TO OFFICE</button>
-            <button type="button" class="secondary-action" id="copySummary">COPY SUMMARY</button>
-          </div>
+          <div class="form-section"><h3>Customer Information</h3><div class="form-grid two"><label>Customer / Company<input name="customerName" required></label><label>Contact Name<input name="contactName"></label><label>Phone<input name="phone" type="tel"></label><label>Email<input name="email" type="email"></label></div><label>Service Address<input name="address"></label></div>
+          <div class="form-section"><h3>Equipment Information</h3><div class="form-grid three"><label>Equipment Type<select name="equipmentType"><option>HVAC</option><option>Refrigeration</option><option>Ice Machine</option><option>Commercial Kitchen Equipment</option><option>Kitchen Exhaust</option><option>Other</option></select></label><label>Manufacturer<input name="manufacturer"></label><label>Model Number<input name="modelNumber"></label><label>Serial Number<input name="serialNumber"></label><label>Asset ID<input name="assetId" placeholder="CP-SA-000001"></label><label>Site Location<input name="siteLocation" placeholder="Kitchen, rooftop, walk-in..."></label></div></div>
+          <div class="form-section"><h3>Service Details</h3><label>Customer Complaint<textarea name="complaint" rows="3" required></textarea></label><label>Technician Findings<textarea name="findings" rows="4"></textarea></label><label>Recommended Repair<textarea name="recommendation" rows="3"></textarea></label><div class="form-grid two"><label>Office Status<select name="officeStatus"><option>Needs Review</option><option>Needs Quote</option><option>Scheduled</option><option>Waiting on Parts</option><option>Ready to Invoice</option><option>Completed</option></select></label><label>Estimated Amount<input name="estimatedAmount" type="number" step="0.01"></label></div><label>Photo Notes / File References<textarea name="photoNotes" rows="2"></textarea></label></div>
+          <div class="form-actions"><button type="submit" class="primary-action">SUBMIT TO OFFICE</button><button type="button" class="secondary-action" id="copySummary">COPY SUMMARY</button></div>
         </form>
       </section>
 
       <section id="office-queue" class="view">
-        <div class="page-header">
-          <div><p class="eyebrow">OFFICE WORKFLOW</p><h2>Office Queue</h2></div>
-          <button class="secondary-action" id="exportQueue">Export Queue</button>
-        </div>
-        <div class="queue-tools">
-          <input id="queueSearch" placeholder="Search customer, model, serial or status">
-          <select id="queueFilter">
-            <option value="">All statuses</option>
-            <option>Needs Review</option><option>Needs Quote</option><option>Scheduled</option>
-            <option>Dispatched</option><option>In Progress</option><option>Paused</option>
-            <option>Waiting on Parts</option><option>Ready to Invoice</option><option>Completed</option>
-          </select>
-        </div>
+        <div class="page-header"><div><p class="eyebrow">OFFICE WORKFLOW</p><h2>Office Queue</h2></div><button class="secondary-action" id="exportQueue">Export Queue</button></div>
+        <div class="queue-tools"><input id="queueSearch" placeholder="Search customer, model, serial or status"><select id="queueFilter"><option value="">All statuses</option><option>Needs Review</option><option>Needs Quote</option><option>Scheduled</option><option>Dispatched</option><option>In Progress</option><option>Paused</option><option>Waiting on Parts</option><option>Ready to Invoice</option><option>Completed</option></select></div>
         <div id="queueList" class="queue-list"></div>
       </section>
 
       <section id="today-jobs" class="view">
-        <div class="page-header">
-          <div><p class="eyebrow">FIELD OPERATIONS</p><h2>Today's Jobs</h2></div>
-          <button class="secondary-action" id="refreshJobs">Refresh Jobs</button>
-        </div>
-        <div class="queue-tools">
-          <input id="jobSearch" type="search" placeholder="Search customer, address, equipment or technician">
-          <select id="jobStatusFilter">
-            <option value="">All statuses</option>
-            <option>Scheduled</option><option>Dispatched</option><option>In Progress</option><option>Paused</option>
-          </select>
-        </div>
-        <div id="todayJobsList" class="queue-list">
-          <article class="queue-item">
-            <div><h3>No jobs scheduled yet</h3><p class="queue-meta">Schedule an Office Queue record to place it here.</p></div>
-          </article>
-        </div>
+        <div class="page-header"><div><p class="eyebrow">DISPATCH</p><h2>Service Calls & Today's Jobs</h2></div><button class="secondary-action" id="refreshJobs">Refresh Jobs</button></div>
+        <div class="queue-tools"><input id="jobSearch" type="search" placeholder="Search customer, address, equipment or technician"><select id="jobStatusFilter"><option value="">All statuses</option><option>Scheduled</option><option>Dispatched</option><option>In Progress</option><option>Paused</option></select></div>
+        <div id="todayJobsList" class="queue-list"><article class="queue-item"><div><h3>No jobs scheduled yet</h3><p class="queue-meta">Schedule an Office Queue record to place it here.</p></div></article></div>
       </section>
+
+      <section id="quotes" class="view">
+        <div class="page-header"><div><p class="eyebrow">PRICING</p><h2>Quotes</h2></div></div>
+        <form id="quoteForm" class="form-panel compact-form">
+          <div class="form-section"><h3>Create Quote From Service Call</h3><label>Service Call<select name="jobId" required><option value="">Select service call</option></select></label><div class="form-grid three"><label>Line Type<select name="lineType"><option value="labor">Labor</option><option value="part">Part</option><option value="service">Service</option></select></label><label>Description<input name="description" required placeholder="Diagnostic labor, compressor, repair..."></label><label>Quantity<input name="quantity" type="number" step="0.01" value="1" min="0"></label><label>Unit Price<input name="unitPrice" type="number" step="0.01" value="0"></label><label>Tax %<input name="taxRate" type="number" step="0.01" value="8.25"></label><label>Discount<input name="discount" type="number" step="0.01" value="0"></label><label>Deposit Required<input name="depositRequired" type="number" step="0.01" value="0"></label></div></div>
+          <div class="form-actions"><button type="submit" class="primary-action">CREATE DRAFT QUOTE</button></div>
+        </form>
+        <div id="quotesList" class="standalone-list"></div>
+      </section>
+
+      <section id="invoices" class="view">
+        <div class="page-header"><div><p class="eyebrow">BILLING</p><h2>Invoices & Payments</h2></div></div>
+        <div class="standalone-notice">Invoices are created from approved quotes so customer, equipment, service call and approved line items remain linked.</div>
+        <div id="invoicesList" class="standalone-list"></div>
+      </section>
+
+      <section id="ai" class="view">
+        <div class="page-header"><div><p class="eyebrow">AI PARTS INTELLIGENCE</p><h2>Job-Context Parts Research</h2></div></div>
+        <div class="standalone-notice"><strong>Current foundation:</strong> job context, evidence, confidence, vendor/cost and approval trail are stored now. Automated AI/OEM/vendor retrieval will connect to this exact workflow rather than becoming a separate plugin.</div>
+        <form id="partResearchForm" class="form-panel compact-form">
+          <div class="form-section"><h3>Research Workspace</h3><label>Service Call<select name="jobId" required><option value="">Select service call</option></select></label><div class="form-grid three"><label>Manufacturer<input name="manufacturer"></label><label>Model<input name="modelNumber"></label><label>Serial<input name="serialNumber"></label></div><label>Symptom / Complaint<textarea name="symptom" rows="2"></textarea></label><label>Research Query<textarea name="query" rows="2" placeholder="What part or technical question needs to be resolved?"></textarea></label></div>
+          <div class="form-section"><h3>Candidate Result & Evidence</h3><div class="form-grid three"><label>Part Number<input name="partNumber"></label><label>Part Description<input name="partDescription"></label><label>Confidence<select name="confidence"><option value="unverified">Unverified</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></label><label>Vendor / Source<input name="vendor"></label><label>Cost<input name="cost" type="number" step="0.01"></label><label>Sell Price<input name="sellPrice" type="number" step="0.01"></label></div><label>Evidence / Source Notes<textarea name="evidence" rows="3" placeholder="OEM source, supplier result, cross-reference or verification notes"></textarea></label></div>
+          <div class="form-actions"><button type="submit" class="primary-action">SAVE FOR OFFICE REVIEW</button></div>
+        </form>
+        <div id="partResearchList" class="standalone-list"></div>
+      </section>
+
+      <section id="parts" class="view simple-view"><h2>Parts Library</h2><p>Approved research results are stored as reusable Chill Pros parts records with cost and sell-price context. Purchasing status and inventory controls are the next linked layer.</p></section>
 
       <section id="technicians" class="view">
-        <div class="page-header">
-          <div><p class="eyebrow">DISPATCH OPERATIONS</p><h2>Technician Management</h2></div>
-          <button id="addTechnicianButton" class="secondary-action">+ Add Technician</button>
-        </div>
-
-        <div class="panel technician-form-panel" id="technicianFormPanel" hidden>
-          <h3 class="form-panel-title">Add Technician</h3>
-          <form id="technicianForm">
-            <div class="form-grid two">
-              <label>Full Name <input name="techName" required placeholder="e.g. Carlos Rivera"></label>
-              <label>Phone <input name="techPhone" type="tel" placeholder="(210) 555-0100"></label>
-              <label>Email <input name="techEmail" type="email" placeholder="tech@chillpros.com"></label>
-              <label>Skills <input name="techSkills" placeholder="HVAC, Refrigeration, Ice Machines"></label>
-            </div>
-            <div class="form-actions">
-              <button type="submit" class="primary-action">Save Technician</button>
-              <button type="button" class="secondary-action" id="cancelTechnicianForm">Cancel</button>
-            </div>
-          </form>
-        </div>
-
-        <div class="panel">
-          <div id="technicianList" class="technician-list"><p>No technicians added yet.</p></div>
-        </div>
-        <div class="panel technician-dashboard-panel">
-          <div class="page-header">
-            <div><p class="eyebrow">FIELD SERVICE</p><h2>Technician Dashboard</h2></div>
-            <select id="technicianDashboardSelect"><option value="">Select technician</option></select>
-          </div>
-          <div id="technicianJobsList" class="technician-jobs-list">
-            <article class="queue-item">
-              <div><h3>No technician selected</h3><p class="queue-meta">Select a technician to display assigned jobs.</p></div>
-            </article>
-          </div>
-        </div>
+        <div class="page-header"><div><p class="eyebrow">FIELD SERVICE</p><h2>Technician Management</h2></div><button id="addTechnicianButton" class="secondary-action">+ Add Technician</button></div>
+        <div class="panel technician-form-panel" id="technicianFormPanel" hidden><h3 class="form-panel-title">Add Technician</h3><form id="technicianForm"><div class="form-grid two"><label>Full Name <input name="techName" required></label><label>Phone <input name="techPhone" type="tel"></label><label>Email <input name="techEmail" type="email"></label><label>Skills <input name="techSkills" placeholder="HVAC, Refrigeration, Ice Machines"></label></div><div class="form-actions"><button type="submit" class="primary-action">Save Technician</button><button type="button" class="secondary-action" id="cancelTechnicianForm">Cancel</button></div></form></div>
+        <div class="panel"><div id="technicianList" class="technician-list"><p>No technicians added yet.</p></div></div>
+        <div class="panel technician-dashboard-panel"><div class="page-header"><div><p class="eyebrow">TECHNICIAN WORKSPACE</p><h2>Assigned Jobs</h2></div><select id="technicianDashboardSelect"><option value="">Select technician</option></select></div><div id="technicianJobsList" class="technician-jobs-list"><article class="queue-item"><div><h3>No technician selected</h3><p class="queue-meta">Select a technician to display assigned jobs.</p></div></article></div></div>
       </section>
 
-      <section id="maintenance" class="view simple-view"><h2>Maintenance</h2><p>PM agreements, visits due and completion tracking will connect here.</p></section>
-      <section id="equipment" class="view simple-view"><h2>Equipment Assets</h2><p>Asset records, service history, QR codes and warranty data will connect here.</p></section>
-      <section id="parts" class="view simple-view"><h2>Parts Orders</h2><p>OEM verification, aftermarket cross-reference and supplier workflow will connect here.</p></section>
-      <section id="ai" class="view simple-view"><h2>AI Diagnostics</h2><p>FieldForged ADI and Smart Parts Ordering will connect here.</p></section>
-      <section id="reports" class="view simple-view"><h2>Reports</h2><p>Revenue, technician performance and operational KPI reports will connect here.</p></section>
-      <section id="settings" class="view simple-view"><h2>Settings</h2><p>Company branding, users, roles, integrations and permissions will connect here.</p></section>
+      <section id="maintenance" class="view simple-view"><h2>Maintenance</h2><p>PM agreements, recurring visits, equipment linkage and completion tracking.</p></section>
+      <section id="equipment" class="view simple-view"><h2>Equipment Assets</h2><p>Asset records, model/serial data, service history, QR tags, warranty and photos.</p></section>
+      <section id="reports" class="view simple-view"><h2>Reports</h2><p>Revenue, outstanding quotes/invoices, job margin, technician workload and operational KPIs.</p></section>
+      <section id="settings" class="view simple-view"><h2>Settings</h2><p>Chill Pros users, roles, pricing rules, tax, permissions and service configuration.</p></section>
 
-      <footer class="footer">PROFESSIONAL SERVICE. ◆ ICE COLD RESULTS.</footer>
+      <footer class="footer">CHILL PROS PRIVATE OPERATIONS • SERVICE CALL TO PAYMENT</footer>
     </main>
   </div>
 
   <nav class="mobile-bottom-nav" aria-label="Mobile navigation">
     <button class="mob-nav-btn active" data-view="dashboard"><span>⌂</span>Home</button>
     <button class="mob-nav-btn" data-view="new-customer"><span>＋</span>Intake</button>
-    <button class="mob-nav-btn" data-view="office-queue"><span>▤</span>Queue</button>
     <button class="mob-nav-btn" data-view="today-jobs"><span>▦</span>Jobs</button>
-    <button class="mob-nav-btn" data-view="technicians"><span>👷</span>Techs</button>
+    <button class="mob-nav-btn" data-view="quotes"><span>$</span>Quotes</button>
+    <button class="mob-nav-btn" data-view="ai"><span>❄</span>Parts</button>
   </nav>
-    <article class="queue-item">
-      <div>
-        <h3 class="queue-customer"></h3>
-        <p class="queue-meta"></p>
-        <p class="queue-detail"></p>
-      </div>
-      <div class="queue-actions">
-        <select class="status-select"></select>
-        <button class="mini-button copy-item">Copy</button>
-        <button class="mini-button delete-item">Delete</button>
-      </div>
-    </article>
+
+  <template id="queueItemTemplate">
+    <article class="queue-item"><div><h3 class="queue-customer"></h3><p class="queue-meta"></p><p class="queue-detail"></p></div><div class="queue-actions"><select class="status-select"></select><button class="mini-button copy-item">Copy</button><button class="mini-button delete-item">Delete</button></div></article>
   </template>
 
   <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-app-compat.js"></script>
@@ -288,5 +158,6 @@
   <script src="firebase-config.js"></script>
   <script src="tenant-config.js"></script>
   <script src="app.js"></script>
+  <script src="standalone-workflows.js"></script>
 </body>
 </html>
