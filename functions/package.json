@@ -1,7 +1,7 @@
 {
   "name": "chill-pros-secure-backend",
   "private": true,
-  "main": "index.js",
+  "main": "main.js",
   "engines": {
     "node": "20"
   },

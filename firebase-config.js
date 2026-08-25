@@ -11,5 +11,46 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 
 const firestoreDb = firebase.firestore();
-
 window.chillProsDb = firestoreDb;
+
+// Shared secure bootstrap for Chill Bro and native Chill Pros billing.
+(() => {
+  const addCss = (href, marker) => {
+    if (document.querySelector(`link[data-${marker}]`)) return;
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = href;
+    link.setAttribute(`data-${marker}`, '1');
+    document.head.appendChild(link);
+  };
+
+  const addScript = (src, marker) => {
+    if (document.querySelector(`script[data-${marker}]`)) return;
+    const script = document.createElement('script');
+    script.src = src;
+    script.defer = true;
+    script.setAttribute(`data-${marker}`, '1');
+    document.head.appendChild(script);
+  };
+
+  const loadOperationsTools = () => {
+    addCss('chill-bro.css', 'chill-bro');
+    addCss('native-billing.css', 'native-billing');
+    addScript('chill-bro.js', 'chill-bro');
+    addScript('native-billing.js', 'native-billing');
+  };
+
+  const ensureAuth = () => {
+    if (window.firebase?.auth) {
+      loadOperationsTools();
+      return;
+    }
+    const authScript = document.createElement('script');
+    authScript.src = 'https://www.gstatic.com/firebasejs/12.16.0/firebase-auth-compat.js';
+    authScript.onload = loadOperationsTools;
+    authScript.onerror = () => console.error('Unable to load Firebase Auth for Chill Pros secure tools.');
+    document.head.appendChild(authScript);
+  };
+
+  ensureAuth();
+})();
