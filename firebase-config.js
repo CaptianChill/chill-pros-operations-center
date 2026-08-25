@@ -13,37 +13,42 @@ firebase.initializeApp(firebaseConfig);
 const firestoreDb = firebase.firestore();
 window.chillProsDb = firestoreDb;
 
-// Chill Bro is loaded from this shared bootstrap so every Operations Center entrypoint
-// gets the same secure copilot without exposing server credentials client-side.
+// Shared secure bootstrap for Chill Bro and native Chill Pros billing.
 (() => {
-  const addCss = () => {
-    if (document.querySelector('link[data-chill-bro]')) return;
+  const addCss = (href, marker) => {
+    if (document.querySelector(`link[data-${marker}]`)) return;
     const link = document.createElement('link');
     link.rel = 'stylesheet';
-    link.href = 'chill-bro.css';
-    link.dataset.chillBro = '1';
+    link.href = href;
+    link.setAttribute(`data-${marker}`, '1');
     document.head.appendChild(link);
   };
 
-  const loadCopilot = () => {
-    if (document.querySelector('script[data-chill-bro]')) return;
+  const addScript = (src, marker) => {
+    if (document.querySelector(`script[data-${marker}]`)) return;
     const script = document.createElement('script');
-    script.src = 'chill-bro.js';
+    script.src = src;
     script.defer = true;
-    script.dataset.chillBro = '1';
+    script.setAttribute(`data-${marker}`, '1');
     document.head.appendChild(script);
   };
 
+  const loadOperationsTools = () => {
+    addCss('chill-bro.css', 'chill-bro');
+    addCss('native-billing.css', 'native-billing');
+    addScript('chill-bro.js', 'chill-bro');
+    addScript('native-billing.js', 'native-billing');
+  };
+
   const ensureAuth = () => {
-    addCss();
     if (window.firebase?.auth) {
-      loadCopilot();
+      loadOperationsTools();
       return;
     }
     const authScript = document.createElement('script');
     authScript.src = 'https://www.gstatic.com/firebasejs/12.16.0/firebase-auth-compat.js';
-    authScript.onload = loadCopilot;
-    authScript.onerror = () => console.error('Unable to load Firebase Auth for Chill Bro.');
+    authScript.onload = loadOperationsTools;
+    authScript.onerror = () => console.error('Unable to load Firebase Auth for Chill Pros secure tools.');
     document.head.appendChild(authScript);
   };
 
