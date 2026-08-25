@@ -89,25 +89,96 @@ async function loadDocument(collection, id) {
   }
 }
 
+async function queryRecords(collection, field, value, limit = 6) {
+  const cleaned = typeof value === "string" ? value.trim() : value;
+  if (!cleaned || String(cleaned).length > 220) return [];
+  try {
+    const snap = await db.collection(collection).where(field, "==", cleaned).limit(limit).get();
+    return snap.docs.map((doc) => ({ id: doc.id, ...safeRecord(doc.data()) }));
+  } catch (error) {
+    logger.info("Native context query skipped", { collection, field, message: error.message });
+    return [];
+  }
+}
+
+function uniqueRecords(records) {
+  const seen = new Set();
+  return records.filter((record) => {
+    const key = record?.id || JSON.stringify(record);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 async function buildContext(body) {
+  const supplied = body.context && typeof body.context === "object" ? body.context : null;
   const context = {
     job: null,
     equipment: null,
+    customerRecord: null,
     officeRecord: null,
-    supplied: body.context && typeof body.context === "object" ? body.context : null,
+    serviceHistory: [],
+    supplied,
   };
+
   if (body.jobId) {
     context.job = await loadDocument("jobs", body.jobId);
     if (!context.job) context.job = await loadDocument("serviceJobs", body.jobId);
+    context.customerRecord = await loadDocument("Customers", body.jobId);
   }
+
+  if (body.customerId && !context.customerRecord) {
+    context.customerRecord = await loadDocument("Customers", body.customerId);
+  }
+
   if (body.equipmentId) {
     context.equipment = await loadDocument("equipment", body.equipmentId);
     if (!context.equipment) context.equipment = await loadDocument("equipmentAssets", body.equipmentId);
   }
+
   if (body.recordId) {
     context.officeRecord = await loadDocument("submissions", body.recordId);
     if (!context.officeRecord) context.officeRecord = await loadDocument("officeQueue", body.recordId);
+    if (!context.customerRecord) context.customerRecord = await loadDocument("Customers", body.recordId);
   }
+
+  const history = [];
+  const assetCandidates = [
+    body.equipmentId,
+    context.equipment?.assetId,
+    context.customerRecord?.assetId,
+    supplied?.currentIntake?.assetId,
+  ].filter(Boolean);
+  for (const assetId of assetCandidates.slice(0, 2)) {
+    history.push(...await queryRecords("Customers", "assetId", assetId, 8));
+    if (history.length) break;
+  }
+
+  if (!history.length) {
+    const serialCandidates = [
+      context.equipment?.serialNumber,
+      context.customerRecord?.serialNumber,
+      supplied?.currentIntake?.serialNumber,
+    ].filter(Boolean);
+    for (const serial of serialCandidates.slice(0, 2)) {
+      history.push(...await queryRecords("Customers", "serialNumber", serial, 8));
+      if (history.length) break;
+    }
+  }
+
+  if (!history.length) {
+    const customerCandidates = [
+      context.customerRecord?.customerName,
+      supplied?.currentIntake?.customerName,
+    ].filter(Boolean);
+    for (const customerName of customerCandidates.slice(0, 2)) {
+      history.push(...await queryRecords("Customers", "customerName", customerName, 8));
+      if (history.length) break;
+    }
+  }
+
+  context.serviceHistory = uniqueRecords(history).slice(0, 8);
   return context;
 }
 
@@ -137,6 +208,7 @@ Operating rules:
 - Lead with the most useful field answer. Be concise but technically serious.
 - Never invent model-specific specifications, OEM part numbers, wiring terminals, refrigerant charges, service history, prices, measurements, manuals, or customer facts.
 - Clearly label what came from provided/retrieved context versus what is a diagnostic inference.
+- Treat retrieved Chill Pros service history as evidence, but do not assume an older repair is the current fault without current measurements.
 - For diagnostics, give an ordered test path: likely causes, safest next measurements, expected interpretation, and stop/escalation conditions.
 - Respect lockout/tagout, electrical, refrigerant, combustion, pressure, rotating-equipment, and manufacturer safety requirements. Never tell a tech to bypass a safety device as a permanent repair.
 - If identifying a part, ask for manufacturer/model/serial or a clear data-plate image when confidence is insufficient.
@@ -148,7 +220,7 @@ Operating rules:
 `;
 
 app.get("/health", requireStaff, (req, res) => {
-  res.json({ ok: true, service: "chillBroApi", version: 2, role: req.staff.role, vision: true });
+  res.json({ ok: true, service: "chillBroApi", version: 3, role: req.staff.role, vision: true, nativeHistory: true });
 });
 
 app.post("/chat", requireStaff, async (req, res) => {
@@ -159,7 +231,7 @@ app.post("/chat", requireStaff, async (req, res) => {
 
   const mode = String(req.body?.mode || "field-help").slice(0, 40);
   const context = await buildContext(req.body || {});
-  const contextText = JSON.stringify(context, null, 2).slice(0, 18000);
+  const contextText = JSON.stringify(context, null, 2).slice(0, 22000);
   const content = [{ type: "input_text", text: `FIELD CONTEXT (may be incomplete):\n${contextText}\n\nTECH/OWNER REQUEST:\n${message || "Inspect the attached field image and explain what can be established safely."}` }];
   if (imageDataUrl) content.push({ type: "input_image", image_url: imageDataUrl, detail: "high" });
 
@@ -208,7 +280,9 @@ app.post("/chat", requireStaff, async (req, res) => {
       contextAvailable: {
         job: Boolean(context.job),
         equipment: Boolean(context.equipment),
+        customerRecord: Boolean(context.customerRecord),
         officeRecord: Boolean(context.officeRecord),
+        serviceHistory: context.serviceHistory.length,
         supplied: Boolean(context.supplied),
       },
       draftOnly: mode === "quote-draft" || mode === "invoice-draft",
