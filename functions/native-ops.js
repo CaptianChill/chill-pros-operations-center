@@ -13,19 +13,32 @@ if (!getApps().length) initializeApp();
 const db = getFirestore();
 const STRIPE_SECRET_KEY = defineSecret("STRIPE_SECRET_KEY");
 const OWNER_EMAIL = "chillprostx@gmail.com";
-const RETURN_URL = "https://captianchill.github.io/chill-pros-operations-center/launch.html";
+const DEFAULT_RETURN_URL = "https://chill-pros-operations-center.vercel.app";
 const ALLOWED_ORIGINS = new Set([
   "https://captianchill.github.io",
   "https://chill-pros-ice-stream.web.app",
   "https://chill-pros-ice-stream.firebaseapp.com",
+  "https://chill-pros-operations-center.vercel.app",
 ]);
+
+function originAllowed(origin) {
+  if (!origin) return false;
+  if (ALLOWED_ORIGINS.has(origin)) return true;
+  return /^https:\/\/chill-pros-operations-center(?:-[a-z0-9-]+)?-chill-pros\.vercel\.app$/i.test(origin)
+    || /^https:\/\/chill-pros-operations-center-git-[a-z0-9-]+-chill-pros\.vercel\.app$/i.test(origin);
+}
+
+function returnUrlForRequest(req) {
+  const origin = String(req.get("origin") || "").trim();
+  return originAllowed(origin) ? origin : DEFAULT_RETURN_URL;
+}
 
 const app = express();
 app.disable("x-powered-by");
 app.use(express.json({ limit: "512kb" }));
 app.use((req, res, next) => {
   const origin = req.get("origin");
-  if (origin && ALLOWED_ORIGINS.has(origin)) {
+  if (origin && originAllowed(origin)) {
     res.set("Access-Control-Allow-Origin", origin);
     res.set("Vary", "Origin");
     res.set("Access-Control-Allow-Headers", "Authorization, Content-Type");
@@ -120,7 +133,7 @@ async function stripeRequest(path, params, method = "POST") {
 }
 
 app.get("/health", requireStaff, (req, res) => {
-  res.json({ ok: true, service: "nativeOpsApi", version: 1, role: req.staff.role });
+  res.json({ ok: true, service: "nativeOpsApi", version: 2, role: req.staff.role, vercelCors: true });
 });
 
 app.post("/quotes", requireStaff, async (req, res) => {
@@ -158,7 +171,7 @@ app.post("/quotes/:id/approve", requireStaff, requireOwner, async (req, res) => 
 
 app.post("/invoices", requireStaff, async (req, res) => {
   let lines = cleanLines(req.body?.lines);
-  let quoteId = String(req.body?.quoteId || "").slice(0, 180) || null;
+  const quoteId = String(req.body?.quoteId || "").slice(0, 180) || null;
   let quote = null;
   if (quoteId) {
     const quoteSnap = await db.collection("quotes").doc(quoteId).get();
@@ -214,12 +227,13 @@ app.post("/payments/checkout", requireStaff, requireOwner, async (req, res) => {
   if (!cents) return res.status(400).json({ error: "Invoice balance must be greater than zero." });
 
   try {
+    const returnUrl = returnUrlForRequest(req);
     const session = await stripeRequest("/checkout/sessions", {
       mode: "payment",
       "payment_method_types[]": ["card", "us_bank_account"],
       customer_email: invoice.customerEmail || undefined,
-      success_url: `${RETURN_URL}?payment=success&invoice=${encodeURIComponent(invoiceId)}&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${RETURN_URL}?payment=cancelled&invoice=${encodeURIComponent(invoiceId)}`,
+      success_url: `${returnUrl}?payment=success&invoice=${encodeURIComponent(invoiceId)}&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${returnUrl}?payment=cancelled&invoice=${encodeURIComponent(invoiceId)}`,
       "line_items[0][price_data][currency]": "usd",
       "line_items[0][price_data][unit_amount]": cents,
       "line_items[0][price_data][product_data][name]": `Chill Pros Invoice ${invoiceId}`,
