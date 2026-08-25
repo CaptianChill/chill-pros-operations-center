@@ -21,10 +21,10 @@ Embed a role-aware AI field copilot directly into Chill Pros Operations Center f
 ## Native quoting, invoicing, and payments
 - Quotes and invoices are created and stored natively in Chill Pros Operations Center.
 - Chill Bro may prepare line items, scope, notes, parts/labor suggestions, and draft totals, but cannot charge a customer or move funds without explicit authorized confirmation.
-- Payment collection should use a secure processor/bank-link provider rather than storing online-banking usernames/passwords or raw account credentials.
-- Preferred simple payment paths: ACH/bank transfer for low-cost payments plus card payments when needed.
-- Business-bank settlement should deposit to the Chill Pros business account through the selected processor.
-- Payment state, receipt/reference ID, invoice balance, and settlement status should be stored in Chill Pros records.
+- Do not store bank usernames, passwords, routing/account credentials, or other raw online-banking credentials in the app.
+- Use a secure payment/bank-link provider for ACH and card acceptance, with settlement directed to the Chill Pros business bank account.
+- Keep payment UX simple: customer receives an invoice/payment link or pays in the app; Operations Center records payment status, receipt/reference ID, balance, and settlement status.
+- Direct bank linking is for secure tokenized account connection and settlement, not unrestricted access to the business checking account.
 
 ## Phase 2 — Voice + Vision
 - Realtime voice worker with LiveKit/OpenAI after the text core is stable.
