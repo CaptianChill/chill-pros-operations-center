@@ -2,39 +2,43 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#000000">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Chill Pros">
   <title>Chill Pros Operations Center</title>
-  <link rel="manifest" href="manifest.webmanifest?v=20260729-logo">
-  <link rel="icon" type="image/jpeg" href="chill-pros-logo.jpeg?v=20260729-logo">
-  <link rel="apple-touch-icon" href="chill-pros-logo.jpeg?v=20260729-logo">
-  <link rel="apple-touch-icon-precomposed" href="chill-pros-logo.jpeg?v=20260729-logo">
+  <link rel="manifest" href="manifest.webmanifest?v=20260825-cp">
+  <link rel="icon" type="image/jpeg" href="cp-app-icon.jpg?v=20260825-cp">
+  <link rel="apple-touch-icon" href="cp-app-icon.jpg?v=20260825-cp">
+  <link rel="apple-touch-icon-precomposed" href="cp-app-icon.jpg?v=20260825-cp">
   <style>
     html,body{height:100%;margin:0;background:#000;color:#7edbff;font-family:Arial,sans-serif;display:grid;place-items:center}
-    .launch{text-align:center}.launch img{display:block;width:min(220px,70vw);height:auto;margin:0 auto 18px;border-radius:18px}.launch strong{display:block;font-size:1.25rem;margin-bottom:10px}.launch small{color:#a9bdca}
+    .launch{text-align:center;padding:24px}.launch img{display:block;width:min(210px,58vw);aspect-ratio:1;object-fit:cover;margin:0 auto 18px;border-radius:28px;box-shadow:0 0 34px rgba(0,140,255,.34)}.launch strong{display:block;font-size:1.25rem;margin-bottom:10px;color:#f6fbff}.launch small{color:#a9bdca}
   </style>
 </head>
 <body>
-  <div class="launch"><img src="chill-pros-logo.jpeg?v=20260729-logo" alt="Chill Pros"><strong>Loading Chill Pros Operations Center…</strong><small>Loading secure production workspace</small></div>
+  <div class="launch"><img src="cp-app-icon.jpg?v=20260825-cp" alt="Chill Pros CP app icon"><strong>Chill Pros Operations Center</strong><small>Loading secure workspace…</small></div>
   <script>
     (async () => {
       try {
-        const version = '20260729-logo';
+        const version = '20260825-cp';
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register(`sw.js?v=${version}`).catch(console.warn);
         const response = await fetch(`index.html?v=${version}`, { cache: 'no-store' });
         let html = await response.text();
         html = html
+          .replace('</head>', `<meta name="theme-color" content="#000000"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Chill Pros"><link rel="manifest" href="manifest.webmanifest?v=${version}"><link rel="icon" type="image/jpeg" href="cp-app-icon.jpg?v=${version}"><link rel="apple-touch-icon" href="cp-app-icon.jpg?v=${version}"></head>`)
           .replace('firebase-config.js', `firebase-config.js?v=${version}`)
           .replace('tenant-config.js', `tenant-config.js?v=${version}`)
           .replace('app.js', `app.js?v=${version}`)
-          .replace('styles.css', `styles.css?v=${version}`);
+          .replace('styles.css', `styles.css?v=${version}`)
+          .replace('standalone-workflows.css', `standalone-workflows.css?v=${version}`)
+          .replace('standalone-workflows.js', `standalone-workflows.js?v=${version}`);
         document.open();
         document.write(html);
         document.close();
       } catch (error) {
-        document.body.innerHTML = '<div class="launch"><img src="chill-pros-logo.jpeg?v=20260729-logo" alt="Chill Pros"><strong>Unable to load the application.</strong><small>Refresh this page and try again.</small></div>';
+        document.body.innerHTML = '<div class="launch"><img src="cp-app-icon.jpg?v=20260825-cp" alt="Chill Pros CP app icon"><strong>Unable to load the application.</strong><small>Refresh this page and try again.</small></div>';
         console.error(error);
       }
     })();
