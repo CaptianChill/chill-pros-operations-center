@@ -7,10 +7,9 @@
   let thread;
   let launcher;
   let status;
-
-  function esc(value) {
-    return String(value ?? "").replace(/[&<>"']/g, (char) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[char]));
-  }
+  let pendingImageDataUrl = "";
+  let recognition = null;
+  let speakReplies = false;
 
   function addMessage(kind, text) {
     const node = document.createElement("div");
@@ -35,7 +34,6 @@
       }
       if (Object.keys(intake).length) context.currentIntake = intake;
     }
-
     const activeJob = document.querySelector(".queue-item[data-job-id].active,[data-job-id][aria-current='true']");
     if (activeJob) {
       context.currentJob = {
@@ -53,15 +51,50 @@
     const token = await user.getIdToken();
     const response = await fetch(`${API_BASE}${path}`, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || "Chill Bro request failed.");
     return data;
+  }
+
+  function speak(text) {
+    if (!speakReplies || !window.speechSynthesis || !text) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.96;
+    utterance.pitch = 0.92;
+    utterance.lang = "en-US";
+    window.speechSynthesis.speak(utterance);
+  }
+
+  async function compressImage(file) {
+    if (!file || !file.type.startsWith("image/")) throw new Error("Choose a photo or image file.");
+    const bitmap = await createImageBitmap(file);
+    const maxSide = 1600;
+    const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close?.();
+    return canvas.toDataURL("image/jpeg", 0.82);
+  }
+
+  async function attachImage(file) {
+    try {
+      status.textContent = "Preparing field image…";
+      pendingImageDataUrl = await compressImage(file);
+      panel.querySelector("#chillBroImageState").textContent = "PHOTO READY";
+      addMessage("system", "Field photo attached. Ask what you want Chill Bro to inspect.");
+      status.textContent = "Photo ready for Chill Bro vision";
+    } catch (error) {
+      pendingImageDataUrl = "";
+      panel.querySelector("#chillBroImageState").textContent = "CAMERA";
+      addMessage("system", error.message || "Unable to prepare image.");
+    }
   }
 
   async function send() {
@@ -70,12 +103,12 @@
     const jobId = panel.querySelector("#chillBroJobId").value.trim();
     const equipmentId = panel.querySelector("#chillBroEquipmentId").value.trim();
     const message = input.value.trim();
-    if (!message) return;
+    if (!message && !pendingImageDataUrl) return;
 
-    addMessage("user", message);
+    addMessage("user", message || "Inspect this field image.");
     input.value = "";
     launcher.dataset.state = "thinking";
-    status.textContent = "Chill Bro is thinking…";
+    status.textContent = pendingImageDataUrl ? "Chill Bro is inspecting the field image…" : "Chill Bro is thinking…";
 
     try {
       const data = await request("/chat", {
@@ -85,10 +118,14 @@
         equipmentId: equipmentId || undefined,
         sessionId: sessionId || undefined,
         context: collectContext(),
+        imageDataUrl: pendingImageDataUrl || undefined,
       });
       sessionId = data.sessionId || sessionId;
       addMessage("bot", data.answer);
-      status.textContent = `${data.role === "owner" ? "Owner" : "Technician"} access • ${mode}${data.draftOnly ? " • DRAFT ONLY" : ""}`;
+      speak(data.answer);
+      pendingImageDataUrl = "";
+      panel.querySelector("#chillBroImageState").textContent = "CAMERA";
+      status.textContent = `${data.role === "owner" ? "Owner" : "Technician"} access • ${mode}${data.visionUsed ? " • VISION" : ""}${data.draftOnly ? " • DRAFT ONLY" : ""}`;
     } catch (error) {
       addMessage("system", error.message);
       status.textContent = "Chill Bro unavailable";
@@ -96,6 +133,43 @@
     } finally {
       launcher.dataset.state = "ready";
     }
+  }
+
+  function setupRecognition() {
+    const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!Recognition) return null;
+    const r = new Recognition();
+    r.lang = "en-US";
+    r.interimResults = false;
+    r.continuous = false;
+    r.onstart = () => {
+      launcher.dataset.state = "listening";
+      status.textContent = "Listening… tell Chill Bro what you need.";
+      panel.querySelector("#chillBroMic").textContent = "LISTENING";
+    };
+    r.onresult = (event) => {
+      const transcript = Array.from(event.results).map((result) => result[0]?.transcript || "").join(" ").trim();
+      if (transcript) panel.querySelector("#chillBroInput").value = transcript;
+    };
+    r.onerror = () => {
+      addMessage("system", "Voice input was interrupted. You can keep typing normally.");
+    };
+    r.onend = () => {
+      launcher.dataset.state = "ready";
+      panel.querySelector("#chillBroMic").textContent = "TALK";
+      status.textContent = "Voice captured • review or send";
+    };
+    return r;
+  }
+
+  function startVoice() {
+    if (!recognition) recognition = setupRecognition();
+    if (!recognition) {
+      addMessage("system", "Voice recognition is not available in this browser. Chrome on Android/Desktop usually supports it.");
+      return;
+    }
+    speakReplies = true;
+    try { recognition.start(); } catch { /* already listening */ }
   }
 
   function showLoginIfNeeded() {
@@ -139,7 +213,7 @@
     panel.innerHTML = `
       <div class="chill-bro-head">
         <div class="chill-bro-mark">❄</div>
-        <div class="chill-bro-title"><strong>CHILL BRO 2.0</strong><small>Field intelligence • Diagnostics • Parts • Drafts</small></div>
+        <div class="chill-bro-title"><strong>CHILL BRO 2.0</strong><small>Voice • Vision • Diagnostics • Parts • Quotes</small></div>
         <button class="chill-bro-close" type="button" aria-label="Close">×</button>
       </div>
       <div class="chill-bro-status" id="chillBroStatus">Secure field copilot ready</div>
@@ -166,6 +240,12 @@
       <div class="chill-bro-thread" id="chillBroThread"></div>
       <div class="chill-bro-composer">
         <textarea id="chillBroInput" placeholder="Tell Chill Bro what you see, hear, measured, need quoted, or need help learning…"></textarea>
+        <input id="chillBroCameraInput" type="file" accept="image/*" capture="environment" hidden>
+        <div class="chill-bro-actions chill-bro-field-actions">
+          <button id="chillBroMic" class="chill-bro-secondary" type="button">TALK</button>
+          <button id="chillBroCamera" class="chill-bro-secondary" type="button"><span id="chillBroImageState">CAMERA</span></button>
+          <button id="chillBroVoiceToggle" class="chill-bro-secondary" type="button">VOICE OFF</button>
+        </div>
         <div class="chill-bro-actions">
           <button id="chillBroClear" class="chill-bro-secondary" type="button">Clear</button>
           <button id="chillBroSend" class="chill-bro-send" type="button">ASK CHILL BRO</button>
@@ -176,7 +256,7 @@
     document.body.appendChild(panel);
     thread = panel.querySelector("#chillBroThread");
     status = panel.querySelector("#chillBroStatus");
-    addMessage("bot", "What are we working on? Give me the unit, complaint, measurements, or the quote you need built.");
+    addMessage("bot", "What are we working on? Talk, type, or show me the unit/data plate and give me the complaint or measurements.");
 
     launcher.addEventListener("click", () => {
       panel.classList.toggle("open");
@@ -186,9 +266,19 @@
     panel.querySelector(".chill-bro-close").addEventListener("click", () => panel.classList.remove("open"));
     panel.querySelector("#chillBroSend").addEventListener("click", send);
     panel.querySelector("#chillBroSignIn").addEventListener("click", signIn);
+    panel.querySelector("#chillBroMic").addEventListener("click", startVoice);
+    panel.querySelector("#chillBroCamera").addEventListener("click", () => panel.querySelector("#chillBroCameraInput").click());
+    panel.querySelector("#chillBroCameraInput").addEventListener("change", (event) => attachImage(event.target.files?.[0]));
+    panel.querySelector("#chillBroVoiceToggle").addEventListener("click", (event) => {
+      speakReplies = !speakReplies;
+      event.currentTarget.textContent = speakReplies ? "VOICE ON" : "VOICE OFF";
+      if (!speakReplies) window.speechSynthesis?.cancel();
+    });
     panel.querySelector("#chillBroClear").addEventListener("click", () => {
       thread.innerHTML = "";
       sessionId = "";
+      pendingImageDataUrl = "";
+      panel.querySelector("#chillBroImageState").textContent = "CAMERA";
       addMessage("system", "Conversation cleared. Job records were not changed.");
     });
     panel.querySelector("#chillBroInput").addEventListener("keydown", (event) => {
@@ -198,9 +288,7 @@
       }
     });
 
-    if (window.firebase?.auth) {
-      window.firebase.auth().onAuthStateChanged(() => showLoginIfNeeded());
-    }
+    if (window.firebase?.auth) window.firebase.auth().onAuthStateChanged(() => showLoginIfNeeded());
     showLoginIfNeeded();
   }
 
