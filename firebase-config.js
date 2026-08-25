@@ -13,7 +13,7 @@ firebase.initializeApp(firebaseConfig);
 const firestoreDb = firebase.firestore();
 window.chillProsDb = firestoreDb;
 
-// Shared secure bootstrap for Chill Bro and native Chill Pros billing.
+// Shared secure bootstrap for Operations Center V3, Chill Bro and native billing.
 (() => {
   const addCss = (href, marker) => {
     if (document.querySelector(`link[data-${marker}]`)) return;
@@ -36,6 +36,7 @@ window.chillProsDb = firestoreDb;
   const loadOperationsTools = () => {
     addCss('chill-bro.css', 'chill-bro');
     addCss('native-billing.css', 'native-billing');
+    addCss('operations-v3.css', 'operations-v3');
     addScript('chill-bro.js', 'chill-bro');
     addScript('native-billing.js', 'native-billing');
   };
