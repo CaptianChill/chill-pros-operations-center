@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#020711">
+<title>Chill Pros • Final Development Preview</title>
+<link rel="stylesheet" href="final-preview.css?v=20260825-0011">
+<link rel="stylesheet" href="standalone-workflows.css?v=20260825-0011">
+</head>
+<body>
+<div class="shell">
+<aside class="sidebar">
+  <div class="brand"><h1>CHILL PROS</h1><p>Private Operations Center</p></div>
+  <nav class="nav">
+    <button class="active" data-view="dashboard">⌂ Dashboard</button>
+    <button data-view="new-customer">＋ Service Intake</button>
+    <button data-view="today-jobs">▦ Dispatch / Jobs</button>
+    <button data-view="office-queue">▤ Office Queue</button>
+    <button data-view="quotes">＄ Quotes</button>
+    <button data-view="invoices">▧ Invoices</button>
+    <button data-view="ai">❄ Parts Intelligence</button>
+    <button data-view="technicians">👷 Technicians</button>
+  </nav>
+  <div class="sidebar-foot"><strong>BoodaFlow</strong><small>Complete → advance. Block → keep moving. One workflow, no duplicate entry.</small></div>
+</aside>
+<main class="main">
+<header class="topbar"><div><h2>Chill Pros Operations Center</h2><p>Dispatch → service → parts → quote → invoice → payment</p></div><span class="status-chip">DEVELOPMENT • LIVE</span></header>
+<section id="dashboard" class="view active">
+  <div class="grid metrics">
+    <article class="card metric"><span>Today's Jobs</span><strong id="jobsCount">0</strong><small>Active service calls</small></article>
+    <article class="card metric"><span>Office Queue</span><strong id="dashboardQueueCount">0</strong><small>Needs attention</small></article>
+    <article class="card metric"><span>Quotes</span><strong id="standaloneQuotesCount">0</strong><small>Open pricing</small></article>
+    <article class="card metric"><span>Invoices</span><strong id="standaloneInvoicesCount">0</strong><small>Billing records</small></article>
+    <article class="card metric"><span>Parts</span><strong id="partsCount">0</strong><small>Research / orders</small></article>
+  </div>
+  <div class="grid actions">
+    <article class="card action-card"><small>SERVICE CALL</small><h3>Fast Intake</h3><p>Capture customer, site, equipment and complaint once. That record follows the entire job.</p><button class="btn primary" data-view-target="new-customer">Start Service Call</button></article>
+    <article class="card action-card"><small>FIELD OPS</small><h3>Dispatch</h3><p>Assign technicians, schedule work and move the call through field status without rebuilding it.</p><button class="btn primary" data-view-target="today-jobs">Open Dispatch</button></article>
+    <article class="card action-card"><small>PRICING</small><h3>Quote → Invoice</h3><p>Build approved pricing from the service call and convert it directly into billing.</p><button class="btn primary" data-view-target="quotes">Open Quotes</button></article>
+    <article class="card action-card"><small>INTELLIGENCE</small><h3>AI Parts</h3><p>Research from model, serial and symptoms. Preserve evidence and move approved parts into pricing.</p><button class="btn primary" data-view-target="ai">Research Parts</button></article>
+  </div>
+  <article class="card booda">
+    <div class="booda-top"><div><h3>BoodaFlow Execution Engine</h3><p>Priority-first execution with blockers isolated so the rest of the operation keeps moving.</p></div><span class="booda-badge" id="bfStatus">OVERDRIVE • RUNNING</span></div>
+    <div class="booda-grid"><div class="booda-stat"><small>Completed</small><strong id="bfDone">0/7</strong></div><div class="booda-stat"><small>Blocked</small><strong id="bfBlocked">0</strong></div><div class="booda-stat"><small>Active lane</small><strong id="bfActive">Dispatch service-call spine</strong></div></div>
+    <div class="booda-controls"><button class="btn primary" data-bf="advance">Complete + Advance</button><button class="btn warn" data-bf="block">Block + Keep Moving</button><button class="btn" data-bf="toggle">Pause / Resume</button><button class="btn danger" data-bf="reset">Reset Queue</button></div>
+    <div class="worklist" id="bfList"></div>
+  </article>
+  <div class="grid content-two">
+    <article class="card section-card"><div class="section-head"><h3>Request-to-Payment Flow</h3><span class="booda-badge">ONE RECORD</span></div><div class="flow-strip"><div class="flow-step active">Intake</div><div class="flow-step">Dispatch</div><div class="flow-step">Diagnosis</div><div class="flow-step">Parts</div><div class="flow-step">Quote</div><div class="flow-step">Invoice</div><div class="flow-step">Payment</div></div></article>
+    <article class="card section-card"><div class="section-head"><h3>System Rule</h3></div><div class="glass-row">No commercial retail / white-label layer.</div><div class="glass-row">Owner, technician and client views share the same core record.</div><div class="glass-row">AI assists research and drafting; humans approve financial actions.</div></article>
+  </div>
+</section>
+<section id="new-customer" class="view"><article class="card form-card"><div class="section-head"><h3>New Service Call</h3><button class="btn" id="clearIntake">Clear</button></div><form id="intakeForm"><div class="form-grid"><label>Customer / Company<input name="customerName" required></label><label>Contact<input name="contactName"></label><label>Phone<input name="phone" type="tel"></label><label>Email<input name="email" type="email"></label></div><div class="form-grid three"><label>Equipment<select name="equipmentType"><option>HVAC</option><option>Refrigeration</option><option>Ice Machine</option><option>Commercial Kitchen Equipment</option><option>Kitchen Exhaust</option><option>Other</option></select></label><label>Manufacturer<input name="manufacturer"></label><label>Model<input name="modelNumber"></label><label>Serial<input name="serialNumber"></label><label>Asset ID<input name="assetId"></label><label>Service Address<input name="address"></label></div><label>Customer Complaint<textarea name="complaint" rows="3" required></textarea></label><label>Technician Findings<textarea name="findings" rows="3"></textarea></label><label>Recommended Repair<textarea name="recommendation" rows="2"></textarea></label><div class="form-grid"><label>Status<select name="officeStatus"><option>Needs Review</option><option>Needs Quote</option><option>Scheduled</option><option>Waiting on Parts</option><option>Ready to Invoice</option><option>Completed</option></select></label><label>Estimated Amount<input name="estimatedAmount" type="number" step="0.01"></label></div><div class="booda-controls"><button class="btn primary" type="submit">Submit to Office</button><button class="btn" type="button" id="copySummary">Copy Summary</button></div></form></article></section>
+<section id="office-queue" class="view"><article class="card form-card"><div class="section-head"><h3>Office Queue</h3><button class="btn" id="exportQueue">Export</button></div><div class="form-grid"><input id="queueSearch" placeholder="Search customer, model, serial or status"><select id="queueFilter"><option value="">All statuses</option><option>Needs Review</option><option>Needs Quote</option><option>Scheduled</option><option>Dispatched</option><option>In Progress</option><option>Paused</option><option>Waiting on Parts</option><option>Ready to Invoice</option><option>Completed</option></select></div><div id="queueList" class="list"></div></article></section>
+<section id="today-jobs" class="view"><article class="card form-card"><div class="section-head"><h3>Dispatch / Today's Jobs</h3><button class="btn" id="refreshJobs">Refresh</button></div><div class="form-grid"><input id="jobSearch" placeholder="Search customer, address, equipment or technician"><select id="jobStatusFilter"><option value="">All statuses</option><option>Scheduled</option><option>Dispatched</option><option>In Progress</option><option>Paused</option></select></div><div id="todayJobsList" class="list"></div></article></section>
+<section id="quotes" class="view"><article class="card form-card"><div class="section-head"><h3>Quotes</h3></div><form id="quoteForm"><label>Service Call<select name="jobId" required><option value="">Select service call</option></select></label><div class="form-grid three"><label>Line Type<select name="lineType"><option value="labor">Labor</option><option value="part">Part</option><option value="service">Service</option></select></label><label>Description<input name="description" required></label><label>Quantity<input name="quantity" type="number" step="0.01" value="1"></label><label>Unit Price<input name="unitPrice" type="number" step="0.01" value="0"></label><label>Tax %<input name="taxRate" type="number" step="0.01" value="8.25"></label><label>Discount<input name="discount" type="number" step="0.01" value="0"></label></div><div class="booda-controls"><button class="btn primary" type="submit">Create Draft Quote</button></div></form><div id="quotesList" class="standalone-list"></div></article></section>
+<section id="invoices" class="view"><article class="card form-card"><div class="section-head"><h3>Invoices & Payments</h3></div><div id="invoicesList" class="standalone-list"></div></article></section>
+<section id="ai" class="view"><article class="card form-card"><div class="section-head"><h3>AI Parts Intelligence</h3></div><form id="partResearchForm"><label>Service Call<select name="jobId" required><option value="">Select service call</option></select></label><div class="form-grid three"><label>Manufacturer<input name="manufacturer"></label><label>Model<input name="modelNumber"></label><label>Serial<input name="serialNumber"></label></div><label>Symptom / Complaint<textarea name="symptom" rows="2"></textarea></label><label>Research Query<textarea name="query" rows="2"></textarea></label><div class="form-grid three"><label>Part Number<input name="partNumber"></label><label>Description<input name="partDescription"></label><label>Confidence<select name="confidence"><option>unverified</option><option>low</option><option>medium</option><option>high</option></select></label><label>Vendor / Source<input name="vendor"></label><label>Cost<input name="cost" type="number" step="0.01"></label><label>Sell Price<input name="sellPrice" type="number" step="0.01"></label></div><label>Evidence / Source Notes<textarea name="evidence" rows="3"></textarea></label><div class="booda-controls"><button class="btn primary" type="submit">Save for Office Review</button></div></form><div id="partResearchList" class="standalone-list"></div></article></section>
+<section id="technicians" class="view"><article class="card form-card"><div class="section-head"><h3>Technicians</h3><button id="addTechnicianButton" class="btn">+ Add Technician</button></div><div id="technicianFormPanel" hidden><form id="technicianForm"><div class="form-grid"><label>Name<input name="techName" required></label><label>Phone<input name="techPhone"></label><label>Email<input name="techEmail"></label><label>Skills<input name="techSkills"></label></div><div class="booda-controls"><button class="btn primary" type="submit">Save</button><button class="btn" id="cancelTechnicianForm" type="button">Cancel</button></div></form></div><div id="technicianList" class="list"></div><select id="technicianDashboardSelect"><option value="">Select technician</option></select><div id="technicianJobsList" class="list"></div></article></section>
+</main>
+</div>
+<nav class="mobile-nav"><button class="active" data-view="dashboard">Home</button><button data-view="new-customer">Intake</button><button data-view="today-jobs">Jobs</button><button data-view="quotes">Quotes</button><button data-view="ai">Parts</button></nav>
+<template id="queueItemTemplate"><article class="item"><div><h3 class="queue-customer"></h3><p class="queue-meta"></p><p class="queue-detail"></p></div><div class="booda-controls"><select class="status-select"></select><button class="btn copy-item">Copy</button><button class="btn danger delete-item">Delete</button></div></article></template>
+<div id="scheduleList" hidden></div><div id="activityList" hidden></div><button id="addSampleJob" hidden></button><strong id="pmCount" hidden>0</strong><strong id="revenueCount" hidden>$0</strong>
+<script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore-compat.js"></script><script src="firebase-config.js"></script><script src="tenant-config.js"></script><script src="app.js?v=20260825-0011"></script><script src="standalone-workflows.js?v=20260825-0011"></script><script src="boodaflow-final.js?v=20260825-0011"></script>
+<script>document.addEventListener('click',e=>{const id=e.target.dataset.view||e.target.dataset.viewTarget;if(!id)return;document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===id));document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===id));window.scrollTo({top:0,behavior:'smooth'})});</script>
+</body></html>
