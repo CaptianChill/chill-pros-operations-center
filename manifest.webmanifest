@@ -1,18 +1,26 @@
 {
   "name": "Chill Pros Operations Center",
   "short_name": "Chill Pros",
-  "description": "Chill Pros owner, office, and technician operations application.",
-  "start_url": "./launch.html?v=20260729-logo",
+  "description": "Private Chill Pros owner, dispatch, office, and technician operations application.",
+  "id": "./launch.html",
+  "start_url": "./launch.html?v=20260825-cp",
   "scope": "./",
   "display": "standalone",
+  "orientation": "any",
   "background_color": "#000000",
   "theme_color": "#000000",
   "icons": [
     {
-      "src": "chill-pros-logo.jpeg?v=20260729-logo",
-      "sizes": "200x157",
+      "src": "cp-app-icon.jpg?v=20260825-cp",
+      "sizes": "128x128",
       "type": "image/jpeg",
       "purpose": "any"
+    },
+    {
+      "src": "cp-app-icon.jpg?v=20260825-cp",
+      "sizes": "128x128",
+      "type": "image/jpeg",
+      "purpose": "maskable"
     }
   ]
 }
