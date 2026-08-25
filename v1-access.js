@@ -1,5 +1,4 @@
 (() => {
-  const OWNER_EMAILS = new Set(["chillprostx@gmail.com"]);
   const ROLE_VIEWS = {
     owner: ["dashboard", "new-customer", "office-queue", "today-jobs", "technicians", "maintenance", "equipment", "parts", "ai", "reports", "settings"],
     office: ["dashboard", "new-customer", "office-queue", "today-jobs", "technicians", "maintenance", "equipment", "parts"],
@@ -80,30 +79,31 @@
   }
 
   async function getUserProfile(user) {
-    const fallbackRole = OWNER_EMAILS.has(String(user.email || "").toLowerCase()) ? "owner" : "technician";
-    const fallback = {
+    const snapshot = await window.chillProsDb.collection("Users").doc(user.uid).get();
+    if (!snapshot.exists) {
+      throw new Error("Authoritative user profile is required");
+    }
+
+    const data = snapshot.data() || {};
+    if (!["owner", "office", "technician"].includes(data.role)) {
+      throw new Error("Authoritative user profile has an invalid role");
+    }
+    if (data.role === "technician" && !String(data.technicianName || "").trim()) {
+      throw new Error("Technician profile requires technicianName");
+    }
+
+    return {
       uid: user.uid,
       email: user.email || "",
-      displayName: user.displayName || user.email || "User",
-      role: fallbackRole,
-      technicianName: user.displayName || ""
+      displayName: data.displayName || user.displayName || user.email || "User",
+      ...data,
+      role: data.role
     };
-
-    try {
-      const snapshot = await window.chillProsDb.collection("Users").doc(user.uid).get();
-      if (!snapshot.exists) return fallback;
-      const data = snapshot.data() || {};
-      const role = ["owner", "office", "technician"].includes(data.role) ? data.role : fallbackRole;
-      return { ...fallback, ...data, role };
-    } catch (error) {
-      console.warn("Unable to read user profile; using fallback role:", error);
-      return fallback;
-    }
   }
 
   function applyRole(profile) {
     window.CHILL_PROS_SESSION = profile;
-    const allowed = new Set(ROLE_VIEWS[profile.role] || ROLE_VIEWS.technician);
+    const allowed = new Set(ROLE_VIEWS[profile.role] || []);
 
     document.querySelectorAll(".side-link").forEach((button) => {
       button.classList.toggle("role-hidden", !allowed.has(button.dataset.view));
@@ -219,12 +219,24 @@
           return;
         }
 
-        currentProfile = await getUserProfile(user);
-        patchTechnicianPersistence();
-        applyRole(currentProfile);
-        startRealtimeListeners();
-        showSessionBar(user, currentProfile);
-        setGateVisible(false);
+        try {
+          currentProfile = await getUserProfile(user);
+          patchTechnicianPersistence();
+          applyRole(currentProfile);
+          startRealtimeListeners();
+          showSessionBar(user, currentProfile);
+          setGateVisible(false);
+        } catch (error) {
+          console.error("Authorization failed:", error);
+          currentProfile = null;
+          unsubscribeCustomers?.();
+          unsubscribeTechnicians?.();
+          window.CHILL_PROS_SESSION = null;
+          const errorBox = document.getElementById("authError");
+          if (errorBox) errorBox.textContent = "Access denied. An owner must configure your role profile.";
+          setGateVisible(true);
+          await auth.signOut();
+        }
       });
     } catch (error) {
       console.error("Authentication SDK failed to load:", error);

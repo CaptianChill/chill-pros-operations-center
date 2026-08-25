@@ -11,5 +11,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 
 const firestoreDb = firebase.firestore();
+const firebaseAuth = typeof firebase.auth === "function" ? firebase.auth() : null;
 
 window.chillProsDb = firestoreDb;
+window.chillProsAuth = firebaseAuth;

@@ -27,6 +27,14 @@ document.write('<meta name="apple-mobile-web-app-capable" content="yes">');
 document.write('<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">');
 document.write('<meta name="apple-mobile-web-app-title" content="Chill Pros">');
 
+// Authenticated, atomic customer mutations and append-only audit records.
+document.write('<script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-auth-compat.js"><\/script>');
+document.write('<script src="audited-customer-mutations.js?v=20260729-1"><\/script>');
+document.write('<script src="customer-mutation-adapter.js?v=20260729-1"><\/script>');
+document.write('<script src="customer-mutation-integration.js?v=20260729-1"><\/script>');
+document.write('<script src="security-runtime-bootstrap.js?v=20260729-1"><\/script>');
+document.write('<script src="app-audited-mutation-bridge.js?v=20260729-1"><\/script>');
+
 // Authentication, role routing and realtime synchronization.
 document.write('<script src="v1-access.js?v=20260729-logo"><\/script>');
 document.write('<script src="auth-diagnostics.js?v=20260729-logo"><\/script>');
