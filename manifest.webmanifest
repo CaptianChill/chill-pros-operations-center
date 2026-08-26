@@ -1,9 +1,9 @@
 {
-  "name": "Chill Pros Operations Center V3",
+  "name": "Chill Pros Operations Center",
   "short_name": "Chill Pros",
   "description": "Chill Pros field command, technician operations, Chill Bro AI, quotes, invoices and payments.",
   "id": "/",
-  "start_url": "/?v=20260825-v3",
+  "start_url": "/?v=20260825-v5",
   "scope": "/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
@@ -11,13 +11,13 @@
   "theme_color": "#03070b",
   "icons": [
     {
-      "src": "/cp-app-icon.png?v=20260825-v3",
+      "src": "/cp-app-icon.png?v=20260825-v5",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/cp-app-icon.png?v=20260825-v3",
+      "src": "/cp-app-icon.png?v=20260825-v5",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
