@@ -37,8 +37,10 @@ window.chillProsDb = firestoreDb;
     addCss('chill-bro.css', 'chill-bro');
     addCss('native-billing.css', 'native-billing');
     addCss('operations-v3.css', 'operations-v3');
+    addCss('operations-v3-command.css', 'operations-v3-command');
     addScript('chill-bro.js', 'chill-bro');
     addScript('native-billing.js', 'native-billing');
+    addScript('operations-v3.js', 'operations-v3-command');
   };
 
   const ensureAuth = () => {
