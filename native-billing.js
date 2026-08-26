@@ -28,8 +28,8 @@
     return {
       customerName: panel.querySelector("#cbBillCustomer").value.trim() || String(formData?.get("customerName") || "").trim(),
       customerEmail: panel.querySelector("#cbBillEmail").value.trim() || String(formData?.get("email") || "").trim(),
-      jobId: panel.querySelector("#cbBillJob").value.trim() || document.getElementById("chillBroJobId")?.value.trim() || "",
-      equipmentId: document.getElementById("chillBroEquipmentId")?.value.trim() || "",
+      jobId: panel.querySelector("#cbBillJob").value.trim(),
+      equipmentId: panel.querySelector("#cbBillEquipment").value.trim(),
       scope: panel.querySelector("#cbBillScope").value.trim(),
       description: panel.querySelector("#cbBillDescription").value.trim(),
       quantity: Number(panel.querySelector("#cbBillQty").value || 1),
@@ -91,46 +91,69 @@
     updateMeta(panel, `Payment status: ${data.paymentStatus || data.status || "unknown"}`);
   }
 
+  function setOpen(open) {
+    const shell = document.getElementById("nativeBillingShell");
+    if (!shell) return;
+    shell.classList.toggle("open", open);
+    shell.setAttribute("aria-hidden", open ? "false" : "true");
+    if (open) window.setTimeout(() => document.getElementById("cbBillCustomer")?.focus(), 30);
+  }
+
   function install() {
-    const chillPanel = document.getElementById("chillBroPanel");
-    if (!chillPanel || document.getElementById("chillBroBilling")) return false;
+    if (document.getElementById("nativeBillingShell")) return true;
 
-    const head = chillPanel.querySelector(".chill-bro-head");
-    const close = chillPanel.querySelector(".chill-bro-close");
-    const toggle = document.createElement("button");
-    toggle.type = "button";
-    toggle.className = "chill-bro-billing-toggle";
-    toggle.textContent = "QUOTE / PAY";
-    head.insertBefore(toggle, close);
+    const launcher = document.createElement("button");
+    launcher.id = "nativeBillingLauncher";
+    launcher.className = "native-billing-launcher";
+    launcher.type = "button";
+    launcher.innerHTML = '<span>$</span><div><b>QUOTE / INVOICE</b><small>Native billing</small></div>';
+    launcher.setAttribute("aria-label", "Open Chill Pros quotes and invoices");
 
-    const panel = document.createElement("section");
-    panel.id = "chillBroBilling";
-    panel.className = "chill-bro-billing";
-    panel.innerHTML = `
-      <div class="chill-bro-billing-grid">
-        <input id="cbBillCustomer" placeholder="Customer / company">
-        <input id="cbBillEmail" type="email" placeholder="Customer email">
-        <input id="cbBillJob" placeholder="Job ID (optional)">
-        <input id="cbBillQty" type="number" min="1" step="1" value="1" placeholder="Qty">
-        <textarea id="cbBillScope" placeholder="Scope of work"></textarea>
-        <input id="cbBillDescription" placeholder="Line item / repair description">
-        <input id="cbBillPrice" type="number" min="0" step="0.01" placeholder="Unit price">
-      </div>
-      <div class="chill-bro-billing-actions">
-        <button type="button" data-bill="save-quote">Save Draft Quote</button>
-        <button type="button" class="secondary" data-bill="approve-quote">Approve Quote</button>
-        <button type="button" data-bill="create-invoice">Create Invoice</button>
-        <button type="button" class="secondary" data-bill="approve-invoice">Approve Invoice</button>
-        <button type="button" data-bill="payment">Card / ACH Link</button>
-        <button type="button" class="secondary" data-bill="refresh">Refresh Payment</button>
-      </div>
-      <div id="cbBillMeta" class="chill-bro-billing-meta"></div>`;
+    const shell = document.createElement("div");
+    shell.id = "nativeBillingShell";
+    shell.className = "native-billing-shell";
+    shell.setAttribute("aria-hidden", "true");
+    shell.innerHTML = `
+      <section id="nativeBillingPanel" class="native-billing-panel" aria-label="Native Chill Pros billing">
+        <header class="native-billing-head">
+          <div><small>CHILL PROS</small><strong>Quotes, Invoices & Payments</strong></div>
+          <button id="nativeBillingClose" type="button" aria-label="Close billing">×</button>
+        </header>
+        <div class="native-billing-grid">
+          <input id="cbBillCustomer" placeholder="Customer / company">
+          <input id="cbBillEmail" type="email" placeholder="Customer email">
+          <input id="cbBillJob" placeholder="Job ID (optional)">
+          <input id="cbBillEquipment" placeholder="Equipment ID (optional)">
+          <input id="cbBillQty" type="number" min="1" step="1" value="1" placeholder="Qty">
+          <input id="cbBillPrice" type="number" min="0" step="0.01" placeholder="Unit price">
+          <textarea id="cbBillScope" placeholder="Scope of work"></textarea>
+          <input id="cbBillDescription" placeholder="Line item / repair description">
+        </div>
+        <div class="native-billing-actions">
+          <button type="button" data-bill="save-quote">Save Draft Quote</button>
+          <button type="button" class="secondary" data-bill="approve-quote">Approve Quote</button>
+          <button type="button" data-bill="create-invoice">Create Invoice</button>
+          <button type="button" class="secondary" data-bill="approve-invoice">Approve Invoice</button>
+          <button type="button" data-bill="payment">Card / ACH Link</button>
+          <button type="button" class="secondary" data-bill="refresh">Refresh Payment</button>
+        </div>
+        <div id="cbBillMeta" class="native-billing-meta"></div>
+      </section>`;
 
-    const controls = chillPanel.querySelector(".chill-bro-controls");
-    controls.insertAdjacentElement("afterend", panel);
+    document.body.appendChild(launcher);
+    document.body.appendChild(shell);
+    const panel = document.getElementById("nativeBillingPanel");
     updateMeta(panel, "Native Chill Pros billing ready.");
 
-    toggle.addEventListener("click", () => panel.classList.toggle("open"));
+    launcher.addEventListener("click", () => setOpen(true));
+    shell.addEventListener("click", (event) => {
+      if (event.target === shell) setOpen(false);
+    });
+    document.getElementById("nativeBillingClose")?.addEventListener("click", () => setOpen(false));
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") setOpen(false);
+    });
+
     panel.addEventListener("click", async (event) => {
       const action = event.target?.dataset?.bill;
       if (!action) return;
@@ -149,12 +172,12 @@
         button.disabled = false;
       }
     });
+
+    window.openNativeBilling = () => setOpen(true);
+    window.closeNativeBilling = () => setOpen(false);
     return true;
   }
 
-  let attempts = 0;
-  const timer = setInterval(() => {
-    attempts += 1;
-    if (install() || attempts > 80) clearInterval(timer);
-  }, 250);
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", install);
+  else install();
 })();

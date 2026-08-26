@@ -1,9 +1,9 @@
 {
   "name": "Chill Pros Operations Center",
   "short_name": "Chill Pros",
-  "description": "Chill Pros field command, technician operations, Chill Bro AI, quotes, invoices and payments.",
+  "description": "Chill Pros field command, technician operations, quotes, invoices and payments.",
   "id": "/",
-  "start_url": "/?v=20260825-v5",
+  "start_url": "/?v=20260826-ionos",
   "scope": "/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],

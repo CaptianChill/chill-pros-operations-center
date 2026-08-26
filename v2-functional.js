@@ -43,36 +43,12 @@
     return true;
   }
 
-  function waitFor(selector, timeoutMs = 4500, intervalMs = 120) {
-    return new Promise(resolve => {
-      const started = Date.now();
-      const tick = () => {
-        const node = $(selector);
-        if (node) return resolve(node);
-        if (Date.now() - started >= timeoutMs) return resolve(null);
-        setTimeout(tick, intervalMs);
-      };
-      tick();
-    });
-  }
-
-  async function openChillBro() {
-    let launcher = $('#chillBroLauncher');
-    if (!launcher) launcher = await waitFor('#chillBroLauncher');
-    if (!launcher) { flash('Chill Bro could not initialize'); return false; }
-    const panel = $('#chillBroPanel') || await waitFor('#chillBroPanel', 1800);
-    if (panel && !panel.classList.contains('open')) launcher.click();
-    if (!panel) launcher.click();
-    return true;
-  }
-
-  async function openBilling(mode = 'quote') {
-    const opened = await openChillBro();
-    if (!opened) return;
-    const billing = $('#chillBroBilling') || await waitFor('#chillBroBilling', 5000);
-    const toggle = $('.chill-bro-billing-toggle') || await waitFor('.chill-bro-billing-toggle', 1200);
-    if (!billing) { flash('Native billing could not initialize'); return; }
-    if (!billing.classList.contains('open')) toggle?.click();
+  function openBilling(mode = 'quote') {
+    if (typeof window.openNativeBilling === 'function') {
+      window.openNativeBilling();
+    } else {
+      $('#nativeBillingLauncher')?.click();
+    }
     setTimeout(() => {
       if (mode === 'quote') $('#cbBillCustomer')?.focus();
       else $('#cbBillDescription')?.focus();
@@ -141,9 +117,9 @@
     const actions = $('.v4-top-actions');
     if (actions && !actions.dataset.v2Functional) {
       actions.dataset.v2Functional = '1';
-      actions.innerHTML = '<button type="button" data-v2-target="office-queue">Office Queue</button><button type="button" class="accent" data-v2-action="chillbro">Chill Bro AI</button>';
+      actions.innerHTML = '<button type="button" data-v2-target="office-queue">Office Queue</button><button type="button" class="accent" data-v2-action="billing">Quote / Invoice</button>';
       actions.querySelector('[data-v2-target]')?.addEventListener('click', () => setActive('office-queue'));
-      actions.querySelector('[data-v2-action="chillbro"]')?.addEventListener('click', () => openChillBro());
+      actions.querySelector('[data-v2-action="billing"]')?.addEventListener('click', () => openBilling('quote'));
     }
   }
 
@@ -156,8 +132,8 @@
       ['Today','dashboard','⌂',''],
       ['Jobs','today-jobs','▦',''],
       ['Intake','new-customer','＋','v2-intake'],
-      ['Chill Bro','__chillbro','✦',''],
-      ['Quote','__billing_quote','▧','']
+      ['Quote','__billing_quote','▧',''],
+      ['Invoices','__billing_invoice','$','']
     ];
     items.forEach(([label,target,icon,cls]) => {
       const button = document.createElement('button');
@@ -165,7 +141,7 @@
       button.className = `${target === 'dashboard' ? 'active ' : ''}${cls}`.trim();
       button.dataset.v2View = target.startsWith('__') ? '' : target;
       button.innerHTML = `<b>${icon}</b><span>${label}</span>`;
-      button.addEventListener('click', () => target === '__chillbro' ? openChillBro() : handleSpecial(target));
+      button.addEventListener('click', () => handleSpecial(target));
       mobile.appendChild(button);
     });
     document.body.appendChild(mobile);
@@ -173,8 +149,9 @@
 
   function wireDashboardActions() {
     const map = [
-      ['#v4TopChillBro', () => openChillBro()],['#v4HeroChillBro', () => openChillBro()],['#v4AiPageOpen', () => openChillBro()],
-      ['#v4BillingOpen', () => openBilling('quote')],['#cpQuickInvoice', () => openBilling('quote')],['#v3BillingLauncher', () => openBilling('quote')]
+      ['#v4BillingOpen', () => openBilling('quote')],
+      ['#cpQuickInvoice', () => openBilling('quote')],
+      ['#v3BillingLauncher', () => openBilling('quote')]
     ];
     map.forEach(([selector,fn]) => {
       const el = $(selector);
@@ -217,7 +194,7 @@
     const input = $('input', panel);
     const results = $('.v2-search-results', panel);
     const options = [
-      ['New service intake','new-customer'],['Dispatch / Today’s Jobs','today-jobs'],['Office Queue / Clients','office-queue'],['Quotes','__billing_quote'],['Invoices & Payments','__billing_invoice'],['Equipment','equipment'],['Parts Intelligence','parts'],['Technicians','technicians'],['Maintenance','maintenance'],['Reports','reports'],['Settings','settings'],['Chill Bro','__chillbro']
+      ['New service intake','new-customer'],['Dispatch / Today’s Jobs','today-jobs'],['Office Queue / Clients','office-queue'],['Quotes','__billing_quote'],['Invoices & Payments','__billing_invoice'],['Equipment','equipment'],['Parts Intelligence','parts'],['Technicians','technicians'],['Maintenance','maintenance'],['Reports','reports'],['Settings','settings']
     ];
     const render = () => {
       const q = input.value.trim().toLowerCase();
@@ -226,7 +203,7 @@
         const b = document.createElement('button');
         b.type = 'button';
         b.textContent = label;
-        b.addEventListener('click', () => { panel.remove(); target === '__chillbro' ? openChillBro() : handleSpecial(target); });
+        b.addEventListener('click', () => { panel.remove(); handleSpecial(target); });
         results.appendChild(b);
       });
     };
@@ -238,8 +215,7 @@
 
   function hardenForms() {
     $('#intakeForm')?.setAttribute('autocomplete','on');
-    const billing = $('#chillBroBilling');
-    if (billing) billing.setAttribute('aria-label','Native quote and invoice workspace');
+    $('#nativeBillingPanel')?.setAttribute('aria-label','Native quote and invoice workspace');
   }
 
   function install() {
