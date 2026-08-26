@@ -3,7 +3,7 @@
   "short_name": "Chill Pros",
   "description": "Chill Pros field command, technician operations, quotes, invoices, payments and IONOS-powered Chill Bro access.",
   "id": "/",
-  "start_url": "/?v=20260826-v7",
+  "start_url": "/?v=20260826-v8",
   "scope": "/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
@@ -11,13 +11,13 @@
   "theme_color": "#03070b",
   "icons": [
     {
-      "src": "/cp-app-icon.png?v=20260826-v7",
+      "src": "/cp-app-icon.png?v=20260826-v8",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/cp-app-icon.png?v=20260826-v7",
+      "src": "/cp-app-icon.png?v=20260826-v8",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
