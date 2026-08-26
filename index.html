@@ -4,289 +4,149 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#05090d">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Chill Pros">
+  <meta name="description" content="Chill Pros Operations Center — dispatch, service, billing, equipment intelligence and Chill Bro AI.">
   <title>Chill Pros Operations Center</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="manifest" href="manifest.webmanifest?v=20260825-v4">
+  <link rel="icon" type="image/png" href="cp-app-icon.png?v=20260825-v4">
+  <link rel="apple-touch-icon" href="cp-app-icon.png?v=20260825-v4">
+  <link rel="stylesheet" href="operations-v4.css?v=20260825-v4">
 </head>
 <body>
-  <div class="app-shell">
-    <aside class="sidebar">
-      <div class="brand-block">
-        <img src="chill-pros-logo.jpeg" alt="Chill Pros logo" class="brand-logo">
-        <p>Powered by FieldForged</p>
+  <div class="v4-shell">
+    <header class="v4-topbar">
+      <div class="v4-brand">
+        <img src="chill-pros-official-logo-transparent.png" alt="Chill Pros">
+        <div><b>CHILL PROS</b><small>OPERATIONS COMMAND</small></div>
       </div>
-
-      <nav class="side-nav" aria-label="Main navigation">
-        <button class="side-link active" data-view="dashboard"><span>⌂</span> Dashboard</button>
-        <button class="side-link" data-view="new-customer"><span>＋</span> New Customer</button>
-        <button class="side-link" data-view="office-queue"><span>▤</span> Office Queue <b id="queueCount">0</b></button>
-        <button class="side-link" data-view="today-jobs"><span>▦</span> Today's Jobs</button>
-        <button class="side-link" data-view="technicians"><span>👷</span> Technicians</button>
-        <button class="side-link" data-view="maintenance"><span>◆</span> Maintenance</button>
-        <button class="side-link" data-view="equipment"><span>⬡</span> Equipment</button>
-        <button class="side-link" data-view="parts"><span>◒</span> Parts Orders <b>2</b></button>
-        <button class="side-link" data-view="ai"><span>❄</span> AI Diagnostics</button>
-        <button class="side-link" data-view="reports"><span>▥</span> Reports</button>
-        <button class="side-link" data-view="settings"><span>⚙</span> Settings</button>
-      </nav>
-
-      <div class="ice-message">
-        <strong>WE KEEP IT</strong>
-        <span>ICE COLD</span>
-        <small>SO YOU STAY COOL</small>
+      <div class="v4-top-actions">
+        <button data-view-target="office-queue">Office Queue</button>
+        <button class="accent" id="v4TopChillBro">Chill Bro AI</button>
       </div>
-    </aside>
+    </header>
 
-    <main class="main-panel">
-      <header class="hero-banner">
-        <div class="hero-overlay">
-          <p class="eyebrow">CHILL PROS</p>
-          <h1>OPERATIONS CENTER</h1>
-          <p class="tagline">★ LICENSE TO CHILL. ★</p>
-        </div>
-        <div class="profile-box">
-          <div class="avatar">CP</div>
-          <div>
-            <strong>Owner Console</strong>
-            <small><span class="online-dot"></span> Online</small>
-          </div>
-        </div>
-      </header>
+    <div class="v4-layout">
+      <aside class="v4-sidebar">
+        <nav class="side-nav" aria-label="Main navigation">
+          <button class="side-link active" data-view="dashboard"><span>⌂</span> Dashboard</button>
+          <button class="side-link" data-view="new-customer"><span>＋</span> New Call</button>
+          <button class="side-link" data-view="office-queue"><span>▤</span> Office Queue <b id="queueCount">0</b></button>
+          <button class="side-link" data-view="today-jobs"><span>▦</span> Today's Jobs</button>
+          <button class="side-link" data-view="technicians"><span>👷</span> Technicians</button>
+          <button class="side-link" data-view="maintenance"><span>◆</span> Maintenance</button>
+          <button class="side-link" data-view="equipment"><span>⬡</span> Equipment</button>
+          <button class="side-link" data-view="parts"><span>◒</span> Parts</button>
+          <button class="side-link" data-view="ai"><span>AI</span> Chill Bro</button>
+          <button class="side-link" data-view="reports"><span>▥</span> Reports</button>
+          <button class="side-link" data-view="settings"><span>⚙</span> Settings</button>
+        </nav>
+        <div class="v4-sidebar-note"><small>FIELD COMMAND</small><strong>Calls → Dispatch → Diagnose → Quote → Collect</strong></div>
+      </aside>
 
-      <section id="dashboard" class="view active">
-        <div class="metrics-grid">
-          <article class="metric-card">
-            <div class="metric-icon">▣</div>
-            <div><span>Today's Jobs</span><strong id="jobsCount">0</strong><small class="success">Active Jobs</small></div>
-          </article>
-          <article class="metric-card">
-            <div class="metric-icon">▦</div>
-            <div><span>PM Visits</span><strong id="pmCount">3</strong><small class="warning">1 In Progress</small></div>
-          </article>
-          <article class="metric-card">
-            <div class="metric-icon">◷</div>
-            <div><span>Office Queue</span><strong id="dashboardQueueCount">0</strong><small class="warning">Needs Attention</small></div>
-          </article>
-          <article class="metric-card">
-            <div class="metric-icon">◒</div>
-            <div><span>Parts Orders</span><strong id="partsCount">2</strong><small class="warning">Awaiting Pickup</small></div>
-          </article>
-          <article class="metric-card">
-            <div class="metric-icon">$</div>
-            <div><span>Est. Revenue</span><strong id="revenueCount">$8,450</strong><small class="success">This Week</small></div>
-          </article>
-        </div>
-
-        <div class="feature-grid">
-          <article class="feature-card">
-            <div class="feature-art clipboard-art"></div>
-            <h2>NEW CUSTOMER</h2>
-            <p>Capture customer, site, equipment, complaint, photos and technician notes in one workflow.</p>
-            <button class="primary-action" data-view-target="new-customer">START INTAKE →</button>
-          </article>
-          <article class="feature-card">
-            <div class="feature-art van-art"></div>
-            <h2>TODAY'S JOBS</h2>
-            <p>Review scheduled jobs, directions, assigned technician, equipment history and service notes.</p>
-            <button class="primary-action" data-view-target="today-jobs">VIEW JOBS →</button>
-          </article>
-          <article class="feature-card">
-            <div class="feature-art queue-art"></div>
-            <h2>OFFICE QUEUE</h2>
-            <p>See new submissions waiting for quote, invoice, parts ordering or office review.</p>
-            <button class="primary-action" data-view-target="office-queue">OPEN QUEUE →</button>
-          </article>
-          <article class="feature-card">
-            <div class="feature-art brain-art"></div>
-            <h2>AI DIAGNOSTICS</h2>
-            <p>Start the FieldForged diagnostic workflow for troubleshooting and smart parts recommendations.</p>
-            <button class="primary-action" data-view-target="ai">LAUNCH AI →</button>
-          </article>
-        </div>
-
-        <div class="lower-grid">
-          <article class="glass-card">
-            <div class="section-title"><h3>UPCOMING SCHEDULE</h3><button id="addSampleJob">+ Add Sample</button></div>
-            <div id="scheduleList" class="schedule-list"></div>
-          </article>
-          <article class="glass-card">
-            <div class="section-title"><h3>RECENT ACTIVITY</h3></div>
-            <div id="activityList" class="activity-list"></div>
-          </article>
-          <article class="glass-card weather-card">
-            <div class="section-title"><h3>WEATHER ALERT</h3></div>
-            <div class="weather-main"><strong>96°F</strong><span>☀</span></div>
-            <p>San Antonio, TX</p>
-            <small>Heat Index: 103°F</small>
-            <div class="weather-note">Stay hydrated and take breaks. Beat the heat. Stay safe.</div>
-          </article>
-        </div>
-      </section>
-
-      <section id="new-customer" class="view">
-        <div class="page-header">
-          <div><p class="eyebrow">FIELD INTAKE</p><h2>New Customer & Equipment Intake</h2></div>
-          <button class="secondary-action" id="clearIntake">Clear Form</button>
-        </div>
-        <form id="intakeForm" class="form-panel">
-          <div class="form-section">
-            <h3>Customer Information</h3>
-            <div class="form-grid two">
-              <label>Customer / Company<input name="customerName" required></label>
-              <label>Contact Name<input name="contactName"></label>
-              <label>Phone<input name="phone" type="tel"></label>
-              <label>Email<input name="email" type="email"></label>
-            </div>
-            <label>Service Address<input name="address"></label>
-          </div>
-          <div class="form-section">
-            <h3>Equipment Information</h3>
-            <div class="form-grid three">
-              <label>Equipment Type
-                <select name="equipmentType">
-                  <option>HVAC</option><option>Refrigeration</option><option>Ice Machine</option>
-                  <option>Commercial Kitchen Equipment</option><option>Kitchen Exhaust</option><option>Other</option>
-                </select>
-              </label>
-              <label>Manufacturer<input name="manufacturer"></label>
-              <label>Model Number<input name="modelNumber"></label>
-              <label>Serial Number<input name="serialNumber"></label>
-              <label>Asset ID<input name="assetId" placeholder="CP-SA-000001"></label>
-              <label>Site Location<input name="siteLocation" placeholder="Kitchen, rooftop, walk-in..."></label>
-            </div>
-          </div>
-          <div class="form-section">
-            <h3>Service Details</h3>
-            <label>Customer Complaint<textarea name="complaint" rows="3" required></textarea></label>
-            <label>Technician Findings<textarea name="findings" rows="4"></textarea></label>
-            <label>Recommended Repair<textarea name="recommendation" rows="3"></textarea></label>
-            <div class="form-grid two">
-              <label>Office Status
-                <select name="officeStatus">
-                  <option>Needs Review</option><option>Needs Quote</option><option>Ready to Invoice</option>
-                  <option>Waiting on Parts</option><option>Completed</option>
-                </select>
-              </label>
-              <label>Estimated Amount<input name="estimatedAmount" type="number" step="0.01"></label>
-            </div>
-            <label>Photo Notes / File References<textarea name="photoNotes" rows="2"></textarea></label>
-          </div>
-          <div class="form-actions">
-            <button type="submit" class="primary-action">SUBMIT TO OFFICE</button>
-            <button type="button" class="secondary-action" id="copySummary">COPY SUMMARY</button>
-          </div>
-        </form>
-      </section>
-
-      <section id="office-queue" class="view">
-        <div class="page-header">
-          <div><p class="eyebrow">OFFICE WORKFLOW</p><h2>Office Queue</h2></div>
-          <button class="secondary-action" id="exportQueue">Export Queue</button>
-        </div>
-        <div class="queue-tools">
-          <input id="queueSearch" placeholder="Search customer, model, serial or status">
-          <select id="queueFilter">
-            <option value="">All statuses</option>
-            <option>Needs Review</option><option>Needs Quote</option><option>Scheduled</option>
-            <option>Dispatched</option><option>In Progress</option><option>Paused</option>
-            <option>Waiting on Parts</option><option>Ready to Invoice</option><option>Completed</option>
-          </select>
-        </div>
-        <div id="queueList" class="queue-list"></div>
-      </section>
-
-      <section id="today-jobs" class="view">
-        <div class="page-header">
-          <div><p class="eyebrow">FIELD OPERATIONS</p><h2>Today's Jobs</h2></div>
-          <button class="secondary-action" id="refreshJobs">Refresh Jobs</button>
-        </div>
-        <div class="queue-tools">
-          <input id="jobSearch" type="search" placeholder="Search customer, address, equipment or technician">
-          <select id="jobStatusFilter">
-            <option value="">All statuses</option>
-            <option>Scheduled</option><option>Dispatched</option><option>In Progress</option><option>Paused</option>
-          </select>
-        </div>
-        <div id="todayJobsList" class="queue-list">
-          <article class="queue-item">
-            <div><h3>No jobs scheduled yet</h3><p class="queue-meta">Schedule an Office Queue record to place it here.</p></div>
-          </article>
-        </div>
-      </section>
-
-      <section id="technicians" class="view">
-        <div class="page-header">
-          <div><p class="eyebrow">DISPATCH OPERATIONS</p><h2>Technician Management</h2></div>
-          <button id="addTechnicianButton" class="secondary-action">+ Add Technician</button>
-        </div>
-
-        <div class="panel technician-form-panel" id="technicianFormPanel" hidden>
-          <h3 class="form-panel-title">Add Technician</h3>
-          <form id="technicianForm">
-            <div class="form-grid two">
-              <label>Full Name <input name="techName" required placeholder="e.g. Carlos Rivera"></label>
-              <label>Phone <input name="techPhone" type="tel" placeholder="(210) 555-0100"></label>
-              <label>Email <input name="techEmail" type="email" placeholder="tech@chillpros.com"></label>
-              <label>Skills <input name="techSkills" placeholder="HVAC, Refrigeration, Ice Machines"></label>
-            </div>
-            <div class="form-actions">
-              <button type="submit" class="primary-action">Save Technician</button>
-              <button type="button" class="secondary-action" id="cancelTechnicianForm">Cancel</button>
-            </div>
-          </form>
-        </div>
-
-        <div class="panel">
-          <div id="technicianList" class="technician-list"><p>No technicians added yet.</p></div>
-        </div>
-        <div class="panel technician-dashboard-panel">
-          <div class="page-header">
-            <div><p class="eyebrow">FIELD SERVICE</p><h2>Technician Dashboard</h2></div>
-            <select id="technicianDashboardSelect"><option value="">Select technician</option></select>
-          </div>
-          <div id="technicianJobsList" class="technician-jobs-list">
-            <article class="queue-item">
-              <div><h3>No technician selected</h3><p class="queue-meta">Select a technician to display assigned jobs.</p></div>
+      <main class="main-panel">
+        <section id="dashboard" class="view active">
+          <section class="v4-command">
+            <article class="v4-command-copy">
+              <span class="v4-kicker">CHILL PROS • FIELD OPERATIONS</span>
+              <h1>RUN THE DAY.<br>ONE COMMAND CENTER.</h1>
+              <p>Dispatch work, capture field information, diagnose equipment, build quotes, invoice customers and collect payments without bouncing between systems.</p>
+              <div class="v4-command-actions">
+                <button data-view-target="new-customer">+ NEW CALL</button>
+                <button data-view-target="today-jobs">TODAY'S JOBS</button>
+                <button data-view-target="office-queue">OFFICE QUEUE</button>
+                <button class="accent" id="v4HeroChillBro">ASK CHILL BRO</button>
+              </div>
             </article>
+            <article class="v4-ai-card">
+              <div class="v4-ai-orb">CB</div>
+              <div><span class="v4-kicker">FIELD INTELLIGENCE</span><h2>Chill Bro 2.0</h2><p>Voice, camera, diagnostics, parts, training, service history, quotes and invoice assistance.</p></div>
+              <div class="v4-ai-status"><span>VOICE READY</span><span>VISION READY</span><span>SECURE AI</span></div>
+            </article>
+          </section>
+
+          <section class="v4-status">
+            <article class="ok"><small>System</small><strong>● ONLINE</strong></article>
+            <article class="ok"><small>Chill Bro</small><strong>● AI READY</strong></article>
+            <article><small>Payments</small><strong>ACH + CARD</strong></article>
+            <article><small>Security</small><strong>STAFF AUTH</strong></article>
+          </section>
+
+          <div class="metrics-grid">
+            <article class="metric-card"><div class="metric-icon">▣</div><div><span>Today's Jobs</span><strong id="jobsCount">0</strong><small class="success">Active jobs</small></div></article>
+            <article class="metric-card"><div class="metric-icon">▦</div><div><span>PM Visits</span><strong id="pmCount">0</strong><small class="warning">Scheduled</small></div></article>
+            <article class="metric-card"><div class="metric-icon">◷</div><div><span>Office Queue</span><strong id="dashboardQueueCount">0</strong><small class="warning">Needs attention</small></div></article>
+            <article class="metric-card"><div class="metric-icon">◒</div><div><span>Parts Orders</span><strong id="partsCount">0</strong><small>Open orders</small></div></article>
           </div>
-        </div>
-      </section>
 
-      <section id="maintenance" class="view simple-view"><h2>Maintenance</h2><p>PM agreements, visits due and completion tracking will connect here.</p></section>
-      <section id="equipment" class="view simple-view"><h2>Equipment Assets</h2><p>Asset records, service history, QR codes and warranty data will connect here.</p></section>
-      <section id="parts" class="view simple-view"><h2>Parts Orders</h2><p>OEM verification, aftermarket cross-reference and supplier workflow will connect here.</p></section>
-      <section id="ai" class="view simple-view"><h2>AI Diagnostics</h2><p>FieldForged ADI and Smart Parts Ordering will connect here.</p></section>
-      <section id="reports" class="view simple-view"><h2>Reports</h2><p>Revenue, technician performance and operational KPI reports will connect here.</p></section>
-      <section id="settings" class="view simple-view"><h2>Settings</h2><p>Company branding, users, roles, integrations and permissions will connect here.</p></section>
+          <div class="v4-workspace-title"><div><span class="v4-kicker">CORE WORKSPACE</span><h2>Everything the field needs</h2></div><small>Native Chill Pros workflow • No Jobber dependency</small></div>
+          <div class="feature-grid">
+            <article class="feature-card"><div class="feature-art" data-icon="＋"></div><h2>NEW CALL</h2><p>Capture customer, site, complaint, equipment and technician findings.</p><button class="primary-action" data-view-target="new-customer">START INTAKE</button></article>
+            <article class="feature-card"><div class="feature-art" data-icon="▦"></div><h2>DISPATCH</h2><p>See scheduled jobs, assignments, field progress and service status.</p><button class="primary-action" data-view-target="today-jobs">OPEN JOBS</button></article>
+            <article class="feature-card"><div class="feature-art" data-icon="⬡"></div><h2>EQUIPMENT</h2><p>Model, serial, asset ID, history and diagnostic context in one place.</p><button class="primary-action" data-view-target="equipment">OPEN ASSETS</button></article>
+            <article class="feature-card"><div class="feature-art" data-icon="$"></div><h2>QUOTE + COLLECT</h2><p>Create native quotes and invoices and collect by ACH or card.</p><button class="primary-action" id="v4BillingOpen">OPEN BILLING</button></article>
+          </div>
 
-      <footer class="footer">PROFESSIONAL SERVICE. ◆ ICE COLD RESULTS.</footer>
-    </main>
+          <div class="lower-grid">
+            <article class="glass-card"><div class="section-title"><h3>UPCOMING SCHEDULE</h3><button id="addSampleJob" class="secondary-action">+ Add Sample</button></div><div id="scheduleList" class="schedule-list"></div></article>
+            <article class="glass-card"><div class="section-title"><h3>RECENT ACTIVITY</h3></div><div id="activityList" class="activity-list"></div></article>
+            <article class="glass-card weather-card"><div class="section-title"><h3>FIELD CONDITIONS</h3></div><div class="weather-main"><strong>READY</strong><span>❄</span></div><p>Chill Pros Operations</p><small>Live workspace</small><div class="weather-note">Keep calls, diagnostics, billing and service history together.</div></article>
+          </div>
+          <div style="display:none"><strong id="revenueCount">$0</strong></div>
+        </section>
+
+        <section id="new-customer" class="view">
+          <div class="page-header"><div><span class="v4-kicker">FIELD INTAKE</span><h2>New Call & Equipment Intake</h2></div><button class="secondary-action" id="clearIntake">Clear Form</button></div>
+          <form id="intakeForm" class="form-panel">
+            <div class="form-section"><h3>Customer</h3><div class="form-grid two"><label>Customer / Company<input name="customerName" required></label><label>Contact Name<input name="contactName"></label><label>Phone<input name="phone" type="tel"></label><label>Email<input name="email" type="email"></label></div><label>Service Address<input name="address"></label></div>
+            <div class="form-section"><h3>Equipment</h3><div class="form-grid three"><label>Equipment Type<select name="equipmentType"><option>HVAC</option><option>Refrigeration</option><option>Ice Machine</option><option>Commercial Kitchen Equipment</option><option>Kitchen Exhaust</option><option>Other</option></select></label><label>Manufacturer<input name="manufacturer"></label><label>Model Number<input name="modelNumber"></label><label>Serial Number<input name="serialNumber"></label><label>Asset ID<input name="assetId" placeholder="CP-SA-000001"></label><label>Site Location<input name="siteLocation"></label></div></div>
+            <div class="form-section"><h3>Service Details</h3><label>Customer Complaint<textarea name="complaint" rows="3" required></textarea></label><label>Technician Findings<textarea name="findings" rows="4"></textarea></label><label>Recommended Repair<textarea name="recommendation" rows="3"></textarea></label><div class="form-grid two"><label>Office Status<select name="officeStatus"><option>Needs Review</option><option>Needs Quote</option><option>Ready to Invoice</option><option>Waiting on Parts</option><option>Completed</option></select></label><label>Estimated Amount<input name="estimatedAmount" type="number" step="0.01"></label></div><label>Photo Notes / File References<textarea name="photoNotes" rows="2"></textarea></label></div>
+            <div class="form-actions"><button type="submit" class="primary-action">SUBMIT TO OFFICE</button><button type="button" class="secondary-action" id="copySummary">COPY SUMMARY</button></div>
+          </form>
+        </section>
+
+        <section id="office-queue" class="view"><div class="page-header"><div><span class="v4-kicker">OFFICE WORKFLOW</span><h2>Office Queue</h2></div><button class="secondary-action" id="exportQueue">Export Queue</button></div><div class="queue-tools"><input id="queueSearch" placeholder="Search customer, model, serial or status"><select id="queueFilter"><option value="">All statuses</option><option>Needs Review</option><option>Needs Quote</option><option>Scheduled</option><option>Dispatched</option><option>In Progress</option><option>Paused</option><option>Waiting on Parts</option><option>Ready to Invoice</option><option>Completed</option></select></div><div id="queueList" class="queue-list"></div></section>
+
+        <section id="today-jobs" class="view"><div class="page-header"><div><span class="v4-kicker">FIELD OPERATIONS</span><h2>Today's Jobs</h2></div><button class="secondary-action" id="refreshJobs">Refresh Jobs</button></div><div class="queue-tools"><input id="jobSearch" type="search" placeholder="Search customer, address, equipment or technician"><select id="jobStatusFilter"><option value="">All statuses</option><option>Scheduled</option><option>Dispatched</option><option>In Progress</option><option>Paused</option></select></div><div id="todayJobsList" class="queue-list"><article class="queue-item"><div><h3>No jobs scheduled yet</h3><p class="queue-meta">Schedule an Office Queue record to place it here.</p></div></article></div></section>
+
+        <section id="technicians" class="view"><div class="page-header"><div><span class="v4-kicker">FIELD TEAM</span><h2>Technician Management</h2></div><button id="addTechnicianButton" class="secondary-action">+ Add Technician</button></div><div class="panel technician-form-panel" id="technicianFormPanel" hidden><h3>Add Technician</h3><form id="technicianForm"><div class="form-grid two"><label>Full Name<input name="techName" required></label><label>Phone<input name="techPhone" type="tel"></label><label>Email<input name="techEmail" type="email"></label><label>Skills<input name="techSkills"></label></div><div class="form-actions"><button type="submit" class="primary-action">Save Technician</button><button type="button" class="secondary-action" id="cancelTechnicianForm">Cancel</button></div></form></div><div class="panel"><div id="technicianList" class="technician-list"><p>No technicians added yet.</p></div></div><div class="panel technician-dashboard-panel"><div class="page-header"><div><span class="v4-kicker">ASSIGNMENTS</span><h2>Technician Dashboard</h2></div><select id="technicianDashboardSelect"><option value="">Select technician</option></select></div><div id="technicianJobsList" class="technician-jobs-list"><article class="queue-item"><div><h3>No technician selected</h3></div></article></div></div></section>
+
+        <section id="maintenance" class="view simple-view"><div class="page-header"><div><span class="v4-kicker">PREVENTIVE MAINTENANCE</span><h2>Maintenance Command</h2></div></div><div class="feature-grid"><article class="feature-card"><h2>Visits Due</h2><p>Track PM visits and recurring obligations.</p></article><article class="feature-card"><h2>Care Plans</h2><p>Silver, Gold and Diamond maintenance coverage.</p></article><article class="feature-card"><h2>Completion</h2><p>Field proof, findings and history.</p></article></div></section>
+        <section id="equipment" class="view simple-view"><div class="page-header"><div><span class="v4-kicker">ASSET INTELLIGENCE</span><h2>Equipment Command</h2></div></div><div class="feature-grid"><article class="feature-card"><h2>Asset Records</h2><p>Manufacturer, model, serial, asset ID and location.</p></article><article class="feature-card"><h2>Service History</h2><p>Prior complaints, findings and repairs.</p></article><article class="feature-card"><h2>Diagnostics</h2><p>Send equipment context directly to Chill Bro.</p></article></div></section>
+        <section id="parts" class="view simple-view"><div class="page-header"><div><span class="v4-kicker">PARTS INTELLIGENCE</span><h2>Parts Command</h2></div></div><div class="feature-grid"><article class="feature-card"><h2>OEM Lookup</h2><p>Verify parts against model and serial context.</p></article><article class="feature-card"><h2>Cross Reference</h2><p>Compatible replacement research.</p></article><article class="feature-card"><h2>Order Flow</h2><p>Keep required parts tied to jobs and assets.</p></article></div></section>
+        <section id="ai" class="view simple-view"><div class="page-header"><div><span class="v4-kicker">CHILL BRO 2.0</span><h2>Field Intelligence Center</h2></div><button class="primary-action" id="v4AiPageOpen">OPEN CHILL BRO</button></div><div class="feature-grid"><article class="feature-card"><h2>Voice</h2><p>Talk through diagnostics hands-free.</p></article><article class="feature-card"><h2>Vision</h2><p>Show data plates, components and field conditions.</p></article><article class="feature-card"><h2>Paperwork</h2><p>Turn findings into quote and invoice drafts.</p></article></div></section>
+        <section id="reports" class="view simple-view"><div class="page-header"><div><span class="v4-kicker">OWNER INTELLIGENCE</span><h2>Reports & Performance</h2></div></div><div class="feature-grid"><article class="feature-card"><h2>Billing Pipeline</h2><p>Draft, approved and payment status.</p></article><article class="feature-card"><h2>Field Team</h2><p>Technician assignments and status.</p></article><article class="feature-card"><h2>Workload</h2><p>Office review, quotes, parts and invoices.</p></article></div></section>
+        <section id="settings" class="view simple-view"><div class="page-header"><div><span class="v4-kicker">SYSTEM CONTROL</span><h2>Operations Settings</h2></div></div><div class="feature-grid"><article class="feature-card"><h2>Staff Access</h2><p>Owner and technician authentication.</p></article><article class="feature-card"><h2>Secure AI</h2><p>Server-side OpenAI runtime.</p></article><article class="feature-card"><h2>Payments</h2><p>Stripe ACH and card settlement.</p></article></div></section>
+
+        <footer class="footer">CHILL PROS • LICENSE TO CHILL • OPERATIONS V4</footer>
+      </main>
+    </div>
   </div>
 
   <nav class="mobile-bottom-nav" aria-label="Mobile navigation">
     <button class="mob-nav-btn active" data-view="dashboard"><span>⌂</span>Home</button>
-    <button class="mob-nav-btn" data-view="new-customer"><span>＋</span>Intake</button>
-    <button class="mob-nav-btn" data-view="office-queue"><span>▤</span>Queue</button>
+    <button class="mob-nav-btn" data-view="new-customer"><span>＋</span>Call</button>
     <button class="mob-nav-btn" data-view="today-jobs"><span>▦</span>Jobs</button>
-    <button class="mob-nav-btn" data-view="technicians"><span>👷</span>Techs</button>
+    <button class="mob-nav-btn" data-view="office-queue"><span>▤</span>Queue</button>
+    <button class="mob-nav-btn" data-view="ai"><span>AI</span>Chill Bro</button>
   </nav>
-    <article class="queue-item">
-      <div>
-        <h3 class="queue-customer"></h3>
-        <p class="queue-meta"></p>
-        <p class="queue-detail"></p>
-      </div>
-      <div class="queue-actions">
-        <select class="status-select"></select>
-        <button class="mini-button copy-item">Copy</button>
-        <button class="mini-button delete-item">Delete</button>
-      </div>
-    </article>
-  </template>
+
+  <template id="queueItemTemplate"><article class="queue-item"><div><h3 class="queue-customer"></h3><p class="queue-meta"></p><p class="queue-detail"></p></div><div class="queue-actions"><select class="status-select"></select><button class="mini-button copy-item">Copy</button><button class="mini-button delete-item">Delete</button></div></article></template>
 
   <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore-compat.js"></script>
-  <script src="firebase-config.js"></script>
-  <script src="tenant-config.js"></script>
-  <script src="app.js"></script>
+  <script src="firebase-config.js?v=20260825-v4"></script>
+  <script src="tenant-config.js?v=20260825-v4"></script>
+  <script src="app.js?v=20260825-v4"></script>
+  <script>
+    document.addEventListener('click', (event) => {
+      const target = event.target.closest('[data-view-target]');
+      if (target) document.querySelector(`.side-link[data-view="${target.dataset.viewTarget}"]`)?.click();
+      const chill = event.target.closest('#v4TopChillBro,#v4HeroChillBro,#v4AiPageOpen');
+      if (chill) document.querySelector('#chillBroLauncher')?.click();
+      if (event.target.closest('#v4BillingOpen')) document.querySelector('#nativeBillingLauncher')?.click();
+    });
+  </script>
 </body>
 </html>
