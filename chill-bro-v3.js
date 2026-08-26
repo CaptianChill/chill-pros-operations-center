@@ -1,8 +1,10 @@
 (() => {
   "use strict";
 
-  const API_BASE = "https://us-central1-chill-pros-ice-stream.cloudfunctions.net/chillBroApi";
+  const FIREBASE_API_BASE = "https://us-central1-chill-pros-ice-stream.cloudfunctions.net/chillBroApi";
+  const RESEARCH_API = "/api/chill-bro-research";
   const MASCOT = "chill-bro-approved.webp";
+  const WEB_SIGNAL = /manual|service bulletin|fault code|error code|part number|parts?\b|supersed|cross[- ]?reference|wiring diagram|specification|refrigerant charge|recall|availability|in stock|current|latest|oem|model-specific/i;
   const MODES = [
     ["field-help", "Field Help"],
     ["diagnostic", "Diagnostics"],
@@ -33,6 +35,24 @@
     return user.getIdToken();
   }
 
+  function shouldUseResearch(path, body, method) {
+    if (path !== "/chat" || method === "GET" || body?.imageDataUrl) return false;
+    const mode = String(body?.mode || "field-help");
+    return mode === "web-research" || mode === "parts" || WEB_SIGNAL.test(String(body?.message || ""));
+  }
+
+  async function fetchJson(url, options) {
+    const response = await fetch(url, options);
+    const contentType = String(response.headers.get("content-type") || "");
+    let data = {};
+    if (contentType.includes("application/json")) data = await response.json().catch(() => ({}));
+    else {
+      const text = await response.text().catch(() => "");
+      try { data = JSON.parse(text); } catch { data = {}; }
+    }
+    return { response, data };
+  }
+
   async function api(path, body, method = "POST") {
     const idToken = await token();
     const options = {
@@ -40,10 +60,23 @@
       headers: { Authorization: `Bearer ${idToken}`, "Content-Type": "application/json" },
     };
     if (method !== "GET") options.body = JSON.stringify(body || {});
-    const response = await fetch(`${API_BASE}${path}`, options);
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error || "Chill Bro request failed.");
-    return data;
+
+    const useResearch = shouldUseResearch(path, body, method);
+    let result = await fetchJson(useResearch ? RESEARCH_API : `${FIREBASE_API_BASE}${path}`, options);
+
+    const researchRouteUnavailable = useResearch && (
+      result.response.status === 404
+      || result.response.status >= 500
+      || (result.response.ok && !result.data?.answer)
+    );
+
+    if (researchRouteUnavailable) {
+      result = await fetchJson(`${FIREBASE_API_BASE}${path}`, options);
+      if (result.response.ok) result.data.researchWarning = "Live web research route was unavailable; showing the authenticated internal answer.";
+    }
+
+    if (!result.response.ok) throw new Error(result.data.error || "Chill Bro request failed.");
+    return result.data;
   }
 
   function collectContext() {
@@ -143,7 +176,8 @@
     input.value = "";
     const sendButton = panel.querySelector("#cb3Send");
     sendButton.disabled = true;
-    setState("thinking", activeMode === "web-research" ? "Checking trusted sources…" : "BoodaFlow routing the fastest safe answer…");
+    const researchExpected = !pendingImageDataUrl && (activeMode === "web-research" || activeMode === "parts" || WEB_SIGNAL.test(message));
+    setState("thinking", researchExpected ? "Checking internal context + trusted web sources…" : "BoodaFlow routing the fastest safe answer…");
 
     try {
       const data = await api("/chat", {
@@ -155,6 +189,7 @@
       });
       sessionId = data.sessionId || sessionId;
       addMessage("bot", data.answer, { sources: data.sources || [] });
+      if (data.researchWarning) addMessage("system", data.researchWarning);
       speak(data.answer);
       pendingImageDataUrl = "";
       const preview = panel.querySelector("#cb3Preview");
@@ -162,7 +197,8 @@
       preview.querySelector("img").removeAttribute("src");
       const route = data.boodaFlow?.route || activeMode;
       const sourceLabel = data.sources?.length ? ` • ${data.sources.length} source${data.sources.length === 1 ? "" : "s"}` : "";
-      setState("ready", `${data.role === "owner" ? "Owner" : "Tech"} • ${route}${sourceLabel}`);
+      const webLabel = data.boodaFlow?.usedWeb ? " • WEB VERIFIED" : "";
+      setState("ready", `${data.role === "owner" ? "Owner" : "Tech"} • ${route}${webLabel}${sourceLabel}`);
     } catch (error) {
       addMessage("system", error.message || "Chill Bro hit a snag.");
       setState("ready", "Request failed safely");
