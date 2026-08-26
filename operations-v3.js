@@ -17,6 +17,24 @@
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  function openBilling() {
+    if (typeof window.openNativeBilling === 'function') window.openNativeBilling();
+    else $('#nativeBillingLauncher')?.click();
+  }
+
+  function removeLegacyAssistantUi() {
+    [
+      '#v4TopChillBro',
+      '#v4HeroChillBro',
+      '#v4AiPageOpen',
+      '#cpTapToSpeak',
+      '#cpQuickInvoice',
+      '#chillBroLauncher',
+      '#chillBroPanel'
+    ].forEach((selector) => $(selector)?.remove());
+    $$('.v4-ai-card').forEach((card) => card.remove());
+  }
+
   function addCommandHeader() {
     const main = $('.main-panel');
     const hero = $('.hero-banner');
@@ -32,7 +50,7 @@
         <button data-v3-view="new-customer">+ NEW CALL</button>
         <button data-v3-view="today-jobs">TODAY'S JOBS</button>
         <button data-v3-view="office-queue">OFFICE QUEUE</button>
-        <button id="v3OpenChillBro" class="v3-ai-action">CHILL BRO AI</button>
+        <button data-v3-billing="true" class="v3-ai-action">QUOTE / INVOICE</button>
       </div>
     `);
     header.id = 'v3CommandHeader';
@@ -45,7 +63,7 @@
     if (!dashboard || !metrics || $('#v3StatusRail')) return;
     const rail = el('section', 'v3-status-rail', `
       <div><span class="v3-status-dot online"></span><small>System</small><strong>ONLINE</strong></div>
-      <div><span class="v3-status-dot ai"></span><small>Chill Bro</small><strong>AI READY</strong></div>
+      <div><span class="v3-status-dot pay"></span><small>Billing</small><strong>NATIVE</strong></div>
       <div><span class="v3-status-dot pay"></span><small>Payments</small><strong>ACH + CARD</strong></div>
       <div><span class="v3-status-dot secure"></span><small>Security</small><strong>STAFF AUTH</strong></div>
       <div class="v3-status-wide"><small>Command Priority</small><strong>Calls → Dispatch → Diagnose → Quote → Collect</strong></div>
@@ -82,10 +100,9 @@
     view.innerHTML = `
       <div class="v3-module-head">
         <div><span>${eyebrow}</span><h2>${title}</h2><p>${subtitle}</p></div>
-        <button class="v3-head-ai" data-v3-ai="${viewId}">ASK CHILL BRO</button>
       </div>
       <div class="v3-module-grid">
-        ${cards.map((card) => `<article class="v3-module-card"><div class="v3-module-icon">${card.icon}</div><div><small>${card.kicker}</small><h3>${card.title}</h3><p>${card.copy}</p></div><button ${card.view ? `data-v3-view="${card.view}"` : ''}>${card.action}</button></article>`).join('')}
+        ${cards.map((card) => `<article class="v3-module-card"><div class="v3-module-icon">${card.icon}</div><div><small>${card.kicker}</small><h3>${card.title}</h3><p>${card.copy}</p></div><button ${card.view ? `data-v3-view="${card.view}"` : card.billing ? 'data-v3-billing="true"' : 'disabled'}>${card.action}</button></article>`).join('')}
       </div>
     `;
   }
@@ -96,78 +113,38 @@
       {icon:'CP',kicker:'CARE PLANS',title:'Agreement Coverage',copy:'Organize Silver, Gold and Diamond maintenance coverage by customer and equipment.',action:'OPEN CUSTOMERS',view:'office-queue'},
       {icon:'✓',kicker:'COMPLETION',title:'Field Proof',copy:'Keep technician findings, completion status and service history together.',action:'OPEN EQUIPMENT',view:'equipment'}
     ]);
-    upgradePlaceholder('equipment','ASSET INTELLIGENCE','Equipment Command','Every unit becomes a service record Chill Bro can understand and reuse.',[
+    upgradePlaceholder('equipment','ASSET INTELLIGENCE','Equipment Command','Every unit stays attached to its customer, location and service history.',[
       {icon:'ID',kicker:'ASSETS',title:'Model + Serial',copy:'Centralize manufacturer, model, serial, asset ID, site location and equipment type.',action:'NEW EQUIPMENT',view:'new-customer'},
-      {icon:'HX',kicker:'HISTORY',title:'Service History',copy:'Use native Chill Pros records to retrieve prior complaints, findings and repairs.',action:'ASK CHILL BRO'},
-      {icon:'AI',kicker:'DIAGNOSTICS',title:'Field Intelligence',copy:'Attach the equipment context directly to diagnostics, training and parts research.',action:'OPEN AI',view:'ai'}
+      {icon:'HX',kicker:'HISTORY',title:'Service History',copy:'Use native Chill Pros records to retrieve prior complaints, findings and repairs.',action:'OPEN QUEUE',view:'office-queue'},
+      {icon:'JOB',kicker:'CONTEXT',title:'Job Connection',copy:'Keep equipment records tied directly to dispatch and field work.',action:'OPEN JOBS',view:'today-jobs'}
     ]);
     upgradePlaceholder('parts','PARTS INTELLIGENCE','Parts Command','Find, verify and track the parts required to finish the call correctly.',[
-      {icon:'OEM',kicker:'VERIFY',title:'OEM Lookup',copy:'Use manufacturer/model/serial context and avoid invented part numbers.',action:'ASK CHILL BRO'},
-      {icon:'XR',kicker:'CROSS-REFERENCE',title:'Replacement Options',copy:'Research compatible replacements while preserving OEM confidence and evidence.',action:'OPEN AI',view:'ai'},
+      {icon:'OEM',kicker:'VERIFY',title:'OEM Lookup',copy:'Use manufacturer/model/serial context and preserve source confidence.',action:'OPEN EQUIPMENT',view:'equipment'},
+      {icon:'XR',kicker:'CROSS-REFERENCE',title:'Replacement Options',copy:'Research compatible replacements while preserving OEM evidence.',action:'OPEN PARTS',view:'parts'},
       {icon:'PO',kicker:'ORDER FLOW',title:'Parts Queue',copy:'Keep required parts tied to the customer, job and equipment record.',action:'OPEN QUEUE',view:'office-queue'}
     ]);
-    upgradePlaceholder('ai','CHILL BRO 2.0','Field Intelligence Center','Talk, type or show Chill Bro the equipment. Diagnostics, parts, training, service history and draft paperwork live here.',[
-      {icon:'🎙',kicker:'VOICE',title:'Talk Through the Call',copy:'Use voice input for hands-free field questions and spoken responses when supported.',action:'OPEN CHILL BRO'},
-      {icon:'◉',kicker:'VISION',title:'Show the Equipment',copy:'Use the camera for data plates, components, wiring labels and field conditions.',action:'OPEN CAMERA'},
-      {icon:'$' ,kicker:'DRAFTS',title:'Quote & Invoice Help',copy:'Turn findings into structured draft quote and invoice notes without moving money automatically.',action:'OPEN BILLING'}
+    upgradePlaceholder('ai','IONOS ASSISTANT','Assistant Integration','The previous custom Chill Bro runtime has been retired. The IONOS AI Receptionist web widget will provide the replacement assistant once its account-specific widget script is configured.',[
+      {icon:'AI',kicker:'REPLACEMENT',title:'IONOS AI Receptionist',copy:'Assistant chat and voice are handled by IONOS instead of the retired custom bot.',action:'FLOATING WIDGET'},
+      {icon:'KB',kicker:'KNOWLEDGE',title:'Business Training',copy:'Train the IONOS assistant on Chill Pros website content and configured business knowledge.',action:'IONOS PORTAL'},
+      {icon:'↗',kicker:'ESCALATION',title:'Call Routing',copy:'Use IONOS workflows and escalation settings for customer handoff.',action:'IONOS PORTAL'}
     ]);
     upgradePlaceholder('reports','OWNER INTELLIGENCE','Reports & Performance','A cleaner owner view for operational workload, billing progress and field activity.',[
-      {icon:'$',kicker:'REVENUE',title:'Billing Pipeline',copy:'Follow draft → approved → payment status across native Chill Pros records.',action:'OPEN BILLING'},
+      {icon:'$',kicker:'REVENUE',title:'Billing Pipeline',copy:'Follow draft → approved → payment status across native Chill Pros records.',action:'OPEN BILLING',billing:true},
       {icon:'FT',kicker:'FIELD TEAM',title:'Technician Activity',copy:'Use technician assignment and job status for a practical field-performance view.',action:'OPEN TECHS',view:'technicians'},
       {icon:'OPS',kicker:'WORKLOAD',title:'Office Queue',copy:'Surface what needs review, quote, parts, invoicing or follow-up.',action:'OPEN QUEUE',view:'office-queue'}
     ]);
     upgradePlaceholder('settings','SYSTEM CONTROL','Operations Settings','Staff access, company configuration and secure service connections.',[
       {icon:'ID',kicker:'ACCESS',title:'Staff Authentication',copy:'Owner and technician access stays behind Firebase authentication.',action:'TECHNICIANS',view:'technicians'},
-      {icon:'AI',kicker:'SECURE AI',title:'OpenAI Runtime',copy:'Server-side secret usage keeps the OpenAI key out of browser code.',action:'OPEN AI',view:'ai'},
-      {icon:'$',kicker:'PAYMENTS',title:'Stripe Settlement',copy:'Card and ACH collection stays tokenized through Stripe; no bank passwords are stored.',action:'OPEN BILLING'}
+      {icon:'AI',kicker:'ASSISTANT',title:'IONOS Receptionist',copy:'The replacement assistant is isolated from core Chill Pros operational records until explicitly configured.',action:'IONOS WIDGET'},
+      {icon:'$',kicker:'PAYMENTS',title:'Stripe Settlement',copy:'Card and ACH collection stays tokenized through Stripe; no bank passwords are stored.',action:'OPEN BILLING',billing:true}
     ]);
-  }
-
-  function addBillingLauncher() {
-    if ($('#v3BillingLauncher')) return;
-    const button = el('button','v3-billing-launcher','<span>$</span><div><b>QUOTE / INVOICE</b><small>Native billing</small></div>');
-    button.id = 'v3BillingLauncher';
-    document.body.appendChild(button);
-  }
-
-  function buildMascotDock() {
-    const launcher = $('#chillBroLauncher');
-    if (!launcher || launcher.dataset.v3Mascot === '1') return;
-    launcher.dataset.v3Mascot = '1';
-    launcher.innerHTML = '<span class="v3-mascot-head"><i class="v3-eye left"></i><i class="v3-eye right"></i><i class="v3-smile"></i><b>CB</b></span><span class="v3-mascot-label">CHILL BRO</span>';
-    launcher.title = 'Chill Bro — Field Intelligence';
-  }
-
-  function openChillBro(mode) {
-    const launcher = $('#chillBroLauncher');
-    const panel = $('#chillBroPanel');
-    if (!launcher) return;
-    if (panel && !panel.classList.contains('open')) launcher.click();
-    if (mode && $('#chillBroMode')) $('#chillBroMode').value = mode;
-  }
-
-  function openBilling() {
-    const button = $('#nativeBillingLauncher, #nativeBillingOpen, [data-native-billing-launcher]');
-    if (button) button.click();
-    else {
-      const panel = $('#nativeBillingPanel');
-      if (panel) panel.classList.add('open');
-    }
   }
 
   function wireActions() {
     document.addEventListener('click', (event) => {
       const viewButton = event.target.closest('[data-v3-view]');
       if (viewButton) activateView(viewButton.dataset.v3View);
-      if (event.target.closest('#v3OpenChillBro,[data-v3-ai]')) openChillBro();
-      if (event.target.closest('[data-v3-billing],#v3BillingLauncher')) openBilling();
-      const moduleAction = event.target.closest('.v3-module-card button');
-      if (moduleAction && !moduleAction.dataset.v3View) {
-        const label = moduleAction.textContent.toLowerCase();
-        if (label.includes('billing')) openBilling();
-        else if (label.includes('camera')) { openChillBro('field-help'); setTimeout(() => $('#chillBroCamera')?.click(), 250); }
-        else openChillBro(label.includes('parts') ? 'parts' : 'field-help');
-      }
+      if (event.target.closest('[data-v3-billing]')) openBilling();
     });
   }
 
@@ -179,18 +156,15 @@
   }
 
   function install() {
+    removeLegacyAssistantUi();
     markShell();
     addCommandHeader();
     addStatusRail();
     addQuickOps();
     upgradeModules();
-    addBillingLauncher();
     wireActions();
-    buildMascotDock();
-    const observer = new MutationObserver(() => buildMascotDock());
+    const observer = new MutationObserver(() => removeLegacyAssistantUi());
     observer.observe(document.body,{childList:true,subtree:true});
-    setTimeout(buildMascotDock,500);
-    setTimeout(buildMascotDock,1500);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install);
