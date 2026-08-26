@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" role="img" aria-labelledby="title desc">
+<title id="title">Chill Bro</title><desc id="desc">Icy Chill Pros mascot head with cap and sunglasses</desc>
+<defs>
+  <linearGradient id="ice" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#eafcff"/><stop offset=".42" stop-color="#79ddff"/><stop offset="1" stop-color="#0879cb"/></linearGradient>
+  <linearGradient id="cap" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#07131e"/><stop offset="1" stop-color="#00040a"/></linearGradient>
+  <filter id="glow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="3.3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+<g filter="url(#glow)">
+  <path d="M42 62 53 38 73 27h40l19 10 10 25-6 70-19 27H64l-20-28z" fill="url(#ice)" stroke="#55e8ff" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M48 66c1-21 8-37 24-47 17-10 47-7 60 5 8 8 12 20 11 38-31-10-63-10-95 4Z" fill="url(#cap)" stroke="#39ccff" stroke-width="4"/>
+  <path d="M48 63c30-10 66-10 98 1-7 9-18 14-32 14H67c-10 0-16-5-19-15Z" fill="#020811" stroke="#31c6ff" stroke-width="3"/>
+  <text x="95" y="49" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-size="15" fill="#e9fbff" stroke="#126ea8" stroke-width=".8">CHILL PROS</text>
+  <path d="M128 33h18v13h-18z" fill="#fff" stroke="#1bbcff" stroke-width="1.5"/><path d="M128 33h6v13h-6z" fill="#1266b5"/><path d="M134 39h12v7h-12z" fill="#e13e45"/><path d="m131 35 1 2 2 .2-1.5 1.3.5 2-2-1-1.8 1 .4-2-1.5-1.3 2-.2Z" fill="#fff"/>
+  <path d="M53 85c15-8 28-9 39-3l-4 29c-14 6-27 5-38-4Zm74-1c-15-8-28-9-39-3l4 30c14 6 27 5 38-4Z" fill="#02060c" stroke="#83eeff" stroke-width="3"/>
+  <path d="M60 91c8-4 16-5 23-2" fill="none" stroke="#4d9fc9" stroke-width="4" stroke-linecap="round"/><path d="M119 91c-8-4-16-5-23-2" fill="none" stroke="#4d9fc9" stroke-width="4" stroke-linecap="round"/>
+  <path d="M75 128c11 10 25 10 38 0" fill="none" stroke="#06385e" stroke-width="6" stroke-linecap="round"/><path d="M80 128c8 4 18 4 27 0" fill="none" stroke="#e8fbff" stroke-width="2" stroke-linecap="round"/>
+  <path d="M51 109 41 134l9-3 5 16 7-15 8 5 3-20M132 108l9 24-8-2-6 17-7-15-8 5-3-20" fill="url(#ice)" stroke="#46dcff" stroke-width="2" stroke-linejoin="round"/>
+  <path d="m63 69-5 14 10-6 7 6 5-14m30 1-5 13 10-6 7 6 5-13" fill="none" stroke="#c9f7ff" stroke-width="2" opacity=".8"/>
+</g>
+</svg>
