@@ -1,8 +1,9 @@
 {
   "name": "chill-pros-operations-center",
   "private": true,
+  "type": "module",
   "engines": {
-    "node": ">=20"
+    "node": "24.x"
   },
   "dependencies": {
     "ai": "^6.0.0"
