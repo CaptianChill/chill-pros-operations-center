@@ -22,8 +22,7 @@
   ];
 
   function flash(message) {
-    const old = $('.v2-tab-flash');
-    old?.remove();
+    $('.v2-tab-flash')?.remove();
     const el = document.createElement('div');
     el.className = 'v2-tab-flash';
     el.textContent = message;
@@ -32,31 +31,52 @@
   }
 
   function setActive(viewId) {
-    $$('.view').forEach(view => view.classList.toggle('active', view.id === viewId));
-    $$('.side-link').forEach(button => button.classList.toggle('active', button.dataset.view === viewId));
+    const view = document.getElementById(viewId);
+    if (!view) { flash(`${viewId} is unavailable`); return false; }
+    $$('.view').forEach(item => item.classList.toggle('active', item.id === viewId));
+    $$('.side-link').forEach(button => button.classList.toggle('active', button.dataset.view === viewId || button.dataset.v2Target === viewId));
     $$('.v2-mobile-nav button').forEach(button => button.classList.toggle('active', button.dataset.v2View === viewId));
     if (viewId === 'office-queue') $('#queueSearch')?.dispatchEvent(new Event('input'));
     if (viewId === 'today-jobs') $('#refreshJobs')?.click();
     if (viewId === 'technicians') $('#technicianDashboardSelect')?.dispatchEvent(new Event('change'));
     window.scrollTo({top:0, behavior:'smooth'});
+    return true;
   }
 
-  function openChillBro() {
-    const launcher = $('#chillBroLauncher');
-    const panel = $('#chillBroPanel');
-    if (!launcher) { flash('Chill Bro is still loading'); return; }
-    if (!panel?.classList.contains('open')) launcher.click();
+  function waitFor(selector, timeoutMs = 4500, intervalMs = 120) {
+    return new Promise(resolve => {
+      const started = Date.now();
+      const tick = () => {
+        const node = $(selector);
+        if (node) return resolve(node);
+        if (Date.now() - started >= timeoutMs) return resolve(null);
+        setTimeout(tick, intervalMs);
+      };
+      tick();
+    });
   }
 
-  function openBilling(mode = 'quote') {
-    openChillBro();
+  async function openChillBro() {
+    let launcher = $('#chillBroLauncher');
+    if (!launcher) launcher = await waitFor('#chillBroLauncher');
+    if (!launcher) { flash('Chill Bro could not initialize'); return false; }
+    const panel = $('#chillBroPanel') || await waitFor('#chillBroPanel', 1800);
+    if (panel && !panel.classList.contains('open')) launcher.click();
+    if (!panel) launcher.click();
+    return true;
+  }
+
+  async function openBilling(mode = 'quote') {
+    const opened = await openChillBro();
+    if (!opened) return;
+    const billing = $('#chillBroBilling') || await waitFor('#chillBroBilling', 5000);
+    const toggle = $('.chill-bro-billing-toggle') || await waitFor('.chill-bro-billing-toggle', 1200);
+    if (!billing) { flash('Native billing could not initialize'); return; }
+    if (!billing.classList.contains('open')) toggle?.click();
     setTimeout(() => {
-      const billing = $('#chillBroBilling');
-      const toggle = $('.chill-bro-billing-toggle');
-      if (billing && !billing.classList.contains('open')) toggle?.click();
       if (mode === 'quote') $('#cbBillCustomer')?.focus();
-      if (mode === 'invoice') $('#cbBillDescription')?.focus();
-    }, 220);
+      else $('#cbBillDescription')?.focus();
+    }, 80);
   }
 
   function handleSpecial(target) {
@@ -65,14 +85,20 @@
     if (target === '__clients') {
       setActive('office-queue');
       const search = $('#queueSearch');
-      if (search) { search.value = ''; search.placeholder = 'Search clients, company, phone, email, address...'; search.focus(); }
-      flash('Client directory opened');
+      if (search) {
+        search.value = '';
+        search.placeholder = 'Search clients, company, phone, email, address...';
+        search.dispatchEvent(new Event('input'));
+        search.focus();
+      }
+      flash('Client records opened');
       return;
     }
     if (target === '__boodaflow') {
       setActive('dashboard');
-      const card = [...$$('h2,h3')].find(el => /BoodaFlow/i.test(el.textContent || ''))?.closest('article,section,div');
+      const card = [...$$('h2,h3,strong')].find(el => /BoodaFlow/i.test(el.textContent || ''))?.closest('article,section,.glass-card,.panel');
       if (card) card.scrollIntoView({behavior:'smooth', block:'center'});
+      else window.scrollTo({top:document.body.scrollHeight, behavior:'smooth'});
       flash('BoodaFlow command opened');
       return;
     }
@@ -117,7 +143,7 @@
       actions.dataset.v2Functional = '1';
       actions.innerHTML = '<button type="button" data-v2-target="office-queue">Office Queue</button><button type="button" class="accent" data-v2-action="chillbro">Chill Bro AI</button>';
       actions.querySelector('[data-v2-target]')?.addEventListener('click', () => setActive('office-queue'));
-      actions.querySelector('[data-v2-action="chillbro"]')?.addEventListener('click', openChillBro);
+      actions.querySelector('[data-v2-action="chillbro"]')?.addEventListener('click', () => openChillBro());
     }
   }
 
@@ -147,12 +173,15 @@
 
   function wireDashboardActions() {
     const map = [
-      ['#v4TopChillBro', openChillBro],['#v4HeroChillBro', openChillBro],['#v4AiPageOpen', openChillBro],
-      ['#v4BillingOpen', () => openBilling('quote')],['#cpQuickInvoice', () => openBilling('quote')]
+      ['#v4TopChillBro', () => openChillBro()],['#v4HeroChillBro', () => openChillBro()],['#v4AiPageOpen', () => openChillBro()],
+      ['#v4BillingOpen', () => openBilling('quote')],['#cpQuickInvoice', () => openBilling('quote')],['#v3BillingLauncher', () => openBilling('quote')]
     ];
     map.forEach(([selector,fn]) => {
       const el = $(selector);
-      if (el && !el.dataset.v2Wired) { el.dataset.v2Wired = '1'; el.addEventListener('click', event => { event.preventDefault(); fn(); }); }
+      if (el && !el.dataset.v2Wired) {
+        el.dataset.v2Wired = '1';
+        el.addEventListener('click', event => { event.preventDefault(); fn(); });
+      }
     });
     $$('[data-view-target]').forEach(el => {
       if (el.dataset.v2Wired) return;
@@ -195,19 +224,20 @@
       results.innerHTML = '';
       options.filter(([label]) => !q || label.toLowerCase().includes(q)).forEach(([label,target]) => {
         const b = document.createElement('button');
-        b.type = 'button'; b.textContent = label;
+        b.type = 'button';
+        b.textContent = label;
         b.addEventListener('click', () => { panel.remove(); target === '__chillbro' ? openChillBro() : handleSpecial(target); });
         results.appendChild(b);
       });
     };
     input.addEventListener('input', render);
-    input.addEventListener('keydown', e => { if (e.key === 'Escape') panel.remove(); });
-    render(); input.focus();
+    input.addEventListener('keydown', event => { if (event.key === 'Escape') panel.remove(); });
+    render();
+    input.focus();
   }
 
   function hardenForms() {
     $('#intakeForm')?.setAttribute('autocomplete','on');
-    $$('button').forEach(button => { if (!button.getAttribute('type')) button.setAttribute('type','button'); });
     const billing = $('#chillBroBilling');
     if (billing) billing.setAttribute('aria-label','Native quote and invoice workspace');
   }
@@ -224,9 +254,11 @@
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install);
   else install();
+
   let attempts = 0;
   const timer = setInterval(() => {
-    attempts += 1; install();
-    if (attempts > 50) clearInterval(timer);
+    attempts += 1;
+    install();
+    if (attempts > 60) clearInterval(timer);
   }, 250);
 })();
