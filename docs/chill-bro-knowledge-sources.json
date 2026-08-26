@@ -1,0 +1,60 @@
+{
+  "version": 2,
+  "purpose": "Public-safe governance rules for Chill Bro private knowledge and live web research. Private document identifiers and contents belong in the protected ingestion system, not this repository.",
+  "authority_order": [
+    "chill_pros_internal_approved",
+    "exact_oem_documentation",
+    "oem_parts_catalog_or_verified_distributor",
+    "established_trade_training",
+    "general_web"
+  ],
+  "rules": [
+    "Internal Chill Pros and FieldForge approved pricing, PM programs, SOPs and policy override public web content for company operations.",
+    "Exact OEM documentation overrides third-party sources for model-specific specifications, wiring, sequence of operation and service values.",
+    "Never infer a part number from appearance alone when model/serial or OEM evidence is required.",
+    "Conflicting sources must be surfaced rather than averaged together.",
+    "Customer-facing, unrelated business, or personal Drive documents are excluded from the Chill Bro corpus.",
+    "Private source IDs, URLs, pricing values, SOP text and proprietary FieldForge data must never be committed to this public repository."
+  ],
+  "private_source_families": [
+    {
+      "family": "Chill Pros approved operations knowledge",
+      "authority": "chill_pros_internal_approved",
+      "topics": ["care plans", "pricing", "PM programs", "job walks", "parts sourcing", "field procedures", "training", "company policy"],
+      "storage": "protected vector store / authenticated operational database"
+    },
+    {
+      "family": "FieldForge approved field knowledge",
+      "authority": "chill_pros_internal_approved",
+      "topics": ["field proof", "verified cases", "technical workflow", "training", "operations integration"],
+      "storage": "protected vector store / authenticated operational database"
+    }
+  ],
+  "trusted_web_families": [
+    {
+      "authority": "exact_oem_documentation",
+      "category": "HVAC OEM",
+      "domains": ["carrier.com", "trane.com", "lennox.com", "daikincomfort.com", "goodmanmfg.com", "rheem.com", "ruud.com", "york.com", "johnsoncontrols.com", "mitsubishicomfort.com", "fujitsugeneral.com", "bosch-homecomfort.com"]
+    },
+    {
+      "authority": "exact_oem_documentation",
+      "category": "Controls and refrigeration components",
+      "domains": ["copeland.com", "danfoss.com", "parker.com", "resideo.com"]
+    },
+    {
+      "authority": "exact_oem_documentation",
+      "category": "Ice and refrigeration OEM",
+      "domains": ["manitowocice.com", "hoshizakiamerica.com", "scotsman-ice.com", "heatcraftrpd.com"]
+    },
+    {
+      "authority": "oem_parts_catalog_or_verified_distributor",
+      "category": "Parts research",
+      "domains": ["partstown.com", "grainger.com", "supplyhouse.com", "johnstonesupply.com"]
+    },
+    {
+      "authority": "established_trade_training",
+      "category": "Training and trade reference",
+      "domains": ["hvacrschool.com", "achrnews.com"]
+    }
+  ]
+}

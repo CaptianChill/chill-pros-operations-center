@@ -1,0 +1,58 @@
+name: Chill Bro V3 Contract
+
+on:
+  pull_request:
+    paths:
+      - 'chill-bro-v3.js'
+      - 'chill-bro-v3.css'
+      - 'index.html'
+      - 'functions/**'
+      - 'docs/chill-bro-knowledge-sources.json'
+      - '.github/workflows/chill-bro-v3-check.yml'
+  push:
+    branches:
+      - feature/chill-bro-copilot-v3
+    paths:
+      - 'chill-bro-v3.js'
+      - 'chill-bro-v3.css'
+      - 'index.html'
+      - 'functions/**'
+      - 'docs/chill-bro-knowledge-sources.json'
+      - '.github/workflows/chill-bro-v3-check.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: JavaScript syntax
+        run: |
+          node --check chill-bro-v3.js
+          node --check functions/main.js
+          node --check functions/chill-bro.js
+      - name: JSON source registry
+        run: node -e "JSON.parse(require('fs').readFileSync('docs/chill-bro-knowledge-sources.json','utf8'))"
+      - name: Verify employee-only backend export
+        run: |
+          grep -q 'require("./chill-bro")' functions/main.js
+          grep -q 'Chill Pros team access required' functions/chill-bro.js
+          grep -q 'employeeOnly: true' functions/chill-bro.js
+      - name: Verify BoodaFlow and knowledge tools
+        run: |
+          grep -q 'BoodaFlow operating process' functions/chill-bro.js
+          grep -q 'type: "web_search"' functions/chill-bro.js
+          grep -q 'type: "file_search"' functions/chill-bro.js
+          grep -q 'gpt-5.6-luna' functions/chill-bro.js
+          grep -q 'gpt-5.6-terra' functions/chill-bro.js
+      - name: Verify customer IONOS widget is not loaded
+        run: |
+          if grep -q 'ionos-receptionist.js' index.html; then
+            echo 'Customer/receptionist widget is still loaded in employee app entrypoint.' >&2
+            exit 1
+          fi
