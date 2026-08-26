@@ -62,3 +62,15 @@ jobs:
             echo 'Customer/receptionist widget is still loaded in employee app entrypoint.' >&2
             exit 1
           fi
+      - name: Probe deployed Chill Bro endpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://us-central1-chill-pros-ice-stream.cloudfunctions.net/chillBroApi/health'
+          code="$(curl -sS -o /tmp/chill-bro-health.txt -w '%{http_code}' --connect-timeout 10 --max-time 20 "$url" || true)"
+          echo "Chill Bro health probe HTTP $code"
+          cat /tmp/chill-bro-health.txt 2>/dev/null || true
+          if [[ "$code" != "401" && "$code" != "403" && "$code" != "200" ]]; then
+            echo "Expected deployed Chill Bro endpoint to answer 200/401/403; got $code." >&2
+            exit 1
+          fi
