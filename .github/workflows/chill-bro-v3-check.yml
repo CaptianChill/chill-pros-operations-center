@@ -38,6 +38,12 @@ jobs:
           node --check functions/chill-bro.js
       - name: JSON source registry
         run: node -e "JSON.parse(require('fs').readFileSync('docs/chill-bro-knowledge-sources.json','utf8'))"
+      - name: Keep private source identifiers out of public repo
+        run: |
+          if grep -Eqi 'source_id|drive\.google\.com|docs\.google\.com' docs/chill-bro-knowledge-sources.json; then
+            echo 'Private document identifiers or Drive URLs detected in public source registry.' >&2
+            exit 1
+          fi
       - name: Verify employee-only backend export
         run: |
           grep -q 'require("./chill-bro")' functions/main.js
