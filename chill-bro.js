@@ -11,6 +11,12 @@
   let recognition = null;
   let speakReplies = false;
 
+  function setState(state, statusText) {
+    if (launcher) launcher.dataset.state = state;
+    if (panel) panel.dataset.state = state;
+    if (statusText && status) status.textContent = statusText;
+  }
+
   function addMessage(kind, text) {
     const node = document.createElement("div");
     node.className = `chill-bro-msg ${kind}`;
@@ -85,15 +91,16 @@
 
   async function attachImage(file) {
     try {
-      status.textContent = "Preparing field image…";
+      setState("thinking", "Preparing field image…");
       pendingImageDataUrl = await compressImage(file);
       panel.querySelector("#chillBroImageState").textContent = "PHOTO READY";
       addMessage("system", "Field photo attached. Ask what you want Chill Bro to inspect.");
-      status.textContent = "Photo ready for Chill Bro vision";
+      setState("ready", "Photo ready for Chill Bro vision");
     } catch (error) {
       pendingImageDataUrl = "";
       panel.querySelector("#chillBroImageState").textContent = "CAMERA";
       addMessage("system", error.message || "Unable to prepare image.");
+      setState("warning", "Unable to prepare field image");
     }
   }
 
@@ -107,8 +114,7 @@
 
     addMessage("user", message || "Inspect this field image.");
     input.value = "";
-    launcher.dataset.state = "thinking";
-    status.textContent = pendingImageDataUrl ? "Chill Bro is inspecting the field image…" : "Chill Bro is thinking…";
+    setState("thinking", pendingImageDataUrl ? "Chill Bro is inspecting the field image…" : "Chill Bro is thinking…");
 
     try {
       const data = await request("/chat", {
@@ -125,13 +131,11 @@
       speak(data.answer);
       pendingImageDataUrl = "";
       panel.querySelector("#chillBroImageState").textContent = "CAMERA";
-      status.textContent = `${data.role === "owner" ? "Owner" : "Technician"} access • ${mode}${data.visionUsed ? " • VISION" : ""}${data.draftOnly ? " • DRAFT ONLY" : ""}`;
+      setState("ready", `${data.role === "owner" ? "Owner" : "Technician"} access • ${mode}${data.visionUsed ? " • VISION" : ""}${data.draftOnly ? " • DRAFT ONLY" : ""}`);
     } catch (error) {
       addMessage("system", error.message);
-      status.textContent = "Chill Bro unavailable";
+      setState("warning", "Chill Bro unavailable");
       showLoginIfNeeded();
-    } finally {
-      launcher.dataset.state = "ready";
     }
   }
 
@@ -143,8 +147,7 @@
     r.interimResults = false;
     r.continuous = false;
     r.onstart = () => {
-      launcher.dataset.state = "listening";
-      status.textContent = "Listening… tell Chill Bro what you need.";
+      setState("listening", "Listening… tell Chill Bro what you need.");
       panel.querySelector("#chillBroMic").textContent = "LISTENING";
     };
     r.onresult = (event) => {
@@ -153,11 +156,11 @@
     };
     r.onerror = () => {
       addMessage("system", "Voice input was interrupted. You can keep typing normally.");
+      setState("warning", "Voice input interrupted • typing still available");
     };
     r.onend = () => {
-      launcher.dataset.state = "ready";
       panel.querySelector("#chillBroMic").textContent = "TALK";
-      status.textContent = "Voice captured • review or send";
+      if (launcher.dataset.state !== "warning") setState("ready", "Voice captured • review or send");
     };
     return r;
   }
@@ -166,6 +169,7 @@
     if (!recognition) recognition = setupRecognition();
     if (!recognition) {
       addMessage("system", "Voice recognition is not available in this browser. Chrome on Android/Desktop usually supports it.");
+      setState("warning", "Voice recognition unavailable in this browser");
       return;
     }
     speakReplies = true;
@@ -184,13 +188,16 @@
     const message = panel.querySelector("#chillBroLoginMessage");
     if (!email || !password) return;
     try {
+      setState("thinking", "Signing in securely…");
       message.textContent = "Signing in…";
       await window.firebase.auth().signInWithEmailAndPassword(email, password);
       message.textContent = "Signed in.";
       showLoginIfNeeded();
       addMessage("system", "Secure Chill Pros session connected.");
+      setState("ready", "Secure Chill Pros session connected");
     } catch (error) {
       message.textContent = error.message || "Sign-in failed.";
+      setState("warning", "Secure sign-in failed");
     }
   }
 
@@ -204,12 +211,13 @@
     launcher.setAttribute("aria-label", "Open Chill Bro AI field copilot");
     launcher.title = "Chill Bro — Field Copilot";
     launcher.textContent = "❄";
-    launcher.dataset.state = "ready";
+    launcher.dataset.state = "idle";
 
     panel = document.createElement("section");
     panel.id = "chillBroPanel";
     panel.className = "chill-bro-panel";
     panel.setAttribute("aria-label", "Chill Bro AI field copilot");
+    panel.dataset.state = "idle";
     panel.innerHTML = `
       <div class="chill-bro-head">
         <div class="chill-bro-mark">❄</div>
@@ -261,9 +269,17 @@
     launcher.addEventListener("click", () => {
       panel.classList.toggle("open");
       showLoginIfNeeded();
-      if (panel.classList.contains("open")) panel.querySelector("#chillBroInput").focus();
+      if (panel.classList.contains("open")) {
+        setState("ready", "Secure field copilot ready");
+        panel.querySelector("#chillBroInput").focus();
+      } else {
+        setState("idle");
+      }
     });
-    panel.querySelector(".chill-bro-close").addEventListener("click", () => panel.classList.remove("open"));
+    panel.querySelector(".chill-bro-close").addEventListener("click", () => {
+      panel.classList.remove("open");
+      setState("idle");
+    });
     panel.querySelector("#chillBroSend").addEventListener("click", send);
     panel.querySelector("#chillBroSignIn").addEventListener("click", signIn);
     panel.querySelector("#chillBroMic").addEventListener("click", startVoice);
@@ -280,6 +296,7 @@
       pendingImageDataUrl = "";
       panel.querySelector("#chillBroImageState").textContent = "CAMERA";
       addMessage("system", "Conversation cleared. Job records were not changed.");
+      setState("ready", "Secure field copilot ready");
     });
     panel.querySelector("#chillBroInput").addEventListener("keydown", (event) => {
       if (event.key === "Enter" && !event.shiftKey) {
