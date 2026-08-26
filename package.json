@@ -1,0 +1,10 @@
+{
+  "name": "chill-pros-operations-center",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "ai": "^6.0.0"
+  }
+}
