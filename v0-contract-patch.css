@@ -1,0 +1,23 @@
+/* Exact v0 visual-contract corrections. Loaded after functional support CSS. */
+@media (max-width:767px){
+  .page-content{padding:20px 15px 88px!important;overflow:visible!important}
+  .metric-grid{display:flex!important;grid-template-columns:none!important;gap:9px!important;margin-inline:-15px!important;padding:0 15px 3px!important;overflow-x:auto!important;overflow-y:hidden!important;scrollbar-width:none!important}
+  .metric-card{min-width:158px!important;width:auto!important;padding:14px 15px!important;contain:none!important}
+  .metric-card strong{font-size:23px!important}
+  .mobile-nav{z-index:30!important;display:grid!important;grid-template-columns:repeat(5,1fr)!important;position:fixed!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;min-height:0!important;padding:8px 4px max(8px,env(safe-area-inset-bottom))!important;background:#000000f5!important;border-top:1px solid #35aaff80!important;box-shadow:0 -4px 18px #35aaff33!important}
+  .mobile-nav button{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:4px!important;min-height:52px!important;padding:4px 2px!important;color:#7591a4!important;background:transparent!important;border:1px solid transparent!important;border-radius:8px!important;font-size:9px!important}
+  .mobile-nav button.active,.mobile-nav button:focus-visible{color:#c5efff!important;border-color:#35aaff8c!important;box-shadow:0 0 9px #35aaff4d!important}
+  .mobile-nav button:nth-child(3){color:#35aaff!important}
+  .dashboard-grid,.lower-grid{grid-template-columns:1fr!important;gap:12px!important}
+  .glass-card{contain:none!important}
+}
+
+/* Keep the preserved v0 desktop spacing and visual hierarchy. */
+@media (min-width:768px){
+  .topbar{background:#000000b8!important;border-bottom-color:#349dff52!important}
+  .page-title-row{background:linear-gradient(#0000001f,#04162b40)!important;border-bottom:1px solid #4fbeff38!important}
+}
+
+/* V3 mascot should feel native to the v0 shell, not like a generic circular chatbot. */
+.chill-bro-v3-launch{background:transparent!important;border:0!important;box-shadow:none!important;filter:drop-shadow(0 0 16px rgba(53,170,255,.55))!important}
+.chill-bro-v3-launch img{object-fit:contain!important}
