@@ -1,33 +1,51 @@
-name: Chill Bro V4 Contract
+name: Chill Bro Canonical Contract
 
 on:
   pull_request:
   push:
     branches:
       - main
-      - rebuild/v0-source-of-truth-v4-main
+      - recovery/pre-ionos-chill-bro-v5
 
 jobs:
   contract:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Verify native Chill Bro source exists
+      - name: Verify canonical Chill Bro source exists
         run: |
           test -f functions/chill-bro.js
-          test -f chill-bro-v3.js
-          test -f chill-bro-v3.css
-          grep -q "chillBroApi" functions/main.js
+          test -f chill-bro-recovered.js
+          test -f chill-bro-recovered.css
+          grep -q 'require("./chill-bro")' functions/main.js
+          grep -q 'src="chill-bro-recovered.js' index.html
+          grep -q 'href="chill-bro-recovered.css' index.html
+      - name: Verify single active frontend runtime
+        run: |
+          if grep -q 'src="chill-bro-v3.js' index.html; then
+            echo "Legacy Chill Bro V3 runtime must not be loaded by index.html"
+            exit 1
+          fi
+          if grep -q 'href="chill-bro-v3.css' index.html; then
+            echo "Legacy Chill Bro V3 stylesheet must not be loaded by index.html"
+            exit 1
+          fi
       - name: Block receptionist and shell regressions
         run: |
-          if grep -RniE "ionos-receptionist|IONOS connection pending" index.html firebase-config.js chill-bro-v3.js 2>/dev/null; then
+          if grep -RniE "ionos-receptionist|IONOS connection pending" index.html firebase-config.js chill-bro-recovered.js 2>/dev/null; then
             echo "Legacy IONOS/receptionist dependency found in active Operations Center path"
             exit 1
           fi
-          if grep -RniE "document\.body\.innerHTML" chill-bro-v3.js firebase-config.js 2>/dev/null; then
+          if grep -RniE "document\.body\.innerHTML" chill-bro-recovered.js firebase-config.js 2>/dev/null; then
             echo "Active Chill Bro/bootstrap code must not replace the approved Operations Center body"
             exit 1
           fi
+      - name: Verify mobile release protections
+        run: |
+          grep -q "chillBroLauncher" v0-contract-patch.js
+          grep -q "maximum-scale=1" v0-contract-patch.js
+          grep -q "font-size:16px" v0-contract-patch.css
+          grep -q "overflow-x:hidden" v0-contract-patch.css
       - name: Verify v0 visual contract documentation
         run: |
           grep -q "chill-pros-operation-ceneter-v2" docs/chill-bro-v4-source-of-truth.md
