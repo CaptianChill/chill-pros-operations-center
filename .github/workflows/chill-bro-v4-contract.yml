@@ -17,7 +17,7 @@ jobs:
           test -f functions/chill-bro.js
           test -f chill-bro-recovered.js
           test -f chill-bro-recovered.css
-          grep -q "chillBroApi" functions/main.js
+          grep -q 'require("./chill-bro")' functions/main.js
           grep -q 'src="chill-bro-recovered.js' index.html
           grep -q 'href="chill-bro-recovered.css' index.html
       - name: Verify single active frontend runtime
