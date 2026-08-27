@@ -1,0 +1,35 @@
+name: Chill Bro V4 Contract
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - rebuild/v0-source-of-truth-v4-main
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify native Chill Bro source exists
+        run: |
+          test -f functions/chill-bro.js
+          test -f chill-bro-v3.js
+          test -f chill-bro-v3.css
+          grep -q "chillBroApi" functions/main.js
+      - name: Block receptionist and shell regressions
+        run: |
+          if grep -RniE "ionos-receptionist|IONOS connection pending" index.html firebase-config.js chill-bro-v3.js 2>/dev/null; then
+            echo "Legacy IONOS/receptionist dependency found in active Operations Center path"
+            exit 1
+          fi
+          if grep -RniE "document\.body\.innerHTML" chill-bro-v3.js firebase-config.js 2>/dev/null; then
+            echo "Active Chill Bro/bootstrap code must not replace the approved Operations Center body"
+            exit 1
+          fi
+      - name: Verify v0 visual contract documentation
+        run: |
+          grep -q "chill-pros-operation-ceneter-v2" docs/chill-bro-v4-source-of-truth.md
+          grep -q "dpl_FUSXSKKJ2USpEMMf4q1nCQR6qQ3T" docs/chill-bro-v4-source-of-truth.md
+          grep -q "oC7tJVEtyTz" docs/chill-bro-v4-source-of-truth.md
