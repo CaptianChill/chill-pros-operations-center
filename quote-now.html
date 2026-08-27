@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="theme-color" content="#02060b">
+  <title>Chill Pros — Quote Now</title>
+  <link rel="icon" href="cp-app-icon.png">
+  <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.16.0/firebase-auth-compat.js"></script>
+  <style>
+    :root{color-scheme:dark;--bg:#02060b;--panel:#07111c;--panel2:#0a1724;--ice:#58c8ff;--ice2:#a9e8ff;--muted:#8ea5b8;--line:#174462;--ok:#61e5a1;--bad:#ff7171;--text:#eef8ff}
+    *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:radial-gradient(circle at 50% -10%,#0b2741 0,#02060b 36%,#000 100%);color:var(--text);font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow-x:hidden}body{min-height:100dvh;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}button,input,textarea{font:inherit}input,textarea{font-size:16px!important}
+    .wrap{width:min(1120px,100%);margin:auto;padding:18px}.top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px}.brand{display:flex;align-items:center;gap:12px}.brand img{width:48px;height:48px;object-fit:contain;filter:drop-shadow(0 0 14px #3bbcff55)}.brand strong{display:block;letter-spacing:.12em}.brand span{display:block;color:var(--muted);font-size:12px;margin-top:3px}.status{padding:8px 11px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:12px}.status.ok{color:var(--ok);border-color:#2b7858}.shell{display:grid;grid-template-columns:360px 1fr;gap:16px}.card{background:linear-gradient(180deg,rgba(12,28,43,.96),rgba(4,11,18,.96));border:1px solid #1e5f85;border-radius:22px;box-shadow:0 20px 60px #0008,0 0 24px #37baff14;overflow:hidden}.pad{padding:20px}.eyebrow{color:var(--ice);font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:800}.card h1,.card h2{margin:7px 0 6px}.card p{color:var(--muted);line-height:1.5}.stack{display:grid;gap:11px}.field{display:grid;gap:6px}.field label{font-size:12px;color:#b9cad6}.field input,.field textarea{width:100%;background:#020912;border:1px solid #174462;border-radius:12px;color:#fff;padding:13px 14px;outline:none}.field input:focus,.field textarea:focus{border-color:var(--ice);box-shadow:0 0 0 3px #58c8ff14}.field textarea{min-height:92px;resize:vertical}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.actions{display:flex;flex-wrap:wrap;gap:9px}.btn{appearance:none;border:1px solid #27678d;background:#0a1c29;color:#dff6ff;border-radius:12px;padding:12px 15px;font-weight:800;cursor:pointer;touch-action:manipulation}.btn.primary{background:linear-gradient(135deg,#8ee3ff,#28a9e8);color:#00121c;border:0}.btn.good{background:#0d3528;border-color:#2f8060;color:#9af0c6}.btn:disabled{opacity:.45;cursor:not-allowed}.divider{height:1px;background:#123348;margin:17px 0}.error{min-height:18px;color:var(--bad);font-size:12px}.success{color:var(--ok)}.quote-preview{background:#fff;color:#09131a;border-radius:18px;padding:24px;min-height:420px}.quote-head{display:flex;justify-content:space-between;gap:15px;border-bottom:2px solid #d9e7ef;padding-bottom:16px}.quote-head img{width:86px;height:86px;object-fit:contain}.quote-head h2{margin:0;color:#07121a}.quote-meta{font-size:12px;color:#526675;text-align:right}.quote-customer{margin:22px 0}.quote-customer strong{font-size:18px}.quote-customer div{color:#526675;margin-top:4px}.scope{background:#f4f9fc;border-radius:12px;padding:13px 14px;color:#28404f;white-space:pre-wrap}.line{display:grid;grid-template-columns:1fr 90px 120px;gap:10px;padding:15px 0;border-bottom:1px solid #dfe8ee}.total{display:flex;justify-content:flex-end;gap:30px;font-size:22px;font-weight:900;padding-top:18px}.smallnote{font-size:12px;color:#657986;margin-top:18px}.login-only{max-width:460px;margin:10vh auto}.hide{display:none!important}
+    @media(max-width:800px){.shell{grid-template-columns:1fr}.top{align-items:flex-start}.wrap{padding:12px}.card{border-radius:18px}.pad{padding:16px}.row{grid-template-columns:1fr}.quote-preview{padding:18px}.line{grid-template-columns:1fr 70px 100px}.actions .btn{flex:1 1 140px}}
+    @media print{body{background:white!important;padding:0}.top,.editor,.no-print{display:none!important}.wrap{padding:0;width:100%}.shell{display:block}.card{border:0;box-shadow:none}.quote-preview{border-radius:0;min-height:0}.preview-card{border:0}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand"><img src="cp-app-icon.png" alt="Chill Pros"><div><strong>CHILL PROS</strong><span>Priority Quote Workspace</span></div></div>
+    <div id="topStatus" class="status">Secure session loading…</div>
+  </div>
+
+  <section id="loginCard" class="card login-only hide"><div class="pad">
+    <div class="eyebrow">Secure owner access</div><h1>Sign in</h1><p>This lightweight workspace is isolated from the main Operations Center so quotes stay available even if the primary UI has a regression.</p>
+    <form id="loginForm" class="stack">
+      <div class="field"><label>Email</label><input name="email" type="email" autocomplete="username" required></div>
+      <div class="field"><label>Password</label><input name="password" type="password" autocomplete="current-password" required></div>
+      <div id="loginError" class="error"></div><button id="loginButton" class="btn primary">SIGN IN</button>
+    </form>
+  </div></section>
+
+  <main id="app" class="shell hide">
+    <section class="card editor"><div class="pad stack">
+      <div><div class="eyebrow">Quote builder</div><h1>New customer quote</h1><p>Create, approve, print, copy, or email a professional quote from one screen.</p></div>
+      <div class="field"><label>Customer / company</label><input id="customerName" placeholder="Customer name"></div>
+      <div class="field"><label>Customer email</label><input id="customerEmail" type="email" placeholder="name@company.com"></div>
+      <div class="field"><label>Job / reference</label><input id="jobId" placeholder="Optional job ID"></div>
+      <div class="field"><label>Scope of work</label><textarea id="scope" placeholder="Describe the repair/service scope"></textarea></div>
+      <div class="field"><label>Line item</label><input id="description" placeholder="Repair or service description"></div>
+      <div class="row"><div class="field"><label>Quantity</label><input id="quantity" type="number" min="1" value="1"></div><div class="field"><label>Unit price</label><input id="unitPrice" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00"></div></div>
+      <div id="actionMessage" class="error"></div>
+      <div class="actions"><button id="saveQuote" class="btn primary">Save draft</button><button id="approveQuote" class="btn good" disabled>Approve quote</button></div>
+      <div class="divider"></div>
+      <div class="actions"><button id="printQuote" class="btn">Print / PDF</button><button id="copyQuote" class="btn">Copy summary</button><button id="emailQuote" class="btn">Open email</button><button id="clearQuote" class="btn">New quote</button></div>
+      <button id="signOut" class="btn no-print">Sign out</button>
+    </div></section>
+
+    <section class="card preview-card"><div class="pad"><div id="preview" class="quote-preview"></div></div></section>
+  </main>
+</div>
+<script>
+(() => {
+  'use strict';
+  const API='https://us-central1-chill-pros-ice-stream.cloudfunctions.net/nativeOpsApi';
+  const fbCfg={apiKey:'AIzaSyBsBEKMggwSUvEmdTTK1rjYOcdPyYCCLOc',authDomain:'chill-pros-ice-stream.firebaseapp.com',projectId:'chill-pros-ice-stream',storageBucket:'chill-pros-ice-stream.firebasestorage.app',messagingSenderId:'260000821827',appId:'1:260000821827:web:4d65bb9f17a29001eedaf6'};
+  if(!firebase.apps.length)firebase.initializeApp(fbCfg);
+  let quoteId='';
+  const $=id=>document.getElementById(id);
+  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+  const money=n=>Number(n||0).toLocaleString('en-US',{style:'currency',currency:'USD'});
+  function data(){return{customerName:$('customerName').value.trim(),customerEmail:$('customerEmail').value.trim(),jobId:$('jobId').value.trim(),scope:$('scope').value.trim(),description:$('description').value.trim(),quantity:Math.max(1,Number($('quantity').value||1)),unitPrice:Number($('unitPrice').value||0)}}
+  function render(){const d=data(),total=d.quantity*d.unitPrice;$('preview').innerHTML=`<div class="quote-head"><div><img src="cp-app-icon.png" alt="Chill Pros"><h2>CHILL PROS</h2><div>Professional Service Quote</div></div><div class="quote-meta">${quoteId?`Quote ID<br><strong>${esc(quoteId)}</strong><br><br>`:''}${new Date().toLocaleDateString()}</div></div><div class="quote-customer"><strong>${esc(d.customerName||'Customer')}</strong><div>${esc(d.customerEmail||'Customer email')}</div>${d.jobId?`<div>Reference: ${esc(d.jobId)}</div>`:''}</div><div class="scope">${esc(d.scope||'Scope of work will appear here.')}</div><div class="line"><strong>${esc(d.description||'Service / repair')}</strong><span>Qty ${d.quantity}</span><span>${money(d.unitPrice)}</span></div><div class="total"><span>Total</span><span>${money(total)}</span></div><div class="smallnote">Prepared by Chill Professional LLC • Final work is subject to approved scope and service terms.</div>`}
+  ['customerName','customerEmail','jobId','scope','description','quantity','unitPrice'].forEach(id=>$(id).addEventListener('input',render));
+  async function secure(path,body){const u=firebase.auth().currentUser;if(!u)throw Error('Please sign in again.');const token=await u.getIdToken();const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),15000);try{const r=await fetch(API+path,{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify(body||{}),signal:controller.signal});const out=await r.json().catch(()=>({}));if(!r.ok)throw Error(out.error||`Request failed (${r.status})`);return out}finally{clearTimeout(timer)}}
+  function msg(text,good=false){$('actionMessage').textContent=text;$('actionMessage').className=good?'error success':'error'}
+  $('saveQuote').onclick=async()=>{const d=data();if(!d.description||!d.unitPrice)return msg('Enter a line item and price first.');const b=$('saveQuote');b.disabled=true;b.textContent='Saving…';try{const out=await secure('/quotes',{customerName:d.customerName,customerEmail:d.customerEmail,jobId:d.jobId||undefined,scope:d.scope,lines:[{description:d.description,quantity:d.quantity,unitPrice:d.unitPrice}]});quoteId=out.id;$('approveQuote').disabled=false;render();msg(`Draft saved • ${money(out.total)}`,true)}catch(e){msg(e.name==='AbortError'?'Quote service timed out. Try again.':e.message)}finally{b.disabled=false;b.textContent='Save draft'}};
+  $('approveQuote').onclick=async()=>{if(!quoteId)return msg('Save the draft first.');const b=$('approveQuote');b.disabled=true;b.textContent='Approving…';try{await secure(`/quotes/${encodeURIComponent(quoteId)}/approve`,{});msg('Quote owner-approved and saved.',true)}catch(e){msg(e.name==='AbortError'?'Approval timed out. Try again.':e.message);b.disabled=false}finally{b.textContent='Approve quote'}};
+  $('printQuote').onclick=()=>window.print();
+  $('copyQuote').onclick=async()=>{const d=data(),text=`CHILL PROS — SERVICE QUOTE\nCustomer: ${d.customerName}\n${d.customerEmail?`Email: ${d.customerEmail}\n`:''}${d.jobId?`Reference: ${d.jobId}\n`:''}\nScope:\n${d.scope}\n\n${d.description} — ${d.quantity} × ${money(d.unitPrice)}\nTOTAL: ${money(d.quantity*d.unitPrice)}${quoteId?`\nQuote ID: ${quoteId}`:''}`;try{await navigator.clipboard.writeText(text);msg('Quote summary copied.',true)}catch{msg('Copy is unavailable in this browser. Use Print / PDF instead.')}};
+  $('emailQuote').onclick=()=>{const d=data(),subject=encodeURIComponent(`Chill Pros Service Quote${quoteId?` — ${quoteId}`:''}`),body=encodeURIComponent(`Hello ${d.customerName||''},\n\nPlease find your Chill Pros service quote below.\n\nScope of work:\n${d.scope}\n\n${d.description}\nQuantity: ${d.quantity}\nUnit price: ${money(d.unitPrice)}\nTotal: ${money(d.quantity*d.unitPrice)}\n${quoteId?`\nQuote ID: ${quoteId}\n`:''}\nThank you,\nChill Pros`);location.href=`mailto:${encodeURIComponent(d.customerEmail)}?subject=${subject}&body=${body}`};
+  $('clearQuote').onclick=()=>{quoteId='';['customerName','customerEmail','jobId','scope','description','unitPrice'].forEach(id=>$(id).value='');$('quantity').value='1';$('approveQuote').disabled=true;msg('');render()};
+  $('signOut').onclick=()=>firebase.auth().signOut();
+  $('loginForm').onsubmit=async e=>{e.preventDefault();const b=$('loginButton');if(b.disabled)return;b.disabled=true;b.textContent='SIGNING IN…';$('loginError').textContent='';const fd=new FormData(e.currentTarget);const timer=new Promise((_,reject)=>setTimeout(()=>reject(Error('Sign-in timed out. Check connection and retry.')),12000));try{await Promise.race([firebase.auth().signInWithEmailAndPassword(String(fd.get('email')).trim(),String(fd.get('password'))),timer])}catch(err){$('loginError').textContent=String(err.code||'').includes('invalid-credential')?'Email or password is incorrect.':err.message||'Sign-in failed.';b.disabled=false;b.textContent='SIGN IN'}};
+  firebase.auth().onAuthStateChanged(u=>{if(u){$('loginCard').classList.add('hide');$('app').classList.remove('hide');$('topStatus').textContent=`Signed in • ${u.email||'Chill Pros'}`;$('topStatus').classList.add('ok');render()}else{$('app').classList.add('hide');$('loginCard').classList.remove('hide');$('topStatus').textContent='Secure sign-in required';$('topStatus').classList.remove('ok');$('loginButton').disabled=false;$('loginButton').textContent='SIGN IN'}});
+})();
+</script>
+</body>
+</html>
