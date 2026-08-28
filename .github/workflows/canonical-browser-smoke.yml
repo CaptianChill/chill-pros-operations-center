@@ -15,7 +15,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
 
       - name: Install browser test runtime
         run: |
@@ -85,7 +85,7 @@ jobs:
 
       - name: Exercise desktop and mobile in Chromium
         run: |
-          cat > /tmp/cp-browser-smoke.mjs <<'EOF'
+          cat > ./cp-browser-smoke.mjs <<'EOF'
           import assert from 'node:assert/strict';
           import { chromium } from 'playwright';
 
@@ -153,7 +153,7 @@ jobs:
           console.log('Canonical v0 browser smoke passed: desktop, mobile, quote/auth gate, Chill Bro/auth gate.');
           EOF
 
-          node /tmp/cp-browser-smoke.mjs
+          node ./cp-browser-smoke.mjs
 
       - name: Upload browser evidence
         if: always()
