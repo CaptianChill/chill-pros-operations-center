@@ -274,7 +274,7 @@
   function actionForButton(button) {
     const text = buttonText(button);
     if (/^Quotes(?:\d+)?$/i.test(text) || /^Quote$/i.test(text) || /^Invoices\s*&\s*Payments(?:\d+)?$/i.test(text)) return 'quote';
-    if (/Chill Bro/i.test(text)) return 'chill-bro';
+    if (/Chill Bro/i.test(text) || /^AI Parts Intelligence$/i.test(text)) return 'chill-bro';
     return null;
   }
 
@@ -318,21 +318,6 @@
     window.addEventListener('click', handleActionClick, true);
     markActionControls();
     new MutationObserver(markActionControls).observe(shell, { childList: true, subtree: true });
-
-    document.getElementById('cpChillBroLauncher')?.remove();
-    const launcher = document.createElement('button');
-    launcher.id = 'cpChillBroLauncher';
-    launcher.className = 'cp-chill-launcher';
-    launcher.type = 'button';
-    launcher.setAttribute('aria-label', 'Open Chill Bro');
-    launcher.dataset.cpCanonicalAction = 'chill-bro-launcher';
-    launcher.innerHTML = '<img src="/chill-bro-approved.webp" alt="Chill Bro">';
-    launcher.addEventListener('click', (event) => {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      openChillBro();
-    }, true);
-    document.body.appendChild(launcher);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install, { once: true });
