@@ -32,6 +32,12 @@ jobs:
           ! grep -q 'canonical-frame' canonical-top-level.js
           ! grep -q 'document.body.innerHTML' canonical-top-level.js
           ! grep -q 'renderLogin' canonical-top-level.js
+      - name: Guard exact v0 visual contract
+        run: |
+          ! grep -q 'cpChillBroLauncher' canonical-top-level.js
+          ! grep -q 'cp-chill-launcher' canonical-top-level.js
+          grep -q 'AI Parts Intelligence' canonical-top-level.js
+          grep -q 'Chill Bro' canonical-top-level.js
       - name: Guard hydration-safe overlay startup
         run: |
           grep -q "window.addEventListener('load',boot" api/v0-visual.js
