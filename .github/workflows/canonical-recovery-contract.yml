@@ -1,0 +1,42 @@
+name: Canonical Recovery Contract
+
+on:
+  pull_request:
+  push:
+    branches:
+      - recovery/boodaflow-canonical-v0-proxy
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: JavaScript syntax
+        run: |
+          node --check canonical-auth.js
+          node --check canonical-runtime.js
+          node --check api/v0-visual.js
+      - name: Enforce one frontend and one auth path
+        run: |
+          grep -q 'canonical-auth.js' index.html
+          grep -q 'canonical-runtime.js' index.html
+          grep -q 'id="appRoot"' index.html
+          ! grep -q 'v2-final-runtime.js' index.html
+          ! grep -q 'auth-guard.js' index.html
+          ! grep -q 'firebase-auth-compat.js' index.html
+          ! grep -q 'ionos-receptionist' index.html
+          ! grep -q 'document.body.innerHTML' canonical-runtime.js
+      - name: Verify exact v0 visual contract
+        run: |
+          grep -q 'chill-pros-operation-ceneter-v2.vercel.app' api/v0-visual.js
+          grep -q 'dpl_FUSXSKKJ2USpEMMf4q1nCQR6qQ3T' api/v0-visual.js
+          grep -q '/api/v0-visual' canonical-runtime.js
+      - name: Verify revenue and Chill Bro paths
+        run: |
+          grep -q 'nativeOpsApi' canonical-runtime.js
+          grep -q "'/quotes'" canonical-runtime.js
+          grep -q "'/invoices'" canonical-runtime.js
+          grep -q "'/payments/checkout'" canonical-runtime.js
+          grep -q 'chillBroApi' canonical-runtime.js
+          grep -q 'window.chillProsAuth.currentUser' canonical-runtime.js
+          grep -q 'chill-bro-approved.webp' canonical-runtime.js
