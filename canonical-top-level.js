@@ -280,7 +280,7 @@
 
   function handleActionClick(event) {
     const button = event.target?.closest?.('button');
-    if (!button) return;
+    if (!button || !button.closest('.app-shell')) return;
     const action = actionForButton(button);
     if (!action) return;
     event.preventDefault();
@@ -290,7 +290,7 @@
   }
 
   function markActionControls() {
-    document.querySelectorAll('button').forEach((button) => {
+    document.querySelectorAll('.app-shell button').forEach((button) => {
       const action = actionForButton(button);
       if (action) button.dataset.cpCanonicalAction = action;
     });
@@ -298,7 +298,8 @@
 
   function install() {
     if (installed) return;
-    if (!document.querySelector('.app-shell')) return;
+    const shell = document.querySelector('.app-shell');
+    if (!shell) return;
     installed = true;
     document.documentElement.dataset.cpCanonicalTopLevel = '1';
 
@@ -312,11 +313,11 @@
     const top = document.querySelector('.top-user');
     if (top) top.textContent = 'CP';
 
-    // Window capture runs before React/root handlers. This keeps the preserved v0 UI
-    // intact while reliably claiming only the revenue and Chill Bro controls.
+    // Window capture runs before React/root handlers. It only claims controls inside
+    // the preserved v0 shell, never buttons inside canonical auth/quote/Chill Bro UI.
     window.addEventListener('click', handleActionClick, true);
     markActionControls();
-    new MutationObserver(markActionControls).observe(document.querySelector('.app-shell'), { childList: true, subtree: true });
+    new MutationObserver(markActionControls).observe(shell, { childList: true, subtree: true });
 
     document.getElementById('cpChillBroLauncher')?.remove();
     const launcher = document.createElement('button');
