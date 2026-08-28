@@ -56,6 +56,12 @@ jobs:
               await visualHandler(req, adapter);
               return;
             }
+            if (url.pathname === '/checkout-smoke') {
+              res.statusCode = 200;
+              res.setHeader('content-type', 'text/html; charset=utf-8');
+              res.end('<!doctype html><title>Checkout smoke</title><p>Checkout smoke target</p>');
+              return;
+            }
 
             let requested;
             try { requested = decodeURIComponent(url.pathname); } catch { res.statusCode = 400; res.end('Bad request'); return; }
@@ -136,7 +142,10 @@ jobs:
             else if (url.pathname === '/nativeOpsApi/quotes/q-smoke/approve') body = { ok: true };
             else if (url.pathname === '/nativeOpsApi/invoices') body = { id: 'i-smoke', total: 125 };
             else if (url.pathname === '/nativeOpsApi/invoices/i-smoke/approve') body = { ok: true };
-            else if (url.pathname === '/nativeOpsApi/payments/checkout') body = { checkoutSessionId: 'cs-smoke' };
+            else if (url.pathname === '/nativeOpsApi/payments/checkout') {
+              await new Promise(resolve => setTimeout(resolve, 500));
+              body = { checkoutSessionId: 'cs-smoke', url: 'http://127.0.0.1:4173/checkout-smoke' };
+            }
             else if (url.pathname === '/chillBroApi/chat') body = { sessionId: 'cb-smoke', answer: 'Smoke response from Chill Bro' };
             else throw new Error(`Unexpected secure smoke request: ${url.pathname}`);
 
@@ -180,8 +189,14 @@ jobs:
           await page.waitForFunction(() => document.querySelector('#cqStatus')?.textContent?.includes('Invoice created'));
           await page.click('#cqApproveInvoice');
           await page.waitForFunction(() => document.querySelector('#cqStatus')?.textContent === 'Invoice approved.');
+          const checkoutPopupPromise = page.waitForEvent('popup', { timeout: 250 });
           await page.click('#cqPay');
+          const checkoutPopup = await checkoutPopupPromise;
+          assert.equal(checkoutPopup.url(), 'about:blank', 'checkout window must open synchronously while user activation is still valid');
           await page.waitForFunction(() => document.querySelector('#cqStatus')?.textContent === 'Secure card / ACH checkout created.');
+          await checkoutPopup.waitForURL('**/checkout-smoke', { timeout: 5000 });
+          assert.equal(new URL(checkoutPopup.url()).pathname, '/checkout-smoke', 'checkout window must be handed the returned payment URL');
+          await checkoutPopup.close();
 
           const billingCalls = secureCalls.filter(call => call.pathname.startsWith('/nativeOpsApi/'));
           assert.deepEqual(
@@ -235,7 +250,7 @@ jobs:
           await browser.close();
           const hydrationErrors = browserErrors.filter(message => /hydration|Minified React error|removeChild|insertBefore|NotFoundError/i.test(message));
           assert.deepEqual(hydrationErrors, [], `hydration/browser errors detected:\n${hydrationErrors.join('\n')}`);
-          console.log('Canonical v0 browser smoke passed: exact v0 UI, successful shared auth, full billing flow, Chill Bro same-session auth, desktop/mobile.');
+          console.log('Canonical v0 browser smoke passed: exact v0 UI, successful shared auth, full billing flow with popup-safe checkout, Chill Bro same-session auth, desktop/mobile.');
           EOF
 
           node ./cp-browser-smoke.mjs
