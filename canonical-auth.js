@@ -5,7 +5,8 @@
   const STORE = 'chillProsCanonicalSession';
   const listeners = new Set();
   let session = null;
-  let refreshPromise = null;
+  let sessionRevision = 0;
+  let refreshInFlight = null;
 
   function decodeExp(token) {
     try {
@@ -15,6 +16,18 @@
     } catch {
       return 0;
     }
+  }
+
+  function sessionExpiredError() {
+    const error = new Error('Session expired. Sign in again.');
+    error.code = 'SESSION_EXPIRED';
+    return error;
+  }
+
+  function sessionChangedError() {
+    const error = new Error('Authentication session changed. Retry the request.');
+    error.code = 'SESSION_CHANGED';
+    return error;
   }
 
   function load() {
@@ -35,11 +48,17 @@
 
   function user() {
     if (!session?.idToken) return null;
+    const uid = session.localId || '';
+    const email = session.email || '';
     return {
-      uid: session.localId || '',
-      email: session.email || '',
+      uid,
+      email,
       async getIdToken(forceRefresh = false) {
+        if (!session?.idToken) throw sessionExpiredError();
+        if (uid && session.localId && session.localId !== uid) throw sessionChangedError();
         if (forceRefresh || Date.now() >= decodeExp(session.idToken) - 60000) await refresh();
+        if (!session?.idToken) throw sessionExpiredError();
+        if (uid && session.localId && session.localId !== uid) throw sessionChangedError();
         return session.idToken;
       },
     };
@@ -54,6 +73,7 @@
 
   function clearSession() {
     session = null;
+    sessionRevision += 1;
     persist();
     notify();
   }
@@ -83,54 +103,70 @@
 
   async function refresh() {
     if (!session?.refreshToken) {
-      clearSession();
-      const error = new Error('Session expired. Sign in again.');
-      error.code = 'SESSION_EXPIRED';
-      throw error;
+      if (session) clearSession();
+      throw sessionExpiredError();
     }
-    if (refreshPromise) return refreshPromise;
-    refreshPromise = (async () => {
-      const data = await fetchJson(`https://securetoken.googleapis.com/v1/token?key=${API_KEY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: session.refreshToken }),
-      });
-      session = {
-        ...session,
-        idToken: data.id_token,
-        refreshToken: data.refresh_token || session.refreshToken,
-        localId: data.user_id || session.localId,
-      };
-      persist();
-      return session;
-    })();
-    try {
-      return await refreshPromise;
-    } catch (error) {
-      if (terminalRefreshError(error)) {
-        clearSession();
-        const expired = new Error('Session expired. Sign in again.');
-        expired.code = 'SESSION_EXPIRED';
-        throw expired;
+
+    const refreshToken = session.refreshToken;
+    const refreshRevision = sessionRevision;
+    if (refreshInFlight?.revision === refreshRevision && refreshInFlight?.refreshToken === refreshToken) {
+      return refreshInFlight.promise;
+    }
+
+    const promise = (async () => {
+      try {
+        const data = await fetchJson(`https://securetoken.googleapis.com/v1/token?key=${API_KEY}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: refreshToken }),
+        });
+
+        if (sessionRevision !== refreshRevision || !session || session.refreshToken !== refreshToken) {
+          throw sessionChangedError();
+        }
+
+        session = {
+          ...session,
+          idToken: data.id_token,
+          refreshToken: data.refresh_token || session.refreshToken,
+          localId: data.user_id || session.localId,
+        };
+        sessionRevision += 1;
+        persist();
+        return session;
+      } catch (error) {
+        const stillOwnsSession = sessionRevision === refreshRevision && Boolean(session) && session.refreshToken === refreshToken;
+        if (terminalRefreshError(error) && stillOwnsSession) {
+          clearSession();
+          throw sessionExpiredError();
+        }
+        throw error;
       }
-      throw error;
+    })();
+
+    refreshInFlight = { revision: refreshRevision, refreshToken, promise };
+    try {
+      return await promise;
     } finally {
-      refreshPromise = null;
+      if (refreshInFlight?.promise === promise) refreshInFlight = null;
     }
   }
 
   async function signInWithEmailAndPassword(email, password) {
+    const signInRevision = sessionRevision;
     const data = await fetchJson(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${API_KEY}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password, returnSecureToken: true }),
     });
+    if (sessionRevision !== signInRevision) throw sessionChangedError();
     session = {
       idToken: data.idToken,
       refreshToken: data.refreshToken,
       email: data.email,
       localId: data.localId,
     };
+    sessionRevision += 1;
     persist();
     notify();
     return { user: user() };
