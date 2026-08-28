@@ -21,6 +21,8 @@ jobs:
           test -f vercel.json
           grep -q '"src": "^/$"' vercel.json
           grep -q '"dest": "/api/v0-visual"' vercel.json
+          grep -q '"handle": "filesystem"' vercel.json
+          grep -q 'chill-pros-operation-ceneter-v2-qv0by9k5v-chill-pros.vercel.app/\$path' vercel.json
           grep -q 'canonical-overlay.css' api/v0-visual.js
           grep -q 'canonical-auth.js' api/v0-visual.js
           grep -q 'canonical-top-level.js' api/v0-visual.js
