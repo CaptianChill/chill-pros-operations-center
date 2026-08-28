@@ -53,12 +53,14 @@ jobs:
           grep -q 'chill-pros-operation-ceneter-v2-qv0by9k5v-chill-pros.vercel.app' api/v0-visual.js
           grep -q 'dpl_FUSXSKKJ2USpEMMf4q1nCQR6qQ3T' api/v0-visual.js
           grep -q 'top-level-v0' api/v0-visual.js
-      - name: Verify mobile release protections
+      - name: Verify mobile release protections and exact v0 controls
         run: |
           grep -q 'font-size:16px' canonical-overlay.css
           grep -q '@media(max-width:800px)' canonical-overlay.css
           grep -q '100dvh' canonical-overlay.css
-          grep -q 'cpChillBroLauncher' canonical-top-level.js
+          ! grep -q 'cpChillBroLauncher' canonical-top-level.js
+          grep -q 'AI Parts Intelligence' canonical-top-level.js
+          grep -q 'Chill Bro' canonical-top-level.js
       - name: Verify revenue and Chill Bro paths
         run: |
           grep -q 'nativeOpsApi' canonical-top-level.js
