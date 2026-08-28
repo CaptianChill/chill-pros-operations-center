@@ -10,8 +10,9 @@
   let chillBroSessionId = '';
   let recognition = null;
   let speakReplies = true;
+  let authPromptPromise = null;
 
-  const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' }[c]));
+  const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#039;' }[c]));
   const money = (n) => Number(n || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 
   function clearRoot() {
@@ -26,31 +27,6 @@
     return error?.message || 'Sign-in failed.';
   }
 
-  function renderLogin() {
-    clearRoot();
-    const wrap = document.createElement('main');
-    wrap.className = 'cp-login';
-    wrap.innerHTML = `<section class="cp-login-card"><img class="cp-login-logo" src="${V0}/chill-pros-command-center.png" alt="Chill Pros Command Center"><div class="cp-login-eyebrow">SECURE OPERATIONS ACCESS</div><h1>Chill Pros Operations Center</h1><p>Owner and staff access to dispatch, field intelligence, quotes and Chill Bro.</p><form class="cp-login-form" id="canonicalLogin"><input name="email" type="email" autocomplete="username" placeholder="Chill Pros email" required><input name="password" type="password" autocomplete="current-password" placeholder="Password" required><div class="cp-login-error" id="canonicalLoginError"></div><button class="cp-login-button" id="canonicalLoginButton" type="submit">SIGN IN</button></form></section>`;
-    root.appendChild(wrap);
-    const form = wrap.querySelector('#canonicalLogin');
-    form.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const button = wrap.querySelector('#canonicalLoginButton');
-      const errorNode = wrap.querySelector('#canonicalLoginError');
-      const data = new FormData(form);
-      button.disabled = true;
-      button.textContent = 'SIGNING IN…';
-      errorNode.textContent = '';
-      try {
-        await window.chillProsAuth.signInWithEmailAndPassword(String(data.get('email') || '').trim(), String(data.get('password') || ''));
-      } catch (error) {
-        errorNode.textContent = friendlyAuthError(error);
-        button.disabled = false;
-        button.textContent = 'SIGN IN';
-      }
-    });
-  }
-
   function renderVisualFailure(message) {
     clearRoot();
     const node = document.createElement('main');
@@ -60,31 +36,100 @@
     node.querySelector('#retryVisual').onclick = renderApp;
   }
 
+  function openAuthModal() {
+    if (window.chillProsAuth.currentUser) return Promise.resolve(window.chillProsAuth.currentUser);
+    if (authPromptPromise) return authPromptPromise;
+
+    authPromptPromise = new Promise((resolve, reject) => {
+      document.getElementById('canonicalAuthBackdrop')?.remove();
+      const backdrop = document.createElement('div');
+      backdrop.id = 'canonicalAuthBackdrop';
+      backdrop.className = 'cp-workspace-backdrop';
+      backdrop.innerHTML = `<section class="cp-workspace" style="width:min(430px,100%);max-height:none;overflow:hidden">
+        <header class="cp-workspace-head">
+          <div><div class="cp-login-eyebrow" style="text-align:left">SECURE OPERATIONS</div><h2>Sign in to continue</h2></div>
+          <button class="cp-close" id="caClose" type="button" aria-label="Close">×</button>
+        </header>
+        <form class="cp-login-form" id="canonicalAuthForm" style="padding:18px">
+          <img src="${V0}/chill-pros-command-center.png" alt="Chill Pros Command Center" style="display:block;width:min(220px,70%);max-height:90px;object-fit:contain;margin:0 auto 8px">
+          <input name="email" type="email" autocomplete="username" placeholder="Chill Pros email" required>
+          <input name="password" type="password" autocomplete="current-password" placeholder="Password" required>
+          <div class="cp-login-error" id="canonicalAuthError"></div>
+          <button class="cp-login-button" id="canonicalAuthButton" type="submit">SIGN IN</button>
+        </form>
+      </section>`;
+      document.body.appendChild(backdrop);
+
+      const finishReject = () => {
+        backdrop.remove();
+        authPromptPromise = null;
+        reject(new Error('Sign-in required to use secure operations.'));
+      };
+      backdrop.querySelector('#caClose').onclick = finishReject;
+      backdrop.addEventListener('click', (event) => { if (event.target === backdrop) finishReject(); });
+
+      const form = backdrop.querySelector('#canonicalAuthForm');
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const button = backdrop.querySelector('#canonicalAuthButton');
+        const errorNode = backdrop.querySelector('#canonicalAuthError');
+        const data = new FormData(form);
+        button.disabled = true;
+        button.textContent = 'SIGNING IN…';
+        errorNode.textContent = '';
+        try {
+          const result = await window.chillProsAuth.signInWithEmailAndPassword(
+            String(data.get('email') || '').trim(),
+            String(data.get('password') || '')
+          );
+          backdrop.remove();
+          authPromptPromise = null;
+          resolve(result.user);
+        } catch (error) {
+          errorNode.textContent = friendlyAuthError(error);
+          button.disabled = false;
+          button.textContent = 'SIGN IN';
+        }
+      });
+    });
+
+    return authPromptPromise;
+  }
+
   function patchVisualDocument(doc) {
     if (!doc || doc.documentElement.dataset.cpCanonicalHook === '1') return;
     doc.documentElement.dataset.cpCanonicalHook = '1';
 
     const patchIdentity = () => {
+      const user = window.chillProsAuth.currentUser;
       const sidebar = doc.querySelector('.sidebar-user');
       if (sidebar) {
         const avatar = sidebar.querySelector('.avatar');
         const strong = sidebar.querySelector('strong');
         const span = sidebar.querySelector('span:not(.avatar)');
         if (avatar) avatar.textContent = 'CP';
-        if (strong) strong.textContent = 'Chill Pros';
-        if (span) span.textContent = 'Owner / Admin';
+        if (strong) strong.textContent = user?.email ? 'Chill Pros' : 'Chill Pros';
+        if (span) span.textContent = user ? 'Owner / Admin · Secure' : 'Owner / Admin';
       }
       const topUser = doc.querySelector('.top-user');
       if (topUser) topUser.textContent = 'CP';
       const subhead = doc.querySelector('.page-title-row .subhead');
       if (subhead && /August 25, 2026/i.test(subhead.textContent || '')) {
         const live = subhead.querySelector('.live-indicator');
-        subhead.childNodes[0].textContent = new Date().toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' }) + ' ';
+        if (subhead.childNodes[0]) subhead.childNodes[0].textContent = new Date().toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' }) + ' ';
         if (live && !subhead.contains(live)) subhead.appendChild(live);
       }
     };
 
     doc.addEventListener('click', (event) => {
+      const ownerTarget = event.target?.closest?.('.top-user,.sidebar-user');
+      if (ownerTarget && !window.chillProsAuth.currentUser) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        openAuthModal().catch(() => {});
+        return;
+      }
+
       const button = event.target?.closest?.('button');
       if (!button) return;
       const text = (button.textContent || '').replace(/\s+/g, ' ').trim();
@@ -140,8 +185,8 @@
   }
 
   async function secure(base, path, body = {}) {
-    const user = window.chillProsAuth.currentUser;
-    if (!user) throw new Error('Sign in to Chill Pros first.');
+    let user = window.chillProsAuth.currentUser;
+    if (!user) user = await openAuthModal();
     const token = await user.getIdToken();
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 18000);
@@ -317,10 +362,9 @@
     panel.querySelector('#cbInput')?.focus();
   }
 
-  window.chillProsAuth.onAuthStateChanged((user) => {
-    document.getElementById('canonicalChillBroLauncher')?.remove();
-    document.getElementById('canonicalChillBroPanel')?.remove();
-    document.getElementById('canonicalQuoteBackdrop')?.remove();
-    if (user) renderApp(); else renderLogin();
+  window.chillProsAuth.onAuthStateChanged(() => {
+    try { patchVisualDocument(frame?.contentDocument); } catch {}
   });
+
+  renderApp();
 })();
