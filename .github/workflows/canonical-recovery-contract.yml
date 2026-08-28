@@ -32,6 +32,13 @@ jobs:
           ! grep -q 'canonical-frame' canonical-top-level.js
           ! grep -q 'document.body.innerHTML' canonical-top-level.js
           ! grep -q 'renderLogin' canonical-top-level.js
+      - name: Guard hydration-safe overlay startup
+        run: |
+          grep -q "window.addEventListener('load',boot" api/v0-visual.js
+          grep -q 'requestAnimationFrame' api/v0-visual.js
+          grep -q 'cpHydrationSafe' api/v0-visual.js
+          grep -q 'post-load-hydration-safe' api/v0-visual.js
+          ! grep -q '<script src="/canonical-top-level.js' api/v0-visual.js
       - name: Block legacy competing runtimes
         run: |
           ! grep -q 'v2-final-runtime.js' api/v0-visual.js
@@ -64,9 +71,11 @@ jobs:
           if (!body.includes('Today') || !body.includes('Chill Bro') || !body.includes('Quotes')) throw new Error('required v0 landmarks missing');
           if (!body.includes('/canonical-top-level.js')) throw new Error('secure overlay runtime missing');
           if (!body.includes('/canonical-overlay.css')) throw new Error('scoped overlay CSS missing');
+          if (!body.includes('cpHydrationSafe')) throw new Error('hydration-safe overlay marker missing');
           if (headers['x-chill-pros-visual-source'] !== 'dpl_FUSXSKKJ2USpEMMf4q1nCQR6qQ3T') throw new Error('visual source marker mismatch');
           if (headers['x-chill-pros-render-mode'] !== 'top-level-v0') throw new Error('top-level render marker mismatch');
-          console.log('Immutable preserved v0 shell is top-level and canonical overlays are injected.');
+          if (headers['x-chill-pros-overlay-boot'] !== 'post-load-hydration-safe') throw new Error('overlay boot mode mismatch');
+          console.log('Immutable preserved v0 shell is top-level and overlays boot after hydration.');
           EOF
       - name: Verify live backend endpoints exist
         run: |
