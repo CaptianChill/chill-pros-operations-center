@@ -4,6 +4,7 @@
   const auth = window.chillProsAuth;
   const db = window.chillProsDb;
   const OWNER_EMAIL = 'chillprostx@gmail.com';
+  const BILL_API = 'https://us-central1-chill-pros-ice-stream.cloudfunctions.net/nativeOpsApi';
   const STATUS_OPTIONS = [
     'Needs Review', 'Needs Quote', 'Scheduled', 'Dispatched',
     'In Progress', 'Paused', 'Waiting on Parts', 'Ready to Invoice', 'Completed'
@@ -29,6 +30,7 @@
     { id: 'Service Intake', icon: '▤', label: 'Service Intake' },
     { id: 'Dispatch', icon: '▦', label: 'Dispatch / Jobs' },
     { id: 'Office Queue', icon: '◷', label: 'Office Queue' },
+    { id: 'Billing', icon: '$', label: 'Quotes & Billing' },
     { id: 'Technicians', icon: '🔧', label: 'Technicians' },
     { id: 'BoodaFlow', icon: '↯', label: 'BoodaFlow' },
     { id: 'Reports', icon: '▥', label: 'Reports' },
@@ -42,6 +44,7 @@
   let view = 'Dashboard';
   let bf = loadBf();
   let broOpen = false;
+  let billState = { quoteId: '', invoiceId: '', sessionId: '' };
 
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -91,7 +94,6 @@
       const snap = await db.collection('Customers').orderBy('createdAt', 'desc').limit(200).get();
       records = snap.docs.map((d) => ({ ...d.data(), firestoreId: d.id }));
     } catch (e) {
-      console.warn('Customers load', e);
       try {
         const snap = await db.collection('Customers').limit(200).get();
         records = snap.docs.map((d) => ({ ...d.data(), firestoreId: d.id }));
@@ -109,6 +111,22 @@
     } catch (e) {
       technicians = [];
     }
+  }
+
+  async function secure(path, body = {}) {
+    if (!user) throw new Error('Sign in first');
+    const token = await user.getIdToken();
+    const res = await fetch(BILL_API + path, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Request failed');
+    return data;
   }
 
   function renderLogin(err = '') {
@@ -172,8 +190,8 @@
         </div>
         <div class="chill-bro-body" id="broBody">
           <p><strong style="color:var(--ice)">Chill Bro is a side plug-in</strong> — not part of the core Operations Center shell.</p>
-          <p>Use this panel for field coaching, diagnostics notes, and quick reminders. Full AI wiring can be connected later without touching the ops UI.</p>
-          <p>Core ops (intake → queue → dispatch → status) stays clean and independent.</p>
+          <p>Use this panel for field notes and coaching. Full AI can be wired later without changing core ops.</p>
+          <p>Core path stays: intake → queue → dispatch → billing.</p>
         </div>
         <div class="chill-bro-foot">
           <input id="broInput" placeholder="Note for later AI hook…" disabled>
@@ -205,7 +223,7 @@
     side.innerHTML = '';
     mob.innerHTML = '';
     NAV.forEach((item, i) => {
-      if (i === 5) {
+      if (i === 6) {
         const lab = document.createElement('p');
         lab.className = 'nav-label';
         lab.textContent = 'Control';
@@ -222,7 +240,7 @@
       ['Today', 'Dashboard', '⌂'],
       ['Jobs', 'Dispatch', '▦'],
       ['Intake', 'Service Intake', '＋'],
-      ['Queue', 'Office Queue', '◷'],
+      ['Bill', 'Billing', '$'],
       ['Flow', 'BoodaFlow', '↯']
     ].forEach(([label, id, icon]) => {
       const b = document.createElement('button');
@@ -236,7 +254,7 @@
   function setActiveNav() {
     $$('[data-view]').forEach((b) => b.classList.toggle('active', b.dataset.view === view));
     const title = $('#pageTitle');
-    if (title) title.textContent = view;
+    if (title) title.textContent = view === 'Billing' ? 'Quotes & Billing' : view;
   }
 
   function showView(id) {
@@ -248,6 +266,7 @@
     if (id === 'Service Intake') return renderIntake(ws);
     if (id === 'Dispatch') return renderList(ws, 'Dispatch / Jobs', records.filter((r) => ACTIVE_JOB.has(r.officeStatus)));
     if (id === 'Office Queue') return renderList(ws, 'Office Queue', records.filter((r) => r.officeStatus !== 'Completed'));
+    if (id === 'Billing') return renderBilling(ws);
     if (id === 'Technicians') return renderTechnicians(ws);
     if (id === 'BoodaFlow') return renderBoodaFlow(ws);
     if (id === 'Reports') return renderReports(ws);
@@ -428,6 +447,104 @@
     });
   }
 
+  function renderBilling(ws) {
+    ws.innerHTML = `
+      <div class="page-head">
+        <div>
+          <p class="eyebrow">Operations workspace</p>
+          <h2>Quotes & Billing</h2>
+          <p class="lead">Quote → approve → invoice → card/ACH checkout (native Stripe).</p>
+        </div>
+      </div>
+      <section class="glass-card">
+        <form class="form-grid" id="billForm">
+          <label class="field">Customer / company<input id="bcustomer" placeholder="Customer name"></label>
+          <label class="field">Customer email<input id="bemail" type="email" placeholder="email@example.com"></label>
+          <label class="field">Job ID (optional)<input id="bjob" placeholder="Job / record id"></label>
+          <label class="field">Qty<input id="bqty" type="number" min="1" value="1"></label>
+          <label class="field wide">Scope<textarea id="bscope" placeholder="Scope of work"></textarea></label>
+          <label class="field wide">Line description<input id="bdesc" placeholder="Repair / service line"></label>
+          <label class="field">Unit price<input id="bprice" type="number" min="0" step="0.01" placeholder="0.00"></label>
+        </form>
+        <div class="form-actions" style="margin-top:12px">
+          <button class="btn btn-primary" type="button" data-b="quote">Save draft quote</button>
+          <button class="btn" type="button" data-b="approveq">Approve quote</button>
+          <button class="btn btn-primary" type="button" data-b="invoice">Create invoice</button>
+          <button class="btn" type="button" data-b="approvei">Approve invoice</button>
+          <button class="btn btn-primary" type="button" data-b="pay">Card / ACH link</button>
+          <button class="btn" type="button" data-b="status">Payment status</button>
+        </div>
+        <p id="billMeta" style="margin:14px 0 0;color:var(--muted);font-size:.85rem">Native billing ready. Owner approval required for quote approve, invoice approve, and checkout.</p>
+      </section>`;
+    $$('[data-b]', ws).forEach((b) => {
+      b.onclick = () => runBilling(b.dataset.b);
+    });
+  }
+
+  async function runBilling(action) {
+    const meta = $('#billMeta');
+    if (!meta) return;
+    const ctx = {
+      customerName: $('#bcustomer')?.value.trim() || '',
+      customerEmail: $('#bemail')?.value.trim() || '',
+      jobId: $('#bjob')?.value.trim() || '',
+      scope: $('#bscope')?.value.trim() || '',
+      description: $('#bdesc')?.value.trim() || '',
+      quantity: Number($('#bqty')?.value || 1),
+      unitPrice: Number($('#bprice')?.value || 0)
+    };
+    try {
+      if (action === 'quote') {
+        if (!ctx.description || !ctx.unitPrice) throw new Error('Enter description and unit price');
+        const d = await secure('/quotes', {
+          customerName: ctx.customerName,
+          customerEmail: ctx.customerEmail,
+          jobId: ctx.jobId || undefined,
+          scope: ctx.scope,
+          lines: [{ description: ctx.description, quantity: ctx.quantity, unitPrice: ctx.unitPrice }]
+        });
+        billState.quoteId = d.id;
+        meta.textContent = `Draft quote saved · $${Number(d.total || 0).toFixed(2)} · ${d.id}`;
+        toast('Quote saved');
+      }
+      if (action === 'approveq') {
+        if (!billState.quoteId) throw new Error('Save a quote first');
+        await secure(`/quotes/${encodeURIComponent(billState.quoteId)}/approve`, {});
+        meta.textContent = 'Quote owner-approved.';
+        toast('Quote approved');
+      }
+      if (action === 'invoice') {
+        if (!billState.quoteId) throw new Error('Save a quote first');
+        const d = await secure('/invoices', { quoteId: billState.quoteId });
+        billState.invoiceId = d.id;
+        meta.textContent = `Draft invoice · $${Number(d.total || 0).toFixed(2)} · ${d.id}`;
+        toast('Invoice created');
+      }
+      if (action === 'approvei') {
+        if (!billState.invoiceId) throw new Error('Create an invoice first');
+        await secure(`/invoices/${encodeURIComponent(billState.invoiceId)}/approve`, {});
+        meta.textContent = 'Invoice owner-approved.';
+        toast('Invoice approved');
+      }
+      if (action === 'pay') {
+        if (!billState.invoiceId) throw new Error('Create and approve an invoice first');
+        const d = await secure('/payments/checkout', { invoiceId: billState.invoiceId });
+        billState.sessionId = d.checkoutSessionId || '';
+        meta.textContent = 'Secure card/ACH checkout ready.';
+        if (d.url) window.open(d.url, '_blank', 'noopener,noreferrer');
+        toast('Checkout opened');
+      }
+      if (action === 'status') {
+        if (!billState.sessionId) throw new Error('Create a payment checkout first');
+        const d = await secure('/payments/status', { checkoutSessionId: billState.sessionId });
+        meta.textContent = `Payment status: ${d.paymentStatus || d.status || 'unknown'}`;
+      }
+    } catch (e) {
+      meta.textContent = e.message || 'Billing action failed';
+      toast(e.message || 'Billing failed');
+    }
+  }
+
   function renderTechnicians(ws) {
     const fromJobs = [...new Set(records.map((r) => r.assignedTechnician).filter(Boolean))];
     const names = technicians.length
@@ -445,7 +562,7 @@
         ${names.length ? names.map((n) => {
           const count = records.filter((r) => r.assignedTechnician === n).length;
           return `<div class="list-row"><div><strong>${esc(n)}</strong><small>${count} linked job${count === 1 ? '' : 's'}</small></div></div>`;
-        }).join('') : '<p style="color:var(--muted);margin:0">No technicians yet. Assign names on jobs or add to Technicians collection.</p>'}
+        }).join('') : '<p style="color:var(--muted);margin:0">No technicians yet. Assign names on jobs or add below.</p>'}
       </section>
       <section class="glass-card">
         <h3 style="margin:0 0 10px;font-size:1rem">Add technician</h3>
@@ -619,10 +736,13 @@
           <div><strong>Company</strong><small>Chill Pros · License to Chill.</small></div>
         </div>
         <div class="list-row">
-          <div><strong>Chill Bro</strong><small>Side plug-in only (❄ button). Not part of core shell.</small></div>
+          <div><strong>Chill Bro</strong><small>Side plug-in only (❄). Not part of core shell.</small></div>
         </div>
         <div class="list-row">
-          <div><strong>BoodaFlow</strong><small>Priority execution engine · complete → next safe task</small></div>
+          <div><strong>BoodaFlow</strong><small>Priority execution · complete → next safe task</small></div>
+        </div>
+        <div class="list-row">
+          <div><strong>Billing API</strong><small>nativeOpsApi · Stripe card + ACH</small></div>
         </div>
       </section>`;
     $('#so2').onclick = () => auth.signOut();
