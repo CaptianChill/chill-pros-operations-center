@@ -16,6 +16,54 @@ jobs:
           node --check canonical-auth.js
           node --check canonical-top-level.js
           node --check api/v0-visual.js
+      - name: Verify terminal refresh failure clears stale session
+        run: |
+          node --input-type=module <<'EOF'
+          import fs from 'node:fs';
+          import vm from 'node:vm';
+
+          const store = new Map();
+          const expiredToken = `e30.${Buffer.from(JSON.stringify({ exp: 1 })).toString('base64url')}.sig`;
+          store.set('chillProsCanonicalSession', JSON.stringify({
+            idToken: expiredToken,
+            refreshToken: 'revoked-refresh-token',
+            email: 'smoke@chillpros.test',
+            localId: 'smoke-owner',
+          }));
+
+          const sandbox = {
+            window: null,
+            localStorage: {
+              getItem(key) { return store.has(key) ? store.get(key) : null; },
+              setItem(key, value) { store.set(key, String(value)); },
+              removeItem(key) { store.delete(key); },
+            },
+            fetch: async () => ({
+              ok: false,
+              status: 400,
+              async json() { return { error: { message: 'INVALID_REFRESH_TOKEN' } }; },
+            }),
+            AbortController,
+            URLSearchParams,
+            setTimeout,
+            clearTimeout,
+            queueMicrotask,
+            atob: (value) => Buffer.from(value, 'base64').toString('binary'),
+            console,
+          };
+          sandbox.window = sandbox;
+          vm.createContext(sandbox);
+          vm.runInContext(fs.readFileSync('canonical-auth.js', 'utf8'), sandbox);
+
+          const staleUser = sandbox.chillProsAuth.currentUser;
+          if (!staleUser) throw new Error('expected persisted stale session before refresh');
+          let message = '';
+          try { await staleUser.getIdToken(); } catch (error) { message = error.message; }
+          if (message !== 'Session expired. Sign in again.') throw new Error(`unexpected refresh failure message: ${message}`);
+          if (sandbox.chillProsAuth.currentUser !== null) throw new Error('terminal refresh failure left a stale currentUser');
+          if (store.has('chillProsCanonicalSession')) throw new Error('terminal refresh failure left stale localStorage auth state');
+          console.log('Revoked/expired refresh credentials fail closed and return canonical auth to a clean sign-in state.');
+          EOF
       - name: Enforce top-level approved UI path
         run: |
           test -f vercel.json
