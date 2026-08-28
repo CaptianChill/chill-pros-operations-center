@@ -31,6 +31,34 @@ jobs:
           grep -q 'chill-pros-operation-ceneter-v2.vercel.app' api/v0-visual.js
           grep -q 'dpl_FUSXSKKJ2USpEMMf4q1nCQR6qQ3T' api/v0-visual.js
           grep -q '/api/v0-visual' canonical-runtime.js
+      - name: Live-test preserved v0 proxy output
+        run: |
+          node --input-type=module <<'EOF'
+          import handler from './api/v0-visual.js';
+          let statusCode = 0;
+          let body = '';
+          const headers = {};
+          const res = {
+            setHeader(key, value) { headers[String(key).toLowerCase()] = String(value); },
+            status(code) { statusCode = code; return this; },
+            send(value) { body = String(value); return this; },
+          };
+          await handler({}, res);
+          if (statusCode !== 200) throw new Error(`proxy returned ${statusCode}`);
+          if (!body.includes('class="app-shell"')) throw new Error('approved app-shell missing from proxy output');
+          if (!body.includes('chill-pros-command-center.png')) throw new Error('approved branding missing from proxy output');
+          if (!body.includes('Today') || !body.includes('Chill Bro') || !body.includes('Quotes')) throw new Error('required v0 landmarks missing');
+          if (headers['x-chill-pros-visual-source'] !== 'dpl_FUSXSKKJ2USpEMMf4q1nCQR6qQ3T') throw new Error('visual source marker mismatch');
+          console.log('Exact preserved v0 shell fetched and rewritten successfully.');
+          EOF
+      - name: Verify live backend endpoints exist
+        run: |
+          chill_status=$(curl -sS -o /tmp/chill-health -w '%{http_code}' https://us-central1-chill-pros-ice-stream.cloudfunctions.net/chillBroApi/health || true)
+          ops_status=$(curl -sS -o /tmp/ops-health -w '%{http_code}' https://us-central1-chill-pros-ice-stream.cloudfunctions.net/nativeOpsApi/health || true)
+          test "$chill_status" = "401"
+          test "$ops_status" = "401"
+          grep -q 'Authentication required' /tmp/chill-health
+          grep -q 'Authentication required' /tmp/ops-health
       - name: Verify revenue and Chill Bro paths
         run: |
           grep -q 'nativeOpsApi' canonical-runtime.js
