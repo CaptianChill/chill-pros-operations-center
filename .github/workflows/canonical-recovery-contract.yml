@@ -14,24 +14,32 @@ jobs:
       - name: JavaScript syntax
         run: |
           node --check canonical-auth.js
-          node --check canonical-runtime.js
+          node --check canonical-top-level.js
           node --check api/v0-visual.js
-      - name: Enforce one frontend and one auth path
+      - name: Enforce top-level approved UI path
         run: |
-          grep -q 'canonical-auth.js' index.html
-          grep -q 'canonical-runtime.js' index.html
-          grep -q 'id="appRoot"' index.html
-          ! grep -q 'v2-final-runtime.js' index.html
-          ! grep -q 'auth-guard.js' index.html
-          ! grep -q 'firebase-auth-compat.js' index.html
-          ! grep -q 'ionos-receptionist' index.html
-          ! grep -q 'document.body.innerHTML' canonical-runtime.js
+          test -f vercel.json
+          grep -q '"src": "^/$"' vercel.json
+          grep -q '"dest": "/api/v0-visual"' vercel.json
+          grep -q 'canonical-overlay.css' api/v0-visual.js
+          grep -q 'canonical-auth.js' api/v0-visual.js
+          grep -q 'canonical-top-level.js' api/v0-visual.js
+          ! grep -q 'canonical-frame' canonical-top-level.js
+          ! grep -q 'document.body.innerHTML' canonical-top-level.js
+          ! grep -q 'renderLogin' canonical-top-level.js
+      - name: Block legacy competing runtimes
+        run: |
+          ! grep -q 'v2-final-runtime.js' api/v0-visual.js
+          ! grep -q 'auth-guard.js' api/v0-visual.js
+          ! grep -q 'firebase-auth-compat.js' api/v0-visual.js
+          ! grep -q 'ionos-receptionist' api/v0-visual.js
+          ! grep -q 'firebase.auth(' canonical-top-level.js
       - name: Verify exact v0 visual contract
         run: |
           grep -q 'chill-pros-operation-ceneter-v2.vercel.app' api/v0-visual.js
           grep -q 'dpl_FUSXSKKJ2USpEMMf4q1nCQR6qQ3T' api/v0-visual.js
-          grep -q '/api/v0-visual' canonical-runtime.js
-      - name: Live-test preserved v0 proxy output
+          grep -q 'top-level-v0' api/v0-visual.js
+      - name: Live-test preserved v0 output
         run: |
           node --input-type=module <<'EOF'
           import handler from './api/v0-visual.js';
@@ -45,11 +53,14 @@ jobs:
           };
           await handler({}, res);
           if (statusCode !== 200) throw new Error(`proxy returned ${statusCode}`);
-          if (!body.includes('class="app-shell"')) throw new Error('approved app-shell missing from proxy output');
-          if (!body.includes('chill-pros-command-center.png')) throw new Error('approved branding missing from proxy output');
+          if (!body.includes('class="app-shell"')) throw new Error('approved app-shell missing');
+          if (!body.includes('chill-pros-command-center.png')) throw new Error('approved branding missing');
           if (!body.includes('Today') || !body.includes('Chill Bro') || !body.includes('Quotes')) throw new Error('required v0 landmarks missing');
+          if (!body.includes('/canonical-top-level.js')) throw new Error('secure overlay runtime missing');
+          if (!body.includes('/canonical-overlay.css')) throw new Error('scoped overlay CSS missing');
           if (headers['x-chill-pros-visual-source'] !== 'dpl_FUSXSKKJ2USpEMMf4q1nCQR6qQ3T') throw new Error('visual source marker mismatch');
-          console.log('Exact preserved v0 shell fetched and rewritten successfully.');
+          if (headers['x-chill-pros-render-mode'] !== 'top-level-v0') throw new Error('top-level render marker mismatch');
+          console.log('Exact preserved v0 shell is top-level and canonical overlays are injected.');
           EOF
       - name: Verify live backend endpoints exist
         run: |
@@ -61,10 +72,10 @@ jobs:
           grep -q 'Authentication required' /tmp/ops-health
       - name: Verify revenue and Chill Bro paths
         run: |
-          grep -q 'nativeOpsApi' canonical-runtime.js
-          grep -q "'/quotes'" canonical-runtime.js
-          grep -q "'/invoices'" canonical-runtime.js
-          grep -q "'/payments/checkout'" canonical-runtime.js
-          grep -q 'chillBroApi' canonical-runtime.js
-          grep -q 'window.chillProsAuth.currentUser' canonical-runtime.js
-          grep -q 'chill-bro-approved.webp' canonical-runtime.js
+          grep -q 'nativeOpsApi' canonical-top-level.js
+          grep -q "'/quotes'" canonical-top-level.js
+          grep -q "'/invoices'" canonical-top-level.js
+          grep -q "'/payments/checkout'" canonical-top-level.js
+          grep -q 'chillBroApi' canonical-top-level.js
+          grep -q 'window.chillProsAuth' canonical-top-level.js
+          grep -q 'chill-bro-approved.webp' canonical-top-level.js
