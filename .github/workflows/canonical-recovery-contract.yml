@@ -24,6 +24,9 @@ jobs:
           grep -q 'canonical-overlay.css' api/v0-visual.js
           grep -q 'canonical-auth.js' api/v0-visual.js
           grep -q 'canonical-top-level.js' api/v0-visual.js
+          ! test -f canonical-runtime.js
+          ! test -f canonical-shell.css
+          ! grep -q 'appRoot' index.html
           ! grep -q 'canonical-frame' canonical-top-level.js
           ! grep -q 'document.body.innerHTML' canonical-top-level.js
           ! grep -q 'renderLogin' canonical-top-level.js
@@ -34,10 +37,11 @@ jobs:
           ! grep -q 'firebase-auth-compat.js' api/v0-visual.js
           ! grep -q 'ionos-receptionist' api/v0-visual.js
           ! grep -q 'firebase.auth(' canonical-top-level.js
-      - name: Verify exact v0 visual contract
+      - name: Verify immutable v0 visual contract
         run: |
-          grep -q 'chill-pros-operation-ceneter-v2.vercel.app' api/v0-visual.js
+          grep -q 'chill-pros-operation-ceneter-v2-qv0by9k5v-chill-pros.vercel.app' api/v0-visual.js
           grep -q 'dpl_FUSXSKKJ2USpEMMf4q1nCQR6qQ3T' api/v0-visual.js
+          ! grep -q "SOURCE = 'https://chill-pros-operation-ceneter-v2.vercel.app'" api/v0-visual.js
           grep -q 'top-level-v0' api/v0-visual.js
       - name: Live-test preserved v0 output
         run: |
@@ -60,7 +64,7 @@ jobs:
           if (!body.includes('/canonical-overlay.css')) throw new Error('scoped overlay CSS missing');
           if (headers['x-chill-pros-visual-source'] !== 'dpl_FUSXSKKJ2USpEMMf4q1nCQR6qQ3T') throw new Error('visual source marker mismatch');
           if (headers['x-chill-pros-render-mode'] !== 'top-level-v0') throw new Error('top-level render marker mismatch');
-          console.log('Exact preserved v0 shell is top-level and canonical overlays are injected.');
+          console.log('Immutable preserved v0 shell is top-level and canonical overlays are injected.');
           EOF
       - name: Verify live backend endpoints exist
         run: |
