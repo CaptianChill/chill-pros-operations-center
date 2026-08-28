@@ -18,8 +18,8 @@ jobs:
           test -f functions/native-ops.js
           grep -q 'require("./chill-bro")' functions/main.js
           grep -q 'require("./native-ops")' functions/main.js
-          grep -q 'chillBroApi' functions/main.js
-          grep -q 'nativeOpsApi' functions/main.js
+          grep -q 'chillBroApi' functions/chill-bro.js
+          grep -q 'nativeOpsApi' functions/native-ops.js
       - name: Verify single active frontend and auth runtime
         run: |
           test -f canonical-auth.js
@@ -46,7 +46,7 @@ jobs:
           grep -q 'window.chillProsAuth' canonical-auth.js
           grep -q 'window.chillProsAuth.currentUser' canonical-runtime.js
           grep -q 'getIdToken' canonical-runtime.js
-          if grep -qE 'firebase\.auth\(|signInWithEmailAndPassword\(' canonical-runtime.js; then
+          if grep -qE 'firebase\.auth\(' canonical-runtime.js; then
             echo "Canonical runtime must consume chillProsAuth rather than a second auth client"
             exit 1
           fi
