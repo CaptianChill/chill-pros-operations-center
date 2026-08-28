@@ -20,53 +20,50 @@ jobs:
           grep -q 'require("./native-ops")' functions/main.js
           grep -q 'chillBroApi' functions/chill-bro.js
           grep -q 'nativeOpsApi' functions/native-ops.js
-      - name: Verify single active frontend and auth runtime
+      - name: Verify top-level frontend integration
         run: |
           test -f canonical-auth.js
-          test -f canonical-runtime.js
-          test -f canonical-shell.css
-          grep -q 'src="canonical-auth.js' index.html
-          grep -q 'src="canonical-runtime.js' index.html
-          if grep -qE 'v2-final-runtime\.js|auth-guard\.js|firebase-auth-compat\.js|chill-bro-recovered\.js' index.html; then
-            echo "Legacy competing runtime/auth source found in active index.html"
-            exit 1
-          fi
-      - name: Block receptionist and shell regressions
+          test -f canonical-top-level.js
+          test -f canonical-overlay.css
+          test -f api/v0-visual.js
+          test -f vercel.json
+          ! test -f canonical-runtime.js
+          ! test -f canonical-shell.css
+          grep -q 'canonical-auth.js' api/v0-visual.js
+          grep -q 'canonical-top-level.js' api/v0-visual.js
+          grep -q 'canonical-overlay.css' api/v0-visual.js
+          grep -q '"dest": "/api/v0-visual"' vercel.json
+      - name: Block shell and competing auth regressions
         run: |
-          if grep -RniE 'ionos-receptionist|IONOS connection pending' index.html canonical-auth.js canonical-runtime.js 2>/dev/null; then
-            echo "Legacy IONOS/receptionist dependency found in active Operations Center path"
+          if grep -RniE 'ionos-receptionist|IONOS connection pending|document\.body\.innerHTML|canonical-frame|renderLogin' canonical-auth.js canonical-top-level.js api/v0-visual.js 2>/dev/null; then
+            echo "Recovery shell or competing runtime pattern found"
             exit 1
           fi
-          if grep -RniE 'document\.body\.innerHTML' canonical-auth.js canonical-runtime.js 2>/dev/null; then
-            echo "Canonical bootstrap code must not replace the approved Operations Center body"
+          if grep -qE 'firebase\.auth\(' canonical-top-level.js; then
+            echo "Canonical runtime must consume chillProsAuth rather than a second auth client"
             exit 1
           fi
       - name: Verify one authenticated token source
         run: |
           grep -q 'window.chillProsAuth' canonical-auth.js
-          grep -q 'window.chillProsAuth.currentUser' canonical-runtime.js
-          grep -q 'getIdToken' canonical-runtime.js
-          if grep -qE 'firebase\.auth\(' canonical-runtime.js; then
-            echo "Canonical runtime must consume chillProsAuth rather than a second auth client"
-            exit 1
-          fi
-      - name: Verify exact v0 visual contract
+          grep -q 'window.chillProsAuth' canonical-top-level.js
+          grep -q 'getIdToken' canonical-top-level.js
+      - name: Verify immutable v0 visual source
         run: |
-          test -f api/v0-visual.js
-          grep -q 'chill-pros-operation-ceneter-v2.vercel.app' api/v0-visual.js
+          grep -q 'chill-pros-operation-ceneter-v2-qv0by9k5v-chill-pros.vercel.app' api/v0-visual.js
           grep -q 'dpl_FUSXSKKJ2USpEMMf4q1nCQR6qQ3T' api/v0-visual.js
-          grep -q '/api/v0-visual' canonical-runtime.js
+          grep -q 'top-level-v0' api/v0-visual.js
       - name: Verify mobile release protections
         run: |
-          grep -q 'font-size:16px' canonical-shell.css
-          grep -q '@media(max-width:800px)' canonical-shell.css
-          grep -q '100dvh' canonical-shell.css
-          grep -q 'canonicalChillBroLauncher' canonical-runtime.js
+          grep -q 'font-size:16px' canonical-overlay.css
+          grep -q '@media(max-width:800px)' canonical-overlay.css
+          grep -q '100dvh' canonical-overlay.css
+          grep -q 'cpChillBroLauncher' canonical-top-level.js
       - name: Verify revenue and Chill Bro paths
         run: |
-          grep -q 'nativeOpsApi' canonical-runtime.js
-          grep -q "'/quotes'" canonical-runtime.js
-          grep -q "'/invoices'" canonical-runtime.js
-          grep -q "'/payments/checkout'" canonical-runtime.js
-          grep -q 'chillBroApi' canonical-runtime.js
-          grep -q 'chill-bro-approved.webp' canonical-runtime.js
+          grep -q 'nativeOpsApi' canonical-top-level.js
+          grep -q "'/quotes'" canonical-top-level.js
+          grep -q "'/invoices'" canonical-top-level.js
+          grep -q "'/payments/checkout'" canonical-top-level.js
+          grep -q 'chillBroApi' canonical-top-level.js
+          grep -q 'chill-bro-approved.webp' canonical-top-level.js
