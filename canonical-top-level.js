@@ -11,12 +11,23 @@
   let recognition = null;
   let speakReplies = true;
   let installed = false;
+  const pendingActions = new Set();
 
   const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
   }[c]));
   const money = (n) => Number(n || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
   const buttonText = (button) => String(button?.textContent || '').replace(/\s+/g, ' ').trim();
+
+  async function runOnce(key, task) {
+    if (pendingActions.has(key)) return;
+    pendingActions.add(key);
+    try {
+      return await task();
+    } finally {
+      pendingActions.delete(key);
+    }
+  }
 
   function friendlyAuthError(error) {
     const code = String(error?.code || error?.message || '');
@@ -126,7 +137,7 @@
     back.querySelectorAll('input,textarea').forEach((field) => field.addEventListener('input', preview));
     preview();
 
-    back.querySelector('#cqSave').addEventListener('click', async () => {
+    back.querySelector('#cqSave').addEventListener('click', () => runOnce('quote-save', async () => {
       const d = read();
       if (!d.description || !d.unitPrice) return status('Enter a line item and price first.', true);
       try {
@@ -141,35 +152,35 @@
         back.querySelector('#cqApprove').disabled = false;
         status(`Draft saved • ${money(out.total)}`);
       } catch (error) { status(error.message, true); }
-    });
+    }));
 
-    back.querySelector('#cqApprove').addEventListener('click', async () => {
+    back.querySelector('#cqApprove').addEventListener('click', () => runOnce('quote-approve', async () => {
       if (!quoteState.quoteId) return;
       try {
         await secure(BILL, `/quotes/${encodeURIComponent(quoteState.quoteId)}/approve`, {});
         back.querySelector('#cqInvoice').disabled = false;
         status('Quote approved.');
       } catch (error) { status(error.message, true); }
-    });
+    }));
 
-    back.querySelector('#cqInvoice').addEventListener('click', async () => {
+    back.querySelector('#cqInvoice').addEventListener('click', () => runOnce('invoice-create', async () => {
       try {
         const out = await secure(BILL, '/invoices', { quoteId: quoteState.quoteId });
         quoteState.invoiceId = out.id;
         back.querySelector('#cqApproveInvoice').disabled = false;
         status(`Invoice created • ${money(out.total)}`);
       } catch (error) { status(error.message, true); }
-    });
+    }));
 
-    back.querySelector('#cqApproveInvoice').addEventListener('click', async () => {
+    back.querySelector('#cqApproveInvoice').addEventListener('click', () => runOnce('invoice-approve', async () => {
       try {
         await secure(BILL, `/invoices/${encodeURIComponent(quoteState.invoiceId)}/approve`, {});
         back.querySelector('#cqPay').disabled = false;
         status('Invoice approved.');
       } catch (error) { status(error.message, true); }
-    });
+    }));
 
-    back.querySelector('#cqPay').addEventListener('click', async () => {
+    back.querySelector('#cqPay').addEventListener('click', () => runOnce('payment-checkout', async () => {
       const checkoutWindow = window.open('about:blank', '_blank');
       if (checkoutWindow) {
         try {
@@ -192,7 +203,7 @@
         checkoutWindow?.close();
         status(error.message, true);
       }
-    });
+    }));
   }
 
   function speak(text) {
@@ -231,7 +242,7 @@
         if (!speakReplies) speechSynthesis?.cancel();
       });
 
-      const send = async () => {
+      const send = () => runOnce('chill-bro-send', async () => {
         const input = panel.querySelector('#cbInput');
         const message = input.value.trim();
         if (!message) return;
@@ -253,7 +264,7 @@
           addMsg(thread, 'system', error.message || 'Chill Bro unavailable.');
           panel.querySelector('#cbStatus').textContent = 'Connection issue';
         }
-      };
+      });
 
       panel.querySelector('#cbSend').addEventListener('click', send);
       panel.querySelector('#cbInput').addEventListener('keydown', (event) => {
