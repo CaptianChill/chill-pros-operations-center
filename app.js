@@ -1,521 +1,658 @@
-const db = window.chillProsDb;
-const cfg = window.FIELD_FORGED_CONFIG || {
-  platform: "FieldForged",
-  tenant: { id: "chill-pros", name: "Chill Pros" }
-};
-const tenant = cfg.tenant;
-const STORAGE_KEY = `fieldForged:${tenant.id}:operations-center:v3`;
-const TECHNICIAN_STORAGE_KEY = "chillProsTechnicians";
+(() => {
+  'use strict';
 
-let queue = readStoredArray(STORAGE_KEY);
-let technicians = readStoredArray(TECHNICIAN_STORAGE_KEY);
-
-const schedule = [
-  { time: "9:00 AM", name: "Joe's Ice House", address: "123 Frosty Way, San Antonio, TX", type: "Ice Machine PM Visit" },
-  { time: "11:30 AM", name: "Chili's Grill & Bar", address: "8515 Potranco Rd, San Antonio, TX", type: "Walk-In Cooler Service Call" },
-  { time: "2:00 PM", name: "H-E-B #204", address: "1604 & Bandera Rd, San Antonio, TX", type: "Reach-In Cooler Repair" }
-];
-
-const activity = [
-  { icon: "✓", title: "Job #1248 Completed", detail: "7-Eleven Store #3391", time: "8:45 AM" },
-  { icon: "▣", title: "New Intake Submitted", detail: "Tony's Pizza & Pasta", time: "7:32 AM" },
-  { icon: "◒", title: "Parts Order Placed", detail: "True 842123 Door Gasket", time: "Yesterday" }
-];
-
-const ACTIVE_JOB_STATUSES = new Set(["Scheduled", "Dispatched", "In Progress", "Paused"]);
-const STATUS_OPTIONS = [
-  "Needs Review",
-  "Needs Quote",
-  "Scheduled",
-  "Dispatched",
-  "In Progress",
-  "Paused",
-  "Waiting on Parts",
-  "Ready to Invoice",
-  "Completed"
-];
-
-const views = document.querySelectorAll(".view");
-const navButtons = document.querySelectorAll(".side-link");
-const intakeForm = document.getElementById("intakeForm");
-const clearIntake = document.getElementById("clearIntake");
-const copySummary = document.getElementById("copySummary");
-const queueSearch = document.getElementById("queueSearch");
-const queueFilter = document.getElementById("queueFilter");
-const queueList = document.getElementById("queueList");
-const scheduleList = document.getElementById("scheduleList");
-const todayJobsList = document.getElementById("todayJobsList");
-const jobSearch = document.getElementById("jobSearch");
-const jobStatusFilter = document.getElementById("jobStatusFilter");
-const refreshJobs = document.getElementById("refreshJobs");
-const activityList = document.getElementById("activityList");
-const exportQueue = document.getElementById("exportQueue");
-const addSampleJob = document.getElementById("addSampleJob");
-const addTechnicianButton = document.getElementById("addTechnicianButton");
-const technicianList = document.getElementById("technicianList");
-const technicianDashboardSelect = document.getElementById("technicianDashboardSelect");
-const technicianJobsList = document.getElementById("technicianJobsList");
-
-function readStoredArray(key) {
-  try {
-    const value = JSON.parse(localStorage.getItem(key) || "[]");
-    return Array.isArray(value) ? value : [];
-  } catch (error) {
-    console.warn(`Unable to read ${key}:`, error);
-    return [];
-  }
-}
-
-function normalizeRecord(data = {}, firestoreId = "") {
-  return {
-    ...data,
-    firestoreId: firestoreId || data.firestoreId || "",
-    id: data.id || firestoreId || crypto.randomUUID?.() || String(Date.now()),
-    officeStatus: data.officeStatus || "Needs Review",
-    assignedTechnician: data.assignedTechnician || "",
-    scheduledDate: data.scheduledDate || "",
-    scheduledTime: data.scheduledTime || "",
-    createdAt: data.createdAt || new Date().toISOString()
+  const auth = window.chillProsAuth;
+  const db = window.chillProsDb;
+  const OWNER_EMAIL = 'chillprostx@gmail.com';
+  const STATUS_OPTIONS = [
+    'Needs Review', 'Needs Quote', 'Scheduled', 'Dispatched',
+    'In Progress', 'Paused', 'Waiting on Parts', 'Ready to Invoice', 'Completed'
+  ];
+  const ACTIVE_JOB = new Set(['Scheduled', 'Dispatched', 'In Progress', 'Paused']);
+  const BF_KEY = 'chillProsBoodaFlow';
+  const BF_DEFAULT = {
+    mode: 'OVERDRIVE',
+    enabled: true,
+    currentId: 1,
+    tasks: [
+      { id: 1, title: 'Production readiness sweep', detail: 'Verify owner dashboard, mobile layout, core operations links, and deployment health.', priority: 'P0', status: 'active' },
+      { id: 2, title: 'Operations workflow hardening', detail: 'Keep dispatch, scheduling, quotes, invoices, technicians, customers, and equipment flows owner-ready.', priority: 'P0', status: 'queued' },
+      { id: 3, title: 'Integration validation', detail: 'Surface blocked integrations and continue through independent work instead of stopping the whole queue.', priority: 'P1', status: 'queued' },
+      { id: 4, title: 'Mobile owner review', detail: 'Validate command-center usability on phone screens and retain quick access to operations.', priority: 'P1', status: 'queued' },
+      { id: 5, title: 'Final production verification', detail: 'Confirm production deployment responds and owner controls persist correctly.', priority: 'P0', status: 'queued' }
+    ],
+    lastRun: null
   };
-}
 
-function showView(id) {
-  views.forEach((view) => view.classList.toggle("active", view.id === id));
-  navButtons.forEach((button) => button.classList.toggle("active", button.dataset.view === id));
-  document.querySelectorAll(".mob-nav-btn").forEach((btn) => btn.classList.toggle("active", btn.dataset.view === id));
+  const NAV = [
+    { id: 'Dashboard', icon: '⌂', label: 'Dashboard' },
+    { id: 'Service Intake', icon: '▤', label: 'Service Intake' },
+    { id: 'Dispatch', icon: '▦', label: 'Dispatch / Jobs' },
+    { id: 'Office Queue', icon: '◷', label: 'Office Queue' },
+    { id: 'Technicians', icon: '🔧', label: 'Technicians' },
+    { id: 'BoodaFlow', icon: '↯', label: 'BoodaFlow' },
+    { id: 'Reports', icon: '▥', label: 'Reports' },
+    { id: 'Settings', icon: '⚙', label: 'Settings' }
+  ];
 
-  if (id === "office-queue") renderQueue();
-  if (id === "today-jobs") renderTodayJobs();
-  if (id === "technicians") {
-    renderTechnicians();
-    renderTechnicianDashboard();
+  let user = null;
+  let profile = null;
+  let records = [];
+  let technicians = [];
+  let view = 'Dashboard';
+  let bf = loadBf();
+  let broOpen = false;
+
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c]));
+
+  function toast(msg) {
+    $('.toast')?.remove();
+    const n = document.createElement('div');
+    n.className = 'toast';
+    n.textContent = msg;
+    document.body.appendChild(n);
+    setTimeout(() => n.remove(), 2200);
   }
 
-  window.scrollTo({ top: 0, behavior: "smooth" });
-}
-
-function persistQueue() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(queue));
-  updateCounts();
-  renderQueue();
-  renderTodayJobs();
-  renderTechnicianDashboard();
-}
-
-function saveTechnicians() {
-  localStorage.setItem(TECHNICIAN_STORAGE_KEY, JSON.stringify(technicians));
-  renderTechnicians();
-  renderTechnicianDashboard();
-  renderTodayJobs();
-}
-
-function updateCounts() {
-  const activeQueueCount = queue.filter((record) => record.officeStatus !== "Completed").length;
-  const activeJobCount = queue.filter((record) => ACTIVE_JOB_STATUSES.has(record.officeStatus)).length;
-
-  const sidebarQueueCount = document.getElementById("queueCount");
-  const dashboardQueueCount = document.getElementById("dashboardQueueCount");
-  const jobsCount = document.getElementById("jobsCount");
-
-  if (sidebarQueueCount) sidebarQueueCount.textContent = activeQueueCount;
-  if (dashboardQueueCount) dashboardQueueCount.textContent = activeQueueCount;
-  if (jobsCount) jobsCount.textContent = activeJobCount;
-}
-
-function toast(message) {
-  const notification = document.createElement("div");
-  notification.className = "toast";
-  notification.textContent = message;
-  document.body.appendChild(notification);
-  setTimeout(() => notification.remove(), 1800);
-}
-
-function getFormData() {
-  return intakeForm ? Object.fromEntries(new FormData(intakeForm).entries()) : {};
-}
-
-function createSummary(record) {
-  return [
-    "CHILL PROS OPERATIONS CENTER",
-    `Status: ${record.officeStatus || "-"}`,
-    `Customer: ${record.customerName || "-"}`,
-    `Contact: ${record.contactName || "-"}`,
-    `Phone: ${record.phone || "-"}`,
-    `Email: ${record.email || "-"}`,
-    `Address: ${record.address || "-"}`,
-    `Equipment: ${record.equipmentType || "-"}`,
-    `Manufacturer: ${record.manufacturer || "-"}`,
-    `Model: ${record.modelNumber || "-"}`,
-    `Serial: ${record.serialNumber || "-"}`,
-    `Asset ID: ${record.assetId || "-"}`,
-    `Site Location: ${record.siteLocation || "-"}`,
-    `Complaint: ${record.complaint || "-"}`,
-    `Findings: ${record.findings || "-"}`,
-    `Recommendation: ${record.recommendation || "-"}`,
-    `Estimated Amount: ${record.estimatedAmount ? "$" + Number(record.estimatedAmount).toFixed(2) : "-"}`,
-    `Technician: ${record.assignedTechnician || "-"}`,
-    `Scheduled Date: ${record.scheduledDate || "-"}`,
-    `Scheduled Time: ${record.scheduledTime || "-"}`,
-    `Photo Notes: ${record.photoNotes || "-"}`
-  ].join("\n");
-}
-
-async function copyText(text) {
-  try {
-    await navigator.clipboard.writeText(text);
-  } catch (error) {
-    const textarea = document.createElement("textarea");
-    textarea.value = text;
-    document.body.appendChild(textarea);
-    textarea.select();
-    document.execCommand("copy");
-    textarea.remove();
+  function loadBf() {
+    try {
+      const s = JSON.parse(localStorage.getItem(BF_KEY));
+      if (s && Array.isArray(s.tasks)) return s;
+    } catch (_) {}
+    return structuredClone(BF_DEFAULT);
   }
-  toast("Summary copied");
-}
-
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-function escapeAttribute(value) {
-  return escapeHtml(value);
-}
-
-function buildStatusOptions(selectedStatus) {
-  const currentStatus = String(selectedStatus || "Needs Review").trim();
-  return STATUS_OPTIONS.map((status) => {
-    const selected = status === currentStatus ? " selected" : "";
-    return `<option value="${escapeAttribute(status)}"${selected}>${escapeHtml(status)}</option>`;
-  }).join("");
-}
-
-async function loadCustomersFromFirebase() {
-  if (!db) {
-    console.warn("Firestore is unavailable. Using locally saved queue.");
-    persistQueue();
-    return;
+  function saveBf() {
+    localStorage.setItem(BF_KEY, JSON.stringify(bf));
   }
 
-  try {
-    const snapshot = await db.collection("Customers").get();
-    queue = snapshot.docs.map((documentSnapshot) =>
-      normalizeRecord(documentSnapshot.data(), documentSnapshot.id)
-    );
-    persistQueue();
-  } catch (error) {
-    console.error("Unable to load Firestore customers:", error);
-    toast("Using locally saved queue");
-    persistQueue();
-  }
-}
-
-async function saveCustomerToFirebase(record) {
-  if (!db) return record.id;
-  const documentReference = await db.collection("Customers").add(record);
-  return documentReference.id;
-}
-
-async function updateCustomerInFirebase(record, changes) {
-  const documentId = record.firestoreId || record.id;
-  if (!db || !documentId) return;
-  await db.collection("Customers").doc(documentId).set(changes, { merge: true });
-  record.firestoreId = documentId;
-}
-
-async function deleteCustomerFromFirebase(record) {
-  const documentId = record.firestoreId || record.id;
-  if (!db || !documentId) return;
-  await db.collection("Customers").doc(documentId).delete();
-}
-
-function renderSchedule() {
-  if (!scheduleList) return;
-  scheduleList.innerHTML = "";
-  schedule.forEach((job) => {
-    const row = document.createElement("div");
-    row.className = "schedule-row";
-    row.innerHTML = `
-      <strong>${escapeHtml(job.time)}</strong>
-      <div><strong>${escapeHtml(job.name)}</strong><small>${escapeHtml(job.address)}</small></div>
-      <span>${escapeHtml(job.type)}</span>`;
-    scheduleList.appendChild(row);
-  });
-}
-
-function renderActivity() {
-  if (!activityList) return;
-  activityList.innerHTML = "";
-  activity.forEach((item) => {
-    const row = document.createElement("div");
-    row.className = "activity-row";
-    row.innerHTML = `
-      <span>${escapeHtml(item.icon)}</span>
-      <div><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.detail)}</small></div>
-      <time>${escapeHtml(item.time)}</time>`;
-    activityList.appendChild(row);
-  });
-}
-
-function renderQueue() {
-  if (!queueList) return;
-  const searchTerm = queueSearch?.value.trim().toLowerCase() || "";
-  const statusFilter = queueFilter?.value || "";
-  const filteredQueue = queue.filter((record) => {
-    const matchesSearch = !searchTerm || JSON.stringify(record).toLowerCase().includes(searchTerm);
-    return matchesSearch && (!statusFilter || record.officeStatus === statusFilter);
-  });
-
-  queueList.innerHTML = "";
-  if (!filteredQueue.length) {
-    queueList.innerHTML = `<article class="queue-item"><div><h3>No matching records</h3><p class="queue-meta">Submit a new customer intake to create the first office queue record.</p></div></article>`;
-    return;
+  function role() {
+    if (!user) return null;
+    if (profile?.role) return profile.role;
+    if (user.email === OWNER_EMAIL) return 'owner';
+    return 'office';
   }
 
-  filteredQueue.forEach((record) => {
-    const template = document.getElementById("queueItemTemplate");
-    if (!template) return;
-    const node = template.content.firstElementChild.cloneNode(true);
-    const created = new Date(record.createdAt);
-    node.querySelector(".queue-customer").textContent = record.customerName || "Unnamed Customer";
-    node.querySelector(".queue-meta").textContent = `${record.equipmentType || "Equipment"} • ${record.manufacturer || "Manufacturer not set"} • ${Number.isNaN(created.getTime()) ? "Date not set" : created.toLocaleString()}`;
-    node.querySelector(".queue-detail").textContent = record.complaint || "";
+  async function loadProfile() {
+    if (!user) return;
+    try {
+      const doc = await db.collection('Users').doc(user.uid).get();
+      profile = doc.exists ? doc.data() : null;
+    } catch (e) {
+      console.warn('Profile load failed', e);
+      profile = null;
+    }
+  }
 
-    const statusElement = node.querySelector(".status-select");
-    statusElement.innerHTML = buildStatusOptions(record.officeStatus);
-    statusElement.value = record.officeStatus;
-    statusElement.dataset.status = record.officeStatus;
-    statusElement.addEventListener("change", async () => {
-      const previousStatus = record.officeStatus;
-      const changes = { officeStatus: statusElement.value, statusUpdatedAt: new Date().toISOString() };
-      Object.assign(record, changes);
-      statusElement.dataset.status = statusElement.value;
+  async function loadRecords() {
+    try {
+      const snap = await db.collection('Customers').orderBy('createdAt', 'desc').limit(200).get();
+      records = snap.docs.map((d) => ({ ...d.data(), firestoreId: d.id }));
+    } catch (e) {
+      console.warn('Customers load', e);
       try {
-        await updateCustomerInFirebase(record, changes);
-        persistQueue();
-        toast(changes.officeStatus === "Scheduled" ? "Job added to Today's Jobs" : `Status changed to ${changes.officeStatus}`);
-      } catch (error) {
-        console.error("Status update failed:", error);
-        record.officeStatus = previousStatus;
-        statusElement.value = previousStatus;
-        statusElement.dataset.status = previousStatus;
-        toast("Status update failed");
+        const snap = await db.collection('Customers').limit(200).get();
+        records = snap.docs.map((d) => ({ ...d.data(), firestoreId: d.id }));
+      } catch (e2) {
+        records = [];
+        toast('Unable to load records');
       }
-    });
-
-    node.querySelector(".copy-item")?.addEventListener("click", () => copyText(createSummary(record)));
-    node.querySelector(".delete-item")?.addEventListener("click", async () => {
-      if (!confirm("Delete this office queue record?")) return;
-      try {
-        await deleteCustomerFromFirebase(record);
-        queue = queue.filter((item) => item.id !== record.id);
-        persistQueue();
-        toast("Record deleted");
-      } catch (error) {
-        console.error(error);
-        toast("Delete failed");
-      }
-    });
-    queueList.appendChild(node);
-  });
-}
-
-function renderTodayJobs() {
-  if (!todayJobsList) return;
-  const searchTerm = jobSearch?.value.trim().toLowerCase() || "";
-  const selectedStatus = jobStatusFilter?.value || "";
-  const jobs = queue.filter((record) => {
-    const isJob = ACTIVE_JOB_STATUSES.has(record.officeStatus);
-    const matchesSearch = !searchTerm || JSON.stringify(record).toLowerCase().includes(searchTerm);
-    return isJob && matchesSearch && (!selectedStatus || record.officeStatus === selectedStatus);
-  });
-
-  todayJobsList.innerHTML = "";
-  if (!jobs.length) {
-    todayJobsList.innerHTML = `<article class="queue-item"><div><h3>No jobs scheduled yet</h3><p class="queue-meta">Change an Office Queue record to Scheduled to place it here.</p></div></article>`;
-    return;
+    }
   }
 
-  jobs.forEach((record) => {
-    const article = document.createElement("article");
-    article.className = "queue-item todays-job-card";
-    article.innerHTML = `
-      <div>
-        <h3>${escapeHtml(record.customerName || "Unnamed Customer")}</h3>
-        <p class="queue-meta">${escapeHtml(record.equipmentType || "Equipment")} • ${escapeHtml(record.manufacturer || "Manufacturer not set")}</p>
-        <p class="queue-detail">${escapeHtml(record.complaint || "No complaint entered")}</p>
-        <p class="queue-meta">${escapeHtml(record.address || "Address not entered")}</p>
+  async function loadTechnicians() {
+    try {
+      const snap = await db.collection('Technicians').get();
+      technicians = snap.docs.map((d) => ({ ...d.data(), id: d.id }));
+    } catch (e) {
+      technicians = [];
+    }
+  }
+
+  function renderLogin(err = '') {
+    $('#app').innerHTML = `
+      <main class="login-screen">
+        <form class="login-card" id="loginForm">
+          <img src="chill-pros-official-logo-transparent.png" alt="Chill Pros">
+          <h1>Operations Center</h1>
+          <p class="tag">License to Chill.</p>
+          <input name="email" type="email" autocomplete="username" placeholder="Chill Pros email" required>
+          <input name="password" type="password" autocomplete="current-password" placeholder="Password" required>
+          <p class="login-error">${esc(err)}</p>
+          <button type="submit">SIGN IN</button>
+        </form>
+      </main>`;
+    $('#loginForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.currentTarget);
+      try {
+        await auth.signInWithEmailAndPassword(String(fd.get('email')), String(fd.get('password')));
+      } catch (x) {
+        renderLogin(x.message || 'Sign-in failed');
+      }
+    };
+  }
+
+  function shell() {
+    const r = role();
+    const name = profile?.displayName || user.email || 'Staff';
+    $('#app').innerHTML = `
+      <div class="app-shell">
+        <aside class="sidebar">
+          <div class="brand-block">
+            <img src="chill-pros-official-logo-transparent.png" alt="Chill Pros">
+            <small>Ops Command</small>
+          </div>
+          <p class="nav-label">Workspace</p>
+          <nav id="sideNav"></nav>
+          <div class="sidebar-footer">
+            <div><strong>${esc(r)}</strong></div>
+            <div>${esc(name)}</div>
+          </div>
+        </aside>
+        <section class="content">
+          <header class="topbar">
+            <h1 id="pageTitle">Dashboard</h1>
+            <div class="spacer"></div>
+            <button class="btn" id="refreshBtn" type="button">↻ Refresh</button>
+            <div class="top-user"><b>${esc(name)}</b> · ${esc(r)}</div>
+            <button class="btn" id="signOutBtn" type="button">Sign out</button>
+          </header>
+          <div class="page" id="workspace"></div>
+        </section>
+        <nav class="mobile-nav" id="mobileNav"></nav>
       </div>
-      <div class="queue-tools">
-        <label>Status<select class="status-pill job-status">${buildStatusOptions(record.officeStatus)}</select></label>
-        <label>Technician<select class="job-technician"><option value="">Assign technician</option>${technicians.filter((technician) => technician.status === "Active").map((technician) => `<option value="${escapeAttribute(technician.name)}"${technician.name === record.assignedTechnician ? " selected" : ""}>${escapeHtml(technician.name)}</option>`).join("")}</select></label>
-        <label>Date<input class="job-date" type="date" value="${escapeAttribute(record.scheduledDate)}"></label>
-        <label>Time<input class="job-time" type="time" value="${escapeAttribute(record.scheduledTime)}"></label>
-        <button type="button" class="save-job">Save Job</button>
-        <button type="button" class="copy-job">Copy</button>
-      </div>`;
+      <button class="chill-bro-fab" id="broFab" type="button" title="Chill Bro">❄</button>
+      <aside class="chill-bro-panel" id="broPanel">
+        <div class="chill-bro-head">
+          <strong>Chill Bro · Side plug-in</strong>
+          <button class="btn" type="button" id="broClose">✕</button>
+        </div>
+        <div class="chill-bro-body" id="broBody">
+          <p><strong style="color:var(--ice)">Chill Bro is a side plug-in</strong> — not part of the core Operations Center shell.</p>
+          <p>Use this panel for field coaching, diagnostics notes, and quick reminders. Full AI wiring can be connected later without touching the ops UI.</p>
+          <p>Core ops (intake → queue → dispatch → status) stays clean and independent.</p>
+        </div>
+        <div class="chill-bro-foot">
+          <input id="broInput" placeholder="Note for later AI hook…" disabled>
+          <button class="btn btn-primary" type="button" disabled>Send</button>
+        </div>
+      </aside>`;
 
-    article.querySelector(".save-job")?.addEventListener("click", async () => {
-      const changes = {
-        officeStatus: article.querySelector(".job-status")?.value || record.officeStatus,
-        assignedTechnician: article.querySelector(".job-technician")?.value.trim() || "",
-        scheduledDate: article.querySelector(".job-date")?.value || "",
-        scheduledTime: article.querySelector(".job-time")?.value || "",
-        statusUpdatedAt: new Date().toISOString()
-      };
-      Object.assign(record, changes);
-      try {
-        await updateCustomerInFirebase(record, changes);
-        persistQueue();
-        toast("Job updated");
-      } catch (error) {
-        console.error(error);
-        toast("Job update failed");
+    buildNav();
+    $('#refreshBtn').onclick = async () => {
+      await Promise.all([loadRecords(), loadTechnicians()]);
+      showView(view);
+      toast('Data refreshed');
+    };
+    $('#signOutBtn').onclick = () => auth.signOut();
+    $('#broFab').onclick = () => {
+      broOpen = !broOpen;
+      $('#broPanel').classList.toggle('open', broOpen);
+    };
+    $('#broClose').onclick = () => {
+      broOpen = false;
+      $('#broPanel').classList.remove('open');
+    };
+    showView('Dashboard');
+  }
+
+  function buildNav() {
+    const side = $('#sideNav');
+    const mob = $('#mobileNav');
+    side.innerHTML = '';
+    mob.innerHTML = '';
+    NAV.forEach((item, i) => {
+      if (i === 5) {
+        const lab = document.createElement('p');
+        lab.className = 'nav-label';
+        lab.textContent = 'Control';
+        side.appendChild(lab);
       }
+      const b = document.createElement('button');
+      b.className = 'nav-item';
+      b.dataset.view = item.id;
+      b.innerHTML = `<span>${item.icon}</span><strong>${item.label}</strong>`;
+      b.onclick = () => showView(item.id);
+      side.appendChild(b);
     });
-    article.querySelector(".copy-job")?.addEventListener("click", () => copyText(createSummary(record)));
-    todayJobsList.appendChild(article);
-  });
-}
+    [
+      ['Today', 'Dashboard', '⌂'],
+      ['Jobs', 'Dispatch', '▦'],
+      ['Intake', 'Service Intake', '＋'],
+      ['Queue', 'Office Queue', '◷'],
+      ['Flow', 'BoodaFlow', '↯']
+    ].forEach(([label, id, icon]) => {
+      const b = document.createElement('button');
+      b.dataset.view = id;
+      b.innerHTML = `<b>${icon}</b><span>${label}</span>`;
+      b.onclick = () => showView(id);
+      mob.appendChild(b);
+    });
+  }
 
-function renderTechnicians() {
-  if (!technicianList) return;
-  technicianList.innerHTML = "";
-  if (!technicians.length) {
-    technicianList.innerHTML = "<p>No technicians added yet.</p>";
+  function setActiveNav() {
+    $$('[data-view]').forEach((b) => b.classList.toggle('active', b.dataset.view === view));
+    const title = $('#pageTitle');
+    if (title) title.textContent = view;
+  }
+
+  function showView(id) {
+    view = id;
+    setActiveNav();
+    const ws = $('#workspace');
+    if (!ws) return;
+    if (id === 'Dashboard') return renderDashboard(ws);
+    if (id === 'Service Intake') return renderIntake(ws);
+    if (id === 'Dispatch') return renderList(ws, 'Dispatch / Jobs', records.filter((r) => ACTIVE_JOB.has(r.officeStatus)));
+    if (id === 'Office Queue') return renderList(ws, 'Office Queue', records.filter((r) => r.officeStatus !== 'Completed'));
+    if (id === 'Technicians') return renderTechnicians(ws);
+    if (id === 'BoodaFlow') return renderBoodaFlow(ws);
+    if (id === 'Reports') return renderReports(ws);
+    if (id === 'Settings') return renderSettings(ws);
+  }
+
+  function counts() {
+    const activeJobs = records.filter((r) => ACTIVE_JOB.has(r.officeStatus)).length;
+    const queue = records.filter((r) => r.officeStatus && r.officeStatus !== 'Completed').length;
+    const techs = new Set(records.map((r) => r.assignedTechnician).filter(Boolean)).size || technicians.length;
+    return { activeJobs, queue, techs, total: records.length };
+  }
+
+  function renderDashboard(ws) {
+    const c = counts();
+    const jobs = records.filter((r) => ACTIVE_JOB.has(r.officeStatus)).slice(0, 5);
+    const queue = records.filter((r) => r.officeStatus !== 'Completed').slice(0, 4);
+    ws.innerHTML = `
+      <div class="page-head">
+        <div>
+          <p class="eyebrow">Operations › Dashboard</p>
+          <h2>Chill Pros Command</h2>
+          <p class="lead">Live operations · License to Chill.</p>
+        </div>
+        <div class="form-actions">
+          <button class="btn" type="button" data-go="Dispatch">Tech view</button>
+          <button class="btn btn-primary" type="button" data-go="Service Intake">＋ New intake</button>
+        </div>
+      </div>
+      <div class="metric-grid">
+        <section class="metric-card"><span>Active jobs</span><strong>${c.activeJobs}</strong><small>Live</small></section>
+        <section class="metric-card"><span>Office queue</span><strong>${c.queue}</strong><small>Needs action</small></section>
+        <section class="metric-card"><span>Technicians</span><strong>${c.techs}</strong><small>Field</small></section>
+        <section class="metric-card"><span>Customers</span><strong>${c.total}</strong><small>Records</small></section>
+      </div>
+      <div class="grid-2">
+        <section class="glass-card">
+          <div class="section-heading">
+            <div><p class="eyebrow">Live</p><h3>Today's dispatch</h3></div>
+            <button class="btn" type="button" data-go="Dispatch">Open board →</button>
+          </div>
+          ${jobs.length ? jobs.map((r) => `
+            <div class="job-row">
+              <div class="job-info">
+                <strong>${esc(r.customerName || 'Customer')}</strong>
+                <small>${esc(r.complaint || r.equipmentType || r.officeStatus || '')}</small>
+              </div>
+              <span class="status-badge">${esc(r.officeStatus || 'Open')}</span>
+            </div>`).join('') : '<p style="color:var(--muted);margin:0;font-size:.88rem">No active jobs yet. Schedule from Office Queue.</p>'}
+        </section>
+        <section class="glass-card">
+          <div class="section-heading">
+            <div><p class="eyebrow">Needs attention</p><h3>Office queue</h3></div>
+            <button class="btn" type="button" data-go="Office Queue">View →</button>
+          </div>
+          ${queue.length ? queue.map((r) => `
+            <div class="queue-item">
+              <div class="job-info">
+                <strong>${esc(r.customerName || 'Customer')}</strong>
+                <small>${esc(r.complaint || r.officeStatus || '')}</small>
+              </div>
+              <span class="status-badge warn">${esc(r.officeStatus || 'Review')}</span>
+            </div>`).join('') : '<p style="color:var(--muted);margin:0;font-size:.88rem">Queue clear.</p>'}
+        </section>
+      </div>`;
+    wireGo(ws);
+  }
+
+  function wireGo(root) {
+    $$('[data-go]', root).forEach((b) => b.onclick = () => showView(b.dataset.go));
+  }
+
+  function renderIntake(ws) {
+    ws.innerHTML = `
+      <div class="page-head">
+        <div>
+          <p class="eyebrow">Operations workspace</p>
+          <h2>Service Intake</h2>
+          <p class="lead">Create a native Chill Pros customer / job record.</p>
+        </div>
+      </div>
+      <section class="glass-card">
+        <form class="form-grid" id="intakeForm">
+          <label class="field">Customer / company<input name="customerName" required placeholder="Customer name"></label>
+          <label class="field">Contact<input name="contactName" placeholder="Contact name"></label>
+          <label class="field">Phone<input name="phone" placeholder="Phone"></label>
+          <label class="field">Email<input name="email" type="email" placeholder="Email"></label>
+          <label class="field wide">Service address<input name="address" placeholder="Full address"></label>
+          <label class="field">Equipment type<input name="equipmentType" placeholder="Ice machine, walk-in, etc."></label>
+          <label class="field">Manufacturer<input name="manufacturer" placeholder="Manufacturer"></label>
+          <label class="field">Model<input name="modelNumber" placeholder="Model number"></label>
+          <label class="field">Serial<input name="serialNumber" placeholder="Serial number"></label>
+          <label class="field wide">Complaint / requested service<textarea name="complaint" required placeholder="What is the customer reporting?"></textarea></label>
+          <label class="field wide">Findings<textarea name="findings" placeholder="Technician findings"></textarea></label>
+          <label class="field">Estimated amount<input name="estimatedAmount" inputmode="decimal" placeholder="0.00"></label>
+          <label class="field">Assigned technician<input name="assignedTechnician" placeholder="Technician name"></label>
+          <div class="form-actions wide">
+            <button class="btn btn-primary" type="submit">Save Service Intake</button>
+            <button class="btn" type="reset">Clear</button>
+          </div>
+        </form>
+      </section>`;
+    $('#intakeForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(e.currentTarget).entries());
+      data.officeStatus = 'Needs Review';
+      data.createdAt = new Date().toISOString();
+      try {
+        await db.collection('Customers').add(data);
+        e.currentTarget.reset();
+        await loadRecords();
+        showView('Office Queue');
+        toast('Service intake saved');
+      } catch (x) {
+        toast(x.message || 'Save failed');
+      }
+    };
+  }
+
+  function statusSelect(current, id) {
+    return `<select data-id="${esc(id)}">${STATUS_OPTIONS.map((s) =>
+      `<option value="${esc(s)}"${s === current ? ' selected' : ''}>${esc(s)}</option>`).join('')}</select>`;
+  }
+
+  function renderList(ws, title, list) {
+    ws.innerHTML = `
+      <div class="page-head">
+        <div>
+          <p class="eyebrow">Operations workspace</p>
+          <h2>${esc(title)}</h2>
+          <p class="lead">${list.length} record${list.length === 1 ? '' : 's'}.</p>
+        </div>
+      </div>
+      <section class="glass-card">
+        <div class="toolbar">
+          <input id="filterRecords" placeholder="Search customers, jobs, equipment…">
+        </div>
+        <div id="recordList">${listHtml(list)}</div>
+      </section>`;
+    const all = list;
+    $('#filterRecords').oninput = (e) => {
+      const q = e.target.value.toLowerCase();
+      const filtered = all.filter((r) => JSON.stringify(r).toLowerCase().includes(q));
+      $('#recordList').innerHTML = listHtml(filtered);
+      wireStatus();
+    };
+    wireStatus();
+  }
+
+  function listHtml(list) {
+    if (!list.length) return '<p style="color:var(--muted);margin:0">No matching records.</p>';
+    return list.map((r) => `
+      <div class="list-row">
+        <div>
+          <strong>${esc(r.customerName || r.contactName || 'Record')}</strong>
+          <small>${esc(r.address || r.phone || '')}</small>
+          <small>${esc(r.complaint || r.equipmentType || '')}</small>
+        </div>
+        ${statusSelect(r.officeStatus || 'Needs Review', r.firestoreId)}
+      </div>`).join('');
+  }
+
+  function wireStatus() {
+    $$('#recordList select').forEach((sel) => {
+      sel.onchange = async () => {
+        try {
+          await db.collection('Customers').doc(sel.dataset.id).set(
+            { officeStatus: sel.value, statusUpdatedAt: new Date().toISOString() },
+            { merge: true }
+          );
+          await loadRecords();
+          showView(view);
+          toast('Status updated');
+        } catch (e) {
+          toast(e.message || 'Update failed');
+        }
+      };
+    });
+  }
+
+  function renderTechnicians(ws) {
+    const fromJobs = [...new Set(records.map((r) => r.assignedTechnician).filter(Boolean))];
+    const names = technicians.length
+      ? technicians.map((t) => t.name || t.displayName).filter(Boolean)
+      : fromJobs;
+    ws.innerHTML = `
+      <div class="page-head">
+        <div>
+          <p class="eyebrow">Operations workspace</p>
+          <h2>Technicians</h2>
+          <p class="lead">Field staff linked to jobs.</p>
+        </div>
+      </div>
+      <section class="glass-card">
+        ${names.length ? names.map((n) => {
+          const count = records.filter((r) => r.assignedTechnician === n).length;
+          return `<div class="list-row"><div><strong>${esc(n)}</strong><small>${count} linked job${count === 1 ? '' : 's'}</small></div></div>`;
+        }).join('') : '<p style="color:var(--muted);margin:0">No technicians yet. Assign names on jobs or add to Technicians collection.</p>'}
+      </section>
+      <section class="glass-card">
+        <h3 style="margin:0 0 10px;font-size:1rem">Add technician</h3>
+        <form class="form-grid" id="techForm">
+          <label class="field">Name<input name="name" required placeholder="Full name"></label>
+          <label class="field">Phone<input name="phone" placeholder="Phone"></label>
+          <label class="field wide">Email<input name="email" type="email" placeholder="Email"></label>
+          <div class="form-actions wide">
+            <button class="btn btn-primary" type="submit">Add technician</button>
+          </div>
+        </form>
+      </section>`;
+    $('#techForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(e.currentTarget).entries());
+      data.status = 'Active';
+      data.createdAt = new Date().toISOString();
+      try {
+        await db.collection('Technicians').add(data);
+        e.currentTarget.reset();
+        await loadTechnicians();
+        renderTechnicians(ws);
+        toast('Technician added');
+      } catch (x) {
+        toast(x.message || 'Could not add technician');
+      }
+    };
+  }
+
+  function bfActive() {
+    return bf.tasks.find((t) => t.status === 'active') || null;
+  }
+  function bfNext() {
+    const order = { P0: 0, P1: 1, P2: 2 };
+    return bf.tasks
+      .filter((t) => t.status === 'queued')
+      .sort((a, b) => (order[a.priority] ?? 9) - (order[b.priority] ?? 9) || a.id - b.id)[0] || null;
+  }
+  function bfActivateNext() {
+    if (bfActive()) return;
+    const n = bfNext();
+    if (n) {
+      n.status = 'active';
+      bf.currentId = n.id;
+    }
+  }
+  function bfSetStatus(status) {
+    const cur = bfActive();
+    if (!cur) return;
+    cur.status = status;
+    bf.lastRun = new Date().toISOString();
+    bfActivateNext();
+    saveBf();
+    renderBoodaFlow($('#workspace'));
+  }
+
+  function renderBoodaFlow(ws) {
+    bfActivateNext();
+    saveBf();
+    const completed = bf.tasks.filter((t) => t.status === 'complete').length;
+    const blocked = bf.tasks.filter((t) => t.status === 'blocked').length;
+    const pending = bf.tasks.filter((t) => ['queued', 'active'].includes(t.status)).length;
+    const current = bfActive();
+    ws.innerHTML = `
+      <div class="page-head">
+        <div class="bf-title-row">
+          <h2>BoodaFlow</h2>
+          <span class="bf-badge">${esc(bf.mode)}</span>
+        </div>
+        <p class="lead" style="width:100%">Complete priority work → advance the next safe task → keep blocked work from stopping the queue.</p>
+      </div>
+      <section class="glass-card bf-panel">
+        <div class="bf-metrics">
+          <div class="bf-metric"><strong class="${bf.enabled ? 'bf-live' : 'bf-paused'}">${bf.enabled ? 'ACTIVE' : 'PAUSED'}</strong><small>Engine</small></div>
+          <div class="bf-metric"><strong>${completed}/${bf.tasks.length}</strong><small>Progress</small></div>
+          <div class="bf-metric"><strong>${pending}</strong><small>Pending</small></div>
+          <div class="bf-metric"><strong>${blocked}</strong><small>Blocked</small></div>
+        </div>
+        <div class="bf-grid">
+          <div class="bf-current">
+            <div class="bf-current-label">Current task</div>
+            <h3>${esc(current ? current.title : 'Queue complete')}</h3>
+            <p>${esc(current ? current.detail : 'All current BoodaFlow tasks are complete or blocked.')}</p>
+            <div class="bf-actions">
+              <button class="btn btn-emerald" type="button" data-bf="complete" ${!bf.enabled || !current ? 'disabled' : ''}>Complete</button>
+              <button class="btn btn-amber" type="button" data-bf="block" ${!bf.enabled || !current ? 'disabled' : ''}>Block</button>
+              <button class="btn btn-ice" type="button" data-bf="toggle">${bf.enabled ? 'Pause' : 'Resume'}</button>
+              <button class="btn" type="button" data-bf="reset">Reset queue</button>
+            </div>
+            <div class="bf-run-meta">Last run: ${bf.lastRun ? esc(new Date(bf.lastRun).toLocaleString()) : 'Not run yet'}</div>
+          </div>
+          <div class="bf-queue-card">
+            <h3 style="margin:0 0 10px;font-size:1rem">Queue</h3>
+            <ul class="bf-queue">
+              ${bf.tasks.map((t) => `
+                <li class="bf-task ${t.status}">
+                  <span class="bf-priority">${esc(t.priority)}</span>
+                  <div><strong>${esc(t.title)}</strong><small>${esc(t.status.toUpperCase())}</small></div>
+                </li>`).join('')}
+            </ul>
+          </div>
+        </div>
+      </section>`;
+    $$('[data-bf]', ws).forEach((b) => {
+      b.onclick = () => {
+        const a = b.dataset.bf;
+        if (a === 'complete') bfSetStatus('complete');
+        if (a === 'block') bfSetStatus('blocked');
+        if (a === 'toggle') {
+          bf.enabled = !bf.enabled;
+          bf.lastRun = new Date().toISOString();
+          saveBf();
+          renderBoodaFlow(ws);
+        }
+        if (a === 'reset') {
+          bf = structuredClone(BF_DEFAULT);
+          saveBf();
+          renderBoodaFlow(ws);
+          toast('BoodaFlow reset');
+        }
+      };
+    });
+  }
+
+  function renderReports(ws) {
+    const c = counts();
+    const byStatus = {};
+    STATUS_OPTIONS.forEach((s) => { byStatus[s] = records.filter((r) => r.officeStatus === s).length; });
+    ws.innerHTML = `
+      <div class="page-head">
+        <div>
+          <p class="eyebrow">Operations workspace</p>
+          <h2>Reports</h2>
+          <p class="lead">Live summary from native records.</p>
+        </div>
+      </div>
+      <div class="metric-grid">
+        <section class="metric-card"><span>Customers</span><strong>${c.total}</strong></section>
+        <section class="metric-card"><span>Active jobs</span><strong>${c.activeJobs}</strong></section>
+        <section class="metric-card"><span>Queue</span><strong>${c.queue}</strong></section>
+        <section class="metric-card"><span>Technicians</span><strong>${c.techs}</strong></section>
+      </div>
+      <section class="glass-card">
+        <h3 style="margin:0 0 10px;font-size:1rem">By status</h3>
+        ${STATUS_OPTIONS.map((s) => `
+          <div class="list-row">
+            <strong>${esc(s)}</strong>
+            <span class="status-badge">${byStatus[s]}</span>
+          </div>`).join('')}
+      </section>`;
+  }
+
+  function renderSettings(ws) {
+    ws.innerHTML = `
+      <div class="page-head">
+        <div>
+          <p class="eyebrow">Operations workspace</p>
+          <h2>Settings</h2>
+          <p class="lead">Session and company.</p>
+        </div>
+      </div>
+      <section class="glass-card">
+        <div class="list-row">
+          <div><strong>Signed in</strong><small>${esc(user.email)}</small></div>
+          <button class="btn" type="button" id="so2">Sign out</button>
+        </div>
+        <div class="list-row">
+          <div><strong>Role</strong><small>${esc(role())}</small></div>
+        </div>
+        <div class="list-row">
+          <div><strong>Company</strong><small>Chill Pros · License to Chill.</small></div>
+        </div>
+        <div class="list-row">
+          <div><strong>Chill Bro</strong><small>Side plug-in only (❄ button). Not part of core shell.</small></div>
+        </div>
+        <div class="list-row">
+          <div><strong>BoodaFlow</strong><small>Priority execution engine · complete → next safe task</small></div>
+        </div>
+      </section>`;
+    $('#so2').onclick = () => auth.signOut();
+  }
+
+  async function bootAuthed() {
+    await loadProfile();
+    await Promise.all([loadRecords(), loadTechnicians()]);
+    shell();
+  }
+
+  function boot() {
+    if (!auth || !db) {
+      setTimeout(boot, 80);
+      return;
+    }
+    auth.onAuthStateChanged(async (u) => {
+      user = u;
+      profile = null;
+      if (!u) {
+        renderLogin();
+        return;
+      }
+      await bootAuthed();
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
   } else {
-    technicians.forEach((technician) => {
-      const card = document.createElement("article");
-      card.className = "tech-card";
-      card.innerHTML = `<div><h3>${escapeHtml(technician.name)}</h3><p>${escapeHtml(technician.phone || "No phone")} • ${escapeHtml(technician.email || "No email")}</p><p>${escapeHtml(technician.skills || "Skills not entered")}</p></div><div class="tech-actions"><span class="tech-status">${escapeHtml(technician.status || "Active")}</span><button class="mini-button delete-technician">Delete</button></div>`;
-      card.querySelector(".delete-technician")?.addEventListener("click", () => {
-        technicians = technicians.filter((item) => item.id !== technician.id);
-        saveTechnicians();
-      });
-      technicianList.appendChild(card);
-    });
+    boot();
   }
-
-  if (technicianDashboardSelect) {
-    const selected = technicianDashboardSelect.value;
-    technicianDashboardSelect.innerHTML = `<option value="">Select technician</option>${technicians.filter((technician) => technician.status === "Active").map((technician) => `<option value="${escapeAttribute(technician.name)}">${escapeHtml(technician.name)}</option>`).join("")}`;
-    technicianDashboardSelect.value = technicians.some((technician) => technician.name === selected) ? selected : "";
-  }
-}
-
-function renderTechnicianDashboard() {
-  if (!technicianJobsList) return;
-  const selectedTechnician = technicianDashboardSelect?.value || "";
-  if (!selectedTechnician) {
-    technicianJobsList.innerHTML = `<article class="queue-item"><div><h3>No technician selected</h3><p class="queue-meta">Select a technician to display assigned jobs.</p></div></article>`;
-    return;
-  }
-
-  const assignedJobs = queue.filter((record) => record.assignedTechnician === selectedTechnician && ACTIVE_JOB_STATUSES.has(record.officeStatus));
-  if (!assignedJobs.length) {
-    technicianJobsList.innerHTML = `<article class="queue-item"><div><h3>No assigned jobs</h3><p class="queue-meta">Assign an active job to ${escapeHtml(selectedTechnician)} from Today's Jobs.</p></div></article>`;
-    return;
-  }
-
-  technicianJobsList.innerHTML = assignedJobs.map((record) => `<article class="queue-item"><div><h3>${escapeHtml(record.customerName || "Unnamed Customer")}</h3><p class="queue-meta">${escapeHtml(record.officeStatus)} • ${escapeHtml(record.scheduledDate || "Date not set")} ${escapeHtml(record.scheduledTime || "")}</p><p>${escapeHtml(record.address || record.complaint || "No job details")}</p></div></article>`).join("");
-}
-
-navButtons.forEach((button) => button.addEventListener("click", () => showView(button.dataset.view)));
-document.querySelectorAll(".mob-nav-btn").forEach((button) => button.addEventListener("click", () => showView(button.dataset.view)));
-document.querySelectorAll("[data-view-target]").forEach((button) => button.addEventListener("click", () => showView(button.dataset.viewTarget)));
-
-intakeForm?.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const record = normalizeRecord(getFormData());
-  try {
-    const firestoreId = await saveCustomerToFirebase(record);
-    record.id = firestoreId || record.id;
-    record.firestoreId = firestoreId || record.firestoreId;
-    queue.unshift(record);
-    persistQueue();
-    intakeForm.reset();
-    toast("Submitted to office queue");
-    showView("office-queue");
-  } catch (error) {
-    console.error(error);
-    toast("Failed to save to Firebase");
-  }
-});
-
-clearIntake?.addEventListener("click", () => {
-  intakeForm?.reset();
-  toast("Form cleared");
-});
-copySummary?.addEventListener("click", () => copyText(createSummary(getFormData())));
-queueSearch?.addEventListener("input", renderQueue);
-queueFilter?.addEventListener("change", renderQueue);
-jobSearch?.addEventListener("input", renderTodayJobs);
-jobStatusFilter?.addEventListener("change", renderTodayJobs);
-refreshJobs?.addEventListener("click", async () => {
-  await loadCustomersFromFirebase();
-  toast("Jobs refreshed");
-});
-technicianDashboardSelect?.addEventListener("change", renderTechnicianDashboard);
-
-exportQueue?.addEventListener("click", () => {
-  const payload = { platform: cfg.platform, tenant, exportedAt: new Date().toISOString(), queue };
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `chill-pros-office-queue-${new Date().toISOString().slice(0, 10)}.json`;
-  link.click();
-  URL.revokeObjectURL(url);
-  toast("Queue export created");
-});
-
-addSampleJob?.addEventListener("click", () => {
-  schedule.push({ time: "4:30 PM", name: "Sample Emergency Call", address: "San Antonio, TX", type: "HVAC No-Cool" });
-  renderSchedule();
-  toast("Sample job added");
-});
-
-const technicianForm = document.getElementById("technicianForm");
-const technicianFormPanel = document.getElementById("technicianFormPanel");
-const cancelTechnicianForm = document.getElementById("cancelTechnicianForm");
-
-addTechnicianButton?.addEventListener("click", () => {
-  if (technicianFormPanel) technicianFormPanel.hidden = false;
-  technicianForm?.reset();
-  technicianForm?.querySelector("input")?.focus();
-});
-
-cancelTechnicianForm?.addEventListener("click", () => {
-  if (technicianFormPanel) technicianFormPanel.hidden = true;
-  technicianForm?.reset();
-});
-
-technicianForm?.addEventListener("submit", (event) => {
-  event.preventDefault();
-  const data = Object.fromEntries(new FormData(technicianForm).entries());
-  if (!data.techName?.trim()) return;
-  technicians.push({
-    id: crypto.randomUUID?.() || String(Date.now()),
-    name: data.techName.trim(),
-    phone: (data.techPhone || "").trim(),
-    email: (data.techEmail || "").trim(),
-    skills: (data.techSkills || "").trim(),
-    status: "Active"
-  });
-  saveTechnicians();
-  technicianForm.reset();
-  if (technicianFormPanel) technicianFormPanel.hidden = true;
-  toast("Technician added");
-});
-
-renderSchedule();
-renderActivity();
-renderTechnicians();
-renderTodayJobs();
-updateCounts();
-loadCustomersFromFirebase();
+})();
