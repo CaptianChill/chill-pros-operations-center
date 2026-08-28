@@ -32,6 +32,19 @@ jobs:
           ! grep -q 'canonical-frame' canonical-top-level.js
           ! grep -q 'document.body.innerHTML' canonical-top-level.js
           ! grep -q 'renderLogin' canonical-top-level.js
+      - name: Keep legacy Quote Now on canonical single-auth path
+        run: |
+          node --input-type=module <<'EOF'
+          import fs from 'node:fs';
+          const config = JSON.parse(fs.readFileSync('vercel.json', 'utf8'));
+          const routes = Array.isArray(config.routes) ? config.routes : [];
+          const quoteIndex = routes.findIndex((route) => route.src === '^/quote-now\\.html$');
+          const filesystemIndex = routes.findIndex((route) => route.handle === 'filesystem');
+          if (quoteIndex < 0) throw new Error('legacy quote-now route is not shadowed');
+          if (filesystemIndex < 0 || quoteIndex > filesystemIndex) throw new Error('legacy quote-now file can bypass canonical routing');
+          if (routes[quoteIndex].dest !== '/api/v0-visual') throw new Error('legacy quote-now must resolve through canonical v0 visual/auth path');
+          console.log('Legacy Quote Now is shadowed before filesystem and uses canonical auth path.');
+          EOF
       - name: Guard exact v0 visual contract
         run: |
           ! grep -q 'cpChillBroLauncher' canonical-top-level.js
