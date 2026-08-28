@@ -52,6 +52,17 @@
     });
   }
 
+  function clearSession() {
+    session = null;
+    persist();
+    notify();
+  }
+
+  function terminalRefreshError(error) {
+    const code = String(error?.code || error?.message || '');
+    return /INVALID_REFRESH_TOKEN|TOKEN_EXPIRED|USER_DISABLED|USER_NOT_FOUND|INVALID_GRANT|HTTP_400|HTTP_401/i.test(code);
+  }
+
   async function fetchJson(url, options, timeoutMs = 15000) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -71,7 +82,12 @@
   }
 
   async function refresh() {
-    if (!session?.refreshToken) throw new Error('Session expired. Sign in again.');
+    if (!session?.refreshToken) {
+      clearSession();
+      const error = new Error('Session expired. Sign in again.');
+      error.code = 'SESSION_EXPIRED';
+      throw error;
+    }
     if (refreshPromise) return refreshPromise;
     refreshPromise = (async () => {
       const data = await fetchJson(`https://securetoken.googleapis.com/v1/token?key=${API_KEY}`, {
@@ -88,7 +104,19 @@
       persist();
       return session;
     })();
-    try { return await refreshPromise; } finally { refreshPromise = null; }
+    try {
+      return await refreshPromise;
+    } catch (error) {
+      if (terminalRefreshError(error)) {
+        clearSession();
+        const expired = new Error('Session expired. Sign in again.');
+        expired.code = 'SESSION_EXPIRED';
+        throw expired;
+      }
+      throw error;
+    } finally {
+      refreshPromise = null;
+    }
   }
 
   async function signInWithEmailAndPassword(email, password) {
@@ -109,16 +137,14 @@
   }
 
   async function signOut() {
-    session = null;
-    persist();
-    notify();
+    clearSession();
   }
 
   function onAuthStateChanged(fn) {
     listeners.add(fn);
     queueMicrotask(async () => {
       if (session?.refreshToken && Date.now() >= decodeExp(session.idToken) - 60000) {
-        try { await refresh(); } catch { session = null; persist(); }
+        try { await refresh(); } catch {}
       }
       fn(user());
     });
