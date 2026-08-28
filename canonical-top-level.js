@@ -170,11 +170,28 @@
     });
 
     back.querySelector('#cqPay').addEventListener('click', async () => {
+      const checkoutWindow = window.open('about:blank', '_blank');
+      if (checkoutWindow) {
+        try {
+          checkoutWindow.opener = null;
+          checkoutWindow.document.title = 'Opening secure checkout…';
+          checkoutWindow.document.body.textContent = 'Opening secure Chill Pros card / ACH checkout…';
+        } catch {}
+      }
       try {
         const out = await secure(BILL, '/payments/checkout', { invoiceId: quoteState.invoiceId });
+        if (!out.url) {
+          checkoutWindow?.close();
+          status('Checkout created, but no payment URL was returned.', true);
+          return;
+        }
         status('Secure card / ACH checkout created.');
-        if (out.url) window.open(out.url, '_blank', 'noopener,noreferrer');
-      } catch (error) { status(error.message, true); }
+        if (checkoutWindow) checkoutWindow.location.replace(out.url);
+        else window.location.assign(out.url);
+      } catch (error) {
+        checkoutWindow?.close();
+        status(error.message, true);
+      }
     });
   }
 
