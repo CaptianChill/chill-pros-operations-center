@@ -101,7 +101,7 @@ jobs:
             assert.equal(await page.locator('.app-shell').count(), 1, 'approved app shell must remain mounted after hydration');
             assert.equal(await page.locator('#appRoot').count(), 0, 'recovery appRoot shell must not exist');
             assert.equal(await page.locator('.cp-login').count(), 0, 'full-screen recovery login must not exist');
-            assert.equal(await page.locator('#cpChillBroLauncher').count(), 1, 'canonical Chill Bro launcher must exist');
+            assert.equal(await page.locator('#cpChillBroLauncher').count(), 0, 'recovery must not inject a floating Chill Bro launcher');
           }
 
           const desktop = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
@@ -144,7 +144,9 @@ jobs:
           await page.locator('#cpCanonicalAuth .cp-overlay-close').click();
           await page.locator('#cpQuoteOverlay .cp-overlay-close').click();
 
-          await page.click('#cpChillBroLauncher');
+          const desktopChillBro = page.locator('button').filter({ hasText: /^AI Parts Intelligence$/ }).first();
+          assert.equal(await desktopChillBro.count(), 1, 'desktop v0 AI Parts Intelligence control must exist');
+          await desktopChillBro.click();
           await page.waitForSelector('#cpChillBroPanel.open', { state: 'visible' });
           await page.fill('#cbInput', 'Browser smoke test');
           await page.click('#cbSend');
@@ -163,6 +165,10 @@ jobs:
             assert.ok((await mobileNav.locator('button').allTextContents()).some(text => text.includes(label)), `mobile nav missing ${label}`);
           }
           await m.screenshot({ path: 'canonical-mobile.png', fullPage: true });
+          await mobileNav.locator('button').filter({ hasText: 'Chill Bro' }).click();
+          await m.waitForSelector('#cpChillBroPanel.open', { state: 'visible' });
+          assert.equal(await m.locator('#cpChillBroLauncher').count(), 0, 'mobile must use preserved v0 Chill Bro control, not an injected launcher');
+          await m.locator('#cpChillBroPanel .cp-overlay-close').click();
           await mobileNav.locator('button').filter({ hasText: 'Quote' }).click();
           await m.waitForSelector('#cpQuoteOverlay', { state: 'visible' });
           assert.equal(await m.locator('.app-shell').count(), 1, 'mobile quote must preserve v0 shell');
@@ -171,7 +177,7 @@ jobs:
           await browser.close();
           const hydrationErrors = browserErrors.filter(message => /hydration|Minified React error|removeChild|insertBefore|NotFoundError/i.test(message));
           assert.deepEqual(hydrationErrors, [], `hydration/browser errors detected:\n${hydrationErrors.join('\n')}`);
-          console.log('Canonical v0 browser smoke passed: desktop, mobile, quote/auth gate, Chill Bro/auth gate.');
+          console.log('Canonical v0 browser smoke passed: exact v0 controls, desktop/mobile, quote/auth gate, Chill Bro/auth gate.');
           EOF
 
           node ./cp-browser-smoke.mjs
