@@ -109,10 +109,25 @@ jobs:
           await waitForCanonical(page);
           await page.screenshot({ path: 'canonical-desktop.png', fullPage: true });
 
+          await page.evaluate(() => {
+            window.__cpClickProbe = [];
+            const capture = (scope) => (event) => {
+              const button = event.target?.closest?.('button');
+              window.__cpClickProbe.push({ scope, tag: event.target?.tagName || '', buttonText: (button?.textContent || '').replace(/\s+/g, ' ').trim(), defaultPrevented: event.defaultPrevented });
+            };
+            window.addEventListener('click', capture('window'), true);
+            document.addEventListener('click', capture('document'), true);
+          });
+
           const quoteButton = page.locator('button').filter({ hasText: /^Quotes/ }).first();
           assert.equal(await quoteButton.count(), 1, 'desktop Quotes control must exist');
+          console.log('QUOTE_BUTTON', JSON.stringify({ text: await quoteButton.textContent(), visible: await quoteButton.isVisible(), box: await quoteButton.boundingBox() }));
           await quoteButton.click();
-          await page.waitForSelector('#cpQuoteOverlay', { state: 'visible' });
+          await page.waitForTimeout(750);
+          const quoteProbe = await page.evaluate(() => ({ events: window.__cpClickProbe || [], overlay: Boolean(document.querySelector('#cpQuoteOverlay')), canonical: document.documentElement.dataset.cpCanonicalTopLevel || null, scripts: Array.from(document.scripts).map(s => s.src).filter(Boolean).filter(src => src.includes('canonical-')) }));
+          console.log('QUOTE_PROBE', JSON.stringify(quoteProbe));
+          assert.equal(quoteProbe.overlay, true, `Quotes click did not open canonical overlay. Probe: ${JSON.stringify(quoteProbe)}`);
+
           assert.equal(await page.locator('.app-shell').count(), 1, 'quote overlay must not replace v0 app shell');
           await page.fill('#cqDescription', 'Browser smoke test service');
           await page.fill('#cqPrice', '125.00');
