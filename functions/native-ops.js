@@ -247,6 +247,16 @@ app.post("/payments/checkout", requireStaff, requireOwner, async (req, res) => {
         return res.status(502).json({ error: "Unable to verify the existing payment attempt. No new checkout was created." });
       }
 
+      const existingInvoiceId = String(existingSession.metadata?.invoiceId || "").slice(0, 180);
+      if (existingInvoiceId !== invoiceId) {
+        logger.error("Existing Stripe checkout does not belong to invoice", {
+          invoiceId,
+          checkoutSessionId: existingSession.id,
+          checkoutInvoiceId: existingInvoiceId || null,
+        });
+        return res.status(409).json({ error: "Existing payment attempt does not match this invoice. No new checkout was created." });
+      }
+
       const existingPaymentStatus = existingSession.payment_status || "unpaid";
       const existingStatus = existingSession.status || null;
       const existingAmount = Number(existingSession.amount_total || 0) / 100;
