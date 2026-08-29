@@ -3,8 +3,9 @@
 
   const CHECKOUT_URL = 'https://us-central1-chill-pros-ice-stream.cloudfunctions.net/nativeOpsApi/payments/checkout';
   const STATUS_URL = 'https://us-central1-chill-pros-ice-stream.cloudfunctions.net/nativeOpsApi/payments/status';
-  const STORE = 'chillProsCanonicalCheckoutAttempt';
+  const STORE = 'chillProsCanonicalCheckoutAttempts';
   const MAX_AGE_MS = 24 * 60 * 60 * 1000;
+  const MAX_ATTEMPTS = 12;
   const innerFetch = window.fetch.bind(window);
 
   function requestUrl(input) {
@@ -36,26 +37,36 @@
     return String(window.chillProsAuth?.currentUser?.uid || '').slice(0, 180);
   }
 
-  function loadAttempt() {
+  function loadAttempts() {
     try {
-      const parsed = JSON.parse(sessionStorage.getItem(STORE) || 'null');
-      if (!parsed || typeof parsed !== 'object') return null;
-      if (!parsed.uid || !parsed.invoiceId || !parsed.sessionId || !parsed.createdAt) return null;
-      if (Date.now() - Number(parsed.createdAt) > MAX_AGE_MS) {
-        sessionStorage.removeItem(STORE);
-        return null;
+      const parsed = JSON.parse(localStorage.getItem(STORE) || '[]');
+      const now = Date.now();
+      const valid = (Array.isArray(parsed) ? parsed : []).filter((attempt) => {
+        if (!attempt || typeof attempt !== 'object') return false;
+        if (!attempt.uid || !attempt.invoiceId || !attempt.sessionId || !attempt.createdAt) return false;
+        return now - Number(attempt.createdAt) <= MAX_AGE_MS;
+      }).slice(-MAX_ATTEMPTS);
+      if (valid.length !== (Array.isArray(parsed) ? parsed.length : 0)) {
+        localStorage.setItem(STORE, JSON.stringify(valid));
       }
-      return parsed;
+      return valid;
     } catch {
-      return null;
+      return [];
     }
   }
 
   function rememberAttempt(uid, invoiceId, sessionId) {
     if (!uid || !invoiceId || !sessionId.startsWith('cs_')) return;
     try {
-      sessionStorage.setItem(STORE, JSON.stringify({ uid, invoiceId, sessionId, createdAt: Date.now() }));
+      const attempts = loadAttempts().filter((attempt) => attempt.sessionId !== sessionId);
+      attempts.push({ uid, invoiceId, sessionId, createdAt: Date.now() });
+      localStorage.setItem(STORE, JSON.stringify(attempts.slice(-MAX_ATTEMPTS)));
     } catch {}
+  }
+
+  function findAttempt(uid, sessionId) {
+    if (!uid || !sessionId) return null;
+    return loadAttempts().find((attempt) => attempt.uid === uid && attempt.sessionId === sessionId) || null;
   }
 
   function rejectUnboundStatus() {
@@ -89,11 +100,9 @@
     if (method === 'POST' && url === STATUS_URL) {
       const payload = await requestPayload(input, init);
       const requestedSessionId = String(payload?.checkoutSessionId || '').slice(0, 220);
-      const attempt = loadAttempt();
       const uid = currentUid();
-      if (!uid || !attempt || attempt.uid !== uid || attempt.sessionId !== requestedSessionId) {
-        return rejectUnboundStatus();
-      }
+      const attempt = findAttempt(uid, requestedSessionId);
+      if (!attempt) return rejectUnboundStatus();
 
       const response = await innerFetch(input, init);
       if (response.ok) {
