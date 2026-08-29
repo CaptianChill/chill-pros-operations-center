@@ -180,6 +180,7 @@ app.post("/invoices", requireStaff, async (req, res) => {
     const quoteSnap = await db.collection("quotes").doc(quoteId).get();
     if (!quoteSnap.exists) return res.status(404).json({ error: "Quote not found." });
     quote = quoteSnap.data();
+    if (quote.status !== "approved") return res.status(409).json({ error: "Quote must be owner-approved before creating its invoice." });
     if (!lines.length) lines = cleanLines(quote.lines);
   }
   if (!lines.length) return res.status(400).json({ error: "At least one invoice line is required." });
@@ -230,6 +231,102 @@ app.post("/payments/checkout", requireStaff, requireOwner, async (req, res) => {
   if (!cents) return res.status(400).json({ error: "Invoice balance must be greater than zero." });
 
   try {
+    const existingSessionId = String(invoice.stripeCheckoutSessionId || "").slice(0, 220);
+    let retryAnchor = "initial";
+
+    if (existingSessionId.startsWith("cs_")) {
+      let existingSession;
+      try {
+        existingSession = await stripeRequest(`/checkout/sessions/${encodeURIComponent(existingSessionId)}`, {}, "GET");
+      } catch (error) {
+        logger.error("Unable to verify existing Stripe checkout before replacement", {
+          invoiceId,
+          checkoutSessionId: existingSessionId,
+          status: error.status || null,
+        });
+        return res.status(502).json({ error: "Unable to verify the existing payment attempt. No new checkout was created." });
+      }
+
+      const existingPaymentStatus = existingSession.payment_status || "unpaid";
+      const existingStatus = existingSession.status || null;
+      const existingAmount = Number(existingSession.amount_total || 0) / 100;
+
+      if (existingPaymentStatus === "paid") {
+        const total = Number(invoice.total || balance);
+        await invoiceRef.set({
+          paymentStatus: "paid",
+          amountPaid: Math.min(total, existingAmount),
+          balanceDue: Math.max(0, Number((total - existingAmount).toFixed(2))),
+          status: "paid",
+          paidAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        }, { merge: true });
+        await db.collection("payments").doc(existingSession.id).set({
+          provider: "stripe",
+          invoiceId,
+          checkoutSessionId: existingSession.id,
+          amount: existingAmount,
+          currency: existingSession.currency || "usd",
+          status: "paid",
+          updatedAt: FieldValue.serverTimestamp(),
+        }, { merge: true });
+        return res.status(409).json({
+          error: "Invoice is already paid.",
+          invoiceId,
+          checkoutSessionId: existingSession.id,
+          paymentStatus: "paid",
+          status: existingStatus,
+        });
+      }
+
+      if (existingStatus === "complete") {
+        await invoiceRef.set({
+          paymentStatus: existingPaymentStatus,
+          updatedAt: FieldValue.serverTimestamp(),
+        }, { merge: true });
+        await db.collection("payments").doc(existingSession.id).set({
+          provider: "stripe",
+          invoiceId,
+          checkoutSessionId: existingSession.id,
+          amount: existingAmount,
+          currency: existingSession.currency || "usd",
+          status: existingPaymentStatus,
+          updatedAt: FieldValue.serverTimestamp(),
+        }, { merge: true });
+        return res.status(409).json({
+          error: "A payment is already processing for this invoice.",
+          invoiceId,
+          checkoutSessionId: existingSession.id,
+          paymentStatus: existingPaymentStatus,
+          status: existingStatus,
+        });
+      }
+
+      if (existingStatus === "open" && existingSession.url) {
+        return res.json({
+          ok: true,
+          invoiceId,
+          checkoutSessionId: existingSession.id,
+          url: existingSession.url,
+          paymentStatus: existingPaymentStatus,
+          status: existingStatus,
+          reused: true,
+        });
+      }
+
+      if (existingStatus !== "expired") {
+        return res.status(409).json({
+          error: "An existing payment attempt must be resolved before creating another checkout.",
+          invoiceId,
+          checkoutSessionId: existingSession.id,
+          paymentStatus: existingPaymentStatus,
+          status: existingStatus,
+        });
+      }
+
+      retryAnchor = existingSession.id;
+    }
+
     const returnUrl = returnUrlForRequest(req);
     const session = await stripeRequest("/checkout/sessions", {
       mode: "payment",
@@ -244,7 +341,7 @@ app.post("/payments/checkout", requireStaff, requireOwner, async (req, res) => {
       "metadata[invoiceId]": invoiceId,
       "metadata[source]": "chill-pros-operations-center",
     }, "POST", {
-      idempotencyKey: `chill-pros-checkout-${invoiceId}-${cents}`,
+      idempotencyKey: `chill-pros-checkout-${invoiceId}-${cents}-${retryAnchor}`,
     });
 
     await invoiceRef.set({
