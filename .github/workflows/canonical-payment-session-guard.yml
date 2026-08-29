@@ -30,6 +30,7 @@ jobs:
           assert.doesNotMatch(source, /document\.|document\.body|innerHTML/, 'payment guard must not reconstruct or mutate the preserved v0 shell');
           assert.match(source, /localStorage/, 'checkout binding must survive the popup being created before checkout returns');
           assert.doesNotMatch(source, /sessionStorage/, 'per-tab storage would strand the Stripe return popup without the issued-session binding');
+          assert.match(source, /decodeUidFromBearer/, 'checkout binding must use the authenticated request identity');
 
           global.window = globalThis;
           global.localStorage = (() => {
@@ -44,6 +45,18 @@ jobs:
           let uid = 'owner-a';
           global.chillProsAuth = { get currentUser() { return uid ? { uid } : null; } };
           const calls = [];
+
+          function tokenFor(subject) {
+            return `e30.${Buffer.from(JSON.stringify({ user_id: subject, exp: 4102444800 })).toString('base64url')}.sig`;
+          }
+
+          function authHeaders(subject = uid) {
+            return {
+              Authorization: `Bearer ${tokenFor(subject)}`,
+              'content-type': 'application/json',
+            };
+          }
+
           global.fetch = async (input, init = {}) => {
             const url = typeof input === 'string' ? input : input.url;
             const body = typeof init.body === 'string' ? JSON.parse(init.body) : {};
@@ -76,14 +89,14 @@ jobs:
             const base = 'https://us-central1-chill-pros-ice-stream.cloudfunctions.net/nativeOpsApi';
             const checkout = await fetch(`${base}/payments/checkout`, {
               method: 'POST',
-              headers: { 'content-type': 'application/json' },
+              headers: authHeaders('owner-a'),
               body: JSON.stringify({ invoiceId: 'invoice-a' }),
             });
             assert.equal(checkout.status, 200, 'checkout request must pass through');
 
             const secondCheckout = await fetch(`${base}/payments/checkout`, {
               method: 'POST',
-              headers: { 'content-type': 'application/json' },
+              headers: authHeaders('owner-a'),
               body: JSON.stringify({ invoiceId: 'invoice-b' }),
             });
             assert.equal(secondCheckout.status, 200, 'a second invoice checkout must not erase the first checkout binding');
@@ -91,7 +104,7 @@ jobs:
             const beforeGoodStatus = calls.length;
             const good = await fetch(`${base}/payments/status`, {
               method: 'POST',
-              headers: { 'content-type': 'application/json' },
+              headers: authHeaders('owner-a'),
               body: JSON.stringify({ checkoutSessionId: 'cs_owner_a_1' }),
             });
             assert.equal(good.status, 200, 'the exact issued checkout session must be allowed to reconcile');
@@ -100,7 +113,7 @@ jobs:
             const beforeSecondStatus = calls.length;
             const second = await fetch(`${base}/payments/status`, {
               method: 'POST',
-              headers: { 'content-type': 'application/json' },
+              headers: authHeaders('owner-a'),
               body: JSON.stringify({ checkoutSessionId: 'cs_owner_a_2' }),
             });
             assert.equal(second.status, 200, 'multiple active invoice checkout bindings must coexist safely');
@@ -109,7 +122,7 @@ jobs:
             const beforeWrongSession = calls.length;
             const wrongSession = await fetch(`${base}/payments/status`, {
               method: 'POST',
-              headers: { 'content-type': 'application/json' },
+              headers: authHeaders('owner-a'),
               body: JSON.stringify({ checkoutSessionId: 'cs_unissued_old_session' }),
             });
             assert.equal(wrongSession.status, 409, 'an unissued or stale checkout session must fail closed');
@@ -119,7 +132,7 @@ jobs:
             const beforeAccountSwitch = calls.length;
             const switched = await fetch(`${base}/payments/status`, {
               method: 'POST',
-              headers: { 'content-type': 'application/json' },
+              headers: authHeaders('owner-b'),
               body: JSON.stringify({ checkoutSessionId: 'cs_owner_a_1' }),
             });
             assert.equal(switched.status, 409, 'checkout session from another authenticated identity must fail closed');
