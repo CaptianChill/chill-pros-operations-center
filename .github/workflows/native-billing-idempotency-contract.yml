@@ -43,6 +43,7 @@ jobs:
           assert.match(source, /"Idempotency-Key"/, 'Stripe POST helper must support an idempotency key');
           assert.match(checkout, /stripeCheckoutSessionId/, 'checkout must inspect the invoice existing Stripe session before minting another');
           assert.match(checkout, /checkout\/sessions\/\$\{encodeURIComponent\(existingSessionId\)\}/, 'existing checkout must be verified against Stripe');
+          assert.match(checkout, /existingInvoiceId !== invoiceId/, 'reused Stripe checkout must be bound to the same invoice metadata');
           assert.match(checkout, /existingPaymentStatus === "paid"/, 'already-paid checkout must block replacement collection');
           assert.match(checkout, /existingStatus === "complete"/, 'completed delayed-payment checkout must block duplicate collection while processing');
           assert.match(checkout, /existingStatus === "open" && existingSession\.url/, 'an open checkout must be reused instead of replaced');
@@ -52,5 +53,5 @@ jobs:
           assert.match(checkout, /No new checkout was created/, 'Stripe verification failure must fail closed before duplicate collection');
           assert.doesNotMatch(checkout, /document\.|document\.body|innerHTML/, 'billing hardening must not touch the v0 visual contract');
 
-          console.log('Native billing idempotency contract passed: approved quote lineage is enforced and paid, pending, open, retry, and expired checkout states are duplicate-safe.');
+          console.log('Native billing idempotency contract passed: approved quote lineage is enforced and existing, paid, pending, open, retry, and expired checkout states are duplicate-safe.');
           EOF
