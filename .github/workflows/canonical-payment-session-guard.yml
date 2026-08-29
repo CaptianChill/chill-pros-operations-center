@@ -31,11 +31,14 @@ jobs:
           assert.match(source, /localStorage/, 'checkout binding must survive the popup being created before checkout returns');
           assert.doesNotMatch(source, /sessionStorage/, 'per-tab storage would strand the Stripe return popup without the issued-session binding');
           assert.match(source, /decodeUidFromBearer/, 'checkout binding must use the authenticated request identity');
+          assert.match(source, /STORE_PREFIX/, 'each checkout session must have an independent storage key');
+          assert.match(source, /findLegacyAttempt/, 'existing preview checkout bindings must remain readable during the storage migration');
 
           global.window = globalThis;
           global.localStorage = (() => {
             const values = new Map();
             return {
+              _values: values,
               getItem(key) { return values.has(key) ? values.get(key) : null; },
               setItem(key, value) { values.set(key, String(value)); },
               removeItem(key) { values.delete(key); },
@@ -101,6 +104,13 @@ jobs:
             });
             assert.equal(secondCheckout.status, 200, 'a second invoice checkout must not erase the first checkout binding');
 
+            const directKeys = [...localStorage._values.keys()].filter(key => key.startsWith('chillProsCanonicalCheckoutAttempt:'));
+            assert.deepEqual(new Set(directKeys), new Set([
+              'chillProsCanonicalCheckoutAttempt:cs_owner_a_1',
+              'chillProsCanonicalCheckoutAttempt:cs_owner_a_2',
+            ]), 'concurrent-tab-safe storage must keep each checkout in an independent key');
+            assert.equal(localStorage.getItem('chillProsCanonicalCheckoutAttempts'), null, 'new checkout writes must not use the shared legacy array');
+
             const beforeGoodStatus = calls.length;
             const good = await fetch(`${base}/payments/status`, {
               method: 'POST',
@@ -118,6 +128,22 @@ jobs:
             });
             assert.equal(second.status, 200, 'multiple active invoice checkout bindings must coexist safely');
             assert.equal(calls.length, beforeSecondStatus + 1, 'second valid status reconciliation must reach native billing exactly once');
+
+            localStorage.setItem('chillProsCanonicalCheckoutAttempts', JSON.stringify([{
+              uid: 'owner-a',
+              invoiceId: 'invoice-a',
+              sessionId: 'cs_legacy_return',
+              createdAt: Date.now(),
+            }]));
+            const beforeLegacyStatus = calls.length;
+            const legacy = await fetch(`${base}/payments/status`, {
+              method: 'POST',
+              headers: authHeaders('owner-a'),
+              body: JSON.stringify({ checkoutSessionId: 'cs_legacy_return' }),
+            });
+            assert.equal(legacy.status, 200, 'a still-valid checkout issued by the immediately previous preview must remain reconcilable');
+            assert.equal(calls.length, beforeLegacyStatus + 1, 'valid legacy binding must reach native billing exactly once');
+            assert.ok(localStorage.getItem('chillProsCanonicalCheckoutAttempt:cs_legacy_return'), 'legacy binding must migrate to its independent direct key');
 
             const beforeWrongSession = calls.length;
             const wrongSession = await fetch(`${base}/payments/status`, {
@@ -142,7 +168,7 @@ jobs:
             await fetch('https://example.com/unrelated', { method: 'POST', body: '{}' });
             assert.equal(calls.length, beforeUnrelated + 1, 'unrelated requests must pass through exactly once');
 
-            console.log('Canonical payment session guard passed: popup-safe checkout bindings survive across tabs, multiple invoices coexist, and stale/cross-account sessions fail closed.');
+            console.log('Canonical payment session guard passed: popup-safe checkout bindings use independent cross-tab-safe keys, legacy returns migrate safely, multiple invoices coexist, and stale/cross-account sessions fail closed.');
           })().catch((error) => {
             console.error(error);
             process.exit(1);
