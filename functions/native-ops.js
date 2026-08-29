@@ -104,7 +104,7 @@ function totalForLines(lines) {
   return Number(lines.reduce((sum, line) => sum + (line.quantity * line.unitPrice), 0).toFixed(2));
 }
 
-async function stripeRequest(path, params, method = "POST") {
+async function stripeRequest(path, params, method = "POST", requestOptions = {}) {
   const body = new URLSearchParams();
   for (const [key, value] of Object.entries(params || {})) {
     if (value === undefined || value === null || value === "") continue;
@@ -119,6 +119,9 @@ async function stripeRequest(path, params, method = "POST") {
     headers: {
       Authorization: `Bearer ${STRIPE_SECRET_KEY.value()}`,
       ...(method === "POST" ? { "Content-Type": "application/x-www-form-urlencoded" } : {}),
+      ...(method === "POST" && requestOptions.idempotencyKey
+        ? { "Idempotency-Key": String(requestOptions.idempotencyKey).slice(0, 255) }
+        : {}),
     },
     ...(method === "POST" ? { body } : {}),
   });
@@ -240,6 +243,8 @@ app.post("/payments/checkout", requireStaff, requireOwner, async (req, res) => {
       "line_items[0][quantity]": 1,
       "metadata[invoiceId]": invoiceId,
       "metadata[source]": "chill-pros-operations-center",
+    }, "POST", {
+      idempotencyKey: `chill-pros-checkout-${invoiceId}-${cents}`,
     });
 
     await invoiceRef.set({
