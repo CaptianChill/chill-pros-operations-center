@@ -1,0 +1,148 @@
+name: Canonical Auth Cross-Tab Contract
+
+on:
+  pull_request:
+  push:
+    branches:
+      - recovery/boodaflow-canonical-v0-proxy
+
+jobs:
+  auth-cross-tab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Keep sign-out and identity changes canonical across tabs
+        run: |
+          node --input-type=module <<'EOF'
+          import fs from 'node:fs';
+          import vm from 'node:vm';
+          import assert from 'node:assert/strict';
+
+          const source = fs.readFileSync('canonical-auth.js', 'utf8');
+          assert.match(source, /addEventListener\?\.\('storage'/, 'canonical auth must synchronize the shared localStorage session');
+          assert.doesNotMatch(source, /document\.|document\.body|innerHTML/, 'canonical auth must stay DOM-free');
+
+          function token(exp, marker = '') {
+            return `e30.${Buffer.from(JSON.stringify({ exp, marker })).toString('base64url')}.sig`;
+          }
+
+          function makeSandbox(initialSession, refreshResponder = null) {
+            const store = new Map();
+            if (initialSession) store.set('chillProsCanonicalSession', JSON.stringify(initialSession));
+            let storageHandler = null;
+            const localStorage = {
+              getItem(key) { return store.has(key) ? store.get(key) : null; },
+              setItem(key, value) { store.set(key, String(value)); },
+              removeItem(key) { store.delete(key); },
+            };
+            const sandbox = {
+              window: null,
+              localStorage,
+              fetch: async (url, options) => {
+                if (refreshResponder && String(url).includes('securetoken.googleapis.com')) return refreshResponder(url, options);
+                throw new Error(`Unexpected request: ${url}`);
+              },
+              addEventListener(type, handler) {
+                if (type === 'storage') storageHandler = handler;
+              },
+              AbortController,
+              URLSearchParams,
+              Response,
+              setTimeout,
+              clearTimeout,
+              queueMicrotask,
+              atob: value => Buffer.from(value, 'base64').toString('binary'),
+              console,
+            };
+            sandbox.window = sandbox;
+            vm.createContext(sandbox);
+            vm.runInContext(source, sandbox);
+            return {
+              sandbox,
+              localStorage,
+              store,
+              emit(raw) {
+                assert.ok(storageHandler, 'storage listener should be installed');
+                storageHandler({ key: 'chillProsCanonicalSession', newValue: raw, storageArea: localStorage });
+              },
+            };
+          }
+
+          const initial = {
+            idToken: token(4102444800, 'old'),
+            refreshToken: 'old-refresh',
+            email: 'old@chillpros.test',
+            localId: 'old-owner',
+          };
+          const first = makeSandbox(initial);
+          const observed = [];
+          first.sandbox.chillProsAuth.onAuthStateChanged((user) => observed.push(user?.email || null));
+          await new Promise(resolve => queueMicrotask(resolve));
+          assert.equal(first.sandbox.chillProsAuth.currentUser?.email, 'old@chillpros.test');
+
+          first.store.delete('chillProsCanonicalSession');
+          first.emit(null);
+          assert.equal(first.sandbox.chillProsAuth.currentUser, null, 'sign-out in another tab must immediately clear this tab');
+          assert.equal(observed.at(-1), null, 'auth observers must see cross-tab sign-out');
+
+          const next = {
+            idToken: token(4102444800, 'new'),
+            refreshToken: 'new-refresh',
+            email: 'new@chillpros.test',
+            localId: 'new-owner',
+          };
+          const nextRaw = JSON.stringify(next);
+          first.store.set('chillProsCanonicalSession', nextRaw);
+          first.emit(nextRaw);
+          assert.equal(first.sandbox.chillProsAuth.currentUser?.email, 'new@chillpros.test', 'sign-in in another tab must replace the old identity');
+          assert.equal(observed.at(-1), 'new@chillpros.test', 'auth observers must see the cross-tab identity change');
+
+          let releaseRefresh;
+          let refreshStarted;
+          const refreshStartedPromise = new Promise(resolve => { refreshStarted = resolve; });
+          const racing = makeSandbox({
+            idToken: token(1, 'stale'),
+            refreshToken: 'stale-refresh',
+            email: 'stale@chillpros.test',
+            localId: 'stale-owner',
+          }, async () => {
+            refreshStarted();
+            return await new Promise(resolve => {
+              releaseRefresh = () => resolve(new Response(JSON.stringify({
+                id_token: token(4102444800, 'late-refresh'),
+                refresh_token: 'stale-rotated',
+                user_id: 'stale-owner',
+              }), { status: 200, headers: { 'content-type': 'application/json' } }));
+            });
+          });
+
+          const staleUser = racing.sandbox.chillProsAuth.currentUser;
+          const staleRefresh = staleUser.getIdToken().then(
+            value => ({ value }),
+            error => ({ error })
+          );
+          await refreshStartedPromise;
+
+          const external = {
+            idToken: token(4102444800, 'external'),
+            refreshToken: 'external-refresh',
+            email: 'external@chillpros.test',
+            localId: 'external-owner',
+          };
+          const externalRaw = JSON.stringify(external);
+          racing.store.set('chillProsCanonicalSession', externalRaw);
+          racing.emit(externalRaw);
+          releaseRefresh();
+          const staleResult = await staleRefresh;
+          assert.equal(staleResult.error?.code, 'SESSION_CHANGED', 'late refresh from the old tab session must fail as a changed session');
+          assert.equal(racing.sandbox.chillProsAuth.currentUser?.email, 'external@chillpros.test', 'late refresh must not overwrite the externally adopted identity');
+          assert.equal(JSON.parse(racing.store.get('chillProsCanonicalSession')).refreshToken, 'external-refresh');
+
+          console.log('Canonical auth cross-tab contract passed: sign-out, sign-in, and in-flight refreshes stay bound to one shared authenticated session.');
+          EOF
