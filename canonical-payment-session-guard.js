@@ -3,9 +3,9 @@
 
   const CHECKOUT_URL = 'https://us-central1-chill-pros-ice-stream.cloudfunctions.net/nativeOpsApi/payments/checkout';
   const STATUS_URL = 'https://us-central1-chill-pros-ice-stream.cloudfunctions.net/nativeOpsApi/payments/status';
-  const STORE = 'chillProsCanonicalCheckoutAttempts';
+  const LEGACY_STORE = 'chillProsCanonicalCheckoutAttempts';
+  const STORE_PREFIX = 'chillProsCanonicalCheckoutAttempt:';
   const MAX_AGE_MS = 24 * 60 * 60 * 1000;
-  const MAX_ATTEMPTS = 12;
   const innerFetch = window.fetch.bind(window);
 
   function requestUrl(input) {
@@ -60,36 +60,70 @@
     return String(window.chillProsAuth?.currentUser?.uid || '').slice(0, 180);
   }
 
-  function loadAttempts() {
+  function attemptKey(sessionId) {
+    return `${STORE_PREFIX}${String(sessionId || '').slice(0, 220)}`;
+  }
+
+  function parseAttempt(raw) {
+    if (!raw) return null;
     try {
-      const parsed = JSON.parse(localStorage.getItem(STORE) || '[]');
-      const now = Date.now();
-      const valid = (Array.isArray(parsed) ? parsed : []).filter((attempt) => {
-        if (!attempt || typeof attempt !== 'object') return false;
-        if (!attempt.uid || !attempt.invoiceId || !attempt.sessionId || !attempt.createdAt) return false;
-        return now - Number(attempt.createdAt) <= MAX_AGE_MS;
-      }).slice(-MAX_ATTEMPTS);
-      if (valid.length !== (Array.isArray(parsed) ? parsed.length : 0)) {
-        localStorage.setItem(STORE, JSON.stringify(valid));
-      }
-      return valid;
+      const attempt = JSON.parse(raw);
+      if (!attempt || typeof attempt !== 'object') return null;
+      if (!attempt.uid || !attempt.invoiceId || !attempt.sessionId || !attempt.createdAt) return null;
+      return attempt;
     } catch {
-      return [];
+      return null;
     }
+  }
+
+  function attemptFresh(attempt) {
+    const createdAt = Number(attempt?.createdAt || 0);
+    return Number.isFinite(createdAt) && createdAt > 0 && Date.now() - createdAt <= MAX_AGE_MS;
   }
 
   function rememberAttempt(uid, invoiceId, sessionId) {
     if (!uid || !invoiceId || !sessionId.startsWith('cs_')) return;
+    const attempt = { uid, invoiceId, sessionId, createdAt: Date.now() };
     try {
-      const attempts = loadAttempts().filter((attempt) => attempt.sessionId !== sessionId);
-      attempts.push({ uid, invoiceId, sessionId, createdAt: Date.now() });
-      localStorage.setItem(STORE, JSON.stringify(attempts.slice(-MAX_ATTEMPTS)));
+      // Each Stripe session gets its own key. Independent writes prevent two tabs
+      // creating checkouts at the same time from clobbering one shared JSON array.
+      localStorage.setItem(attemptKey(sessionId), JSON.stringify(attempt));
     } catch {}
+  }
+
+  function findDirectAttempt(uid, sessionId) {
+    try {
+      const key = attemptKey(sessionId);
+      const attempt = parseAttempt(localStorage.getItem(key));
+      if (!attempt) return null;
+      if (!attemptFresh(attempt)) {
+        localStorage.removeItem(key);
+        return null;
+      }
+      if (attempt.sessionId !== sessionId || attempt.uid !== uid) return null;
+      return attempt;
+    } catch {
+      return null;
+    }
+  }
+
+  function findLegacyAttempt(uid, sessionId) {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(LEGACY_STORE) || '[]');
+      if (!Array.isArray(parsed)) return null;
+      const valid = parsed.filter((attempt) => attempt && typeof attempt === 'object' && attemptFresh(attempt));
+      if (valid.length !== parsed.length) localStorage.setItem(LEGACY_STORE, JSON.stringify(valid));
+      const attempt = valid.find((item) => item.uid === uid && item.sessionId === sessionId) || null;
+      if (attempt) rememberAttempt(attempt.uid, attempt.invoiceId, attempt.sessionId);
+      return attempt;
+    } catch {
+      return null;
+    }
   }
 
   function findAttempt(uid, sessionId) {
     if (!uid || !sessionId) return null;
-    return loadAttempts().find((attempt) => attempt.uid === uid && attempt.sessionId === sessionId) || null;
+    return findDirectAttempt(uid, sessionId) || findLegacyAttempt(uid, sessionId);
   }
 
   function rejectUnboundStatus() {
