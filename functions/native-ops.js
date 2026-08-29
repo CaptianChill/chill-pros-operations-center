@@ -347,13 +347,22 @@ app.post("/payments/checkout", requireStaff, requireOwner, async (req, res) => {
       const existingPaymentStatus = existingSession.payment_status || "unpaid";
       const existingStatus = existingSession.status || null;
       const existingAmount = Number(existingSession.amount_total || 0) / 100;
+      if (!Number.isFinite(existingAmount) || Math.abs(existingAmount - balance) > 0.009) {
+        logger.error("Existing Stripe checkout amount does not match invoice balance", {
+          invoiceId,
+          checkoutSessionId: existingSession.id,
+          checkoutAmount: existingAmount,
+          invoiceBalance: balance,
+        });
+        return res.status(409).json({ error: "Existing payment amount does not match this invoice balance. No new checkout was created." });
+      }
 
       if (existingPaymentStatus === "paid") {
         const total = Number(invoice.total || balance);
         await invoiceRef.set({
           paymentStatus: "paid",
-          amountPaid: Math.min(total, existingAmount),
-          balanceDue: Math.max(0, Number((total - existingAmount).toFixed(2))),
+          amountPaid: total,
+          balanceDue: 0,
           status: "paid",
           paidAt: FieldValue.serverTimestamp(),
           updatedAt: FieldValue.serverTimestamp(),
@@ -466,31 +475,63 @@ app.post("/payments/checkout", requireStaff, requireOwner, async (req, res) => {
   }
 });
 
-app.post("/payments/status", requireStaff, async (req, res) => {
+app.post("/payments/status", requireStaff, requireOwner, async (req, res) => {
   const sessionId = String(req.body?.checkoutSessionId || "").slice(0, 220);
   if (!sessionId || !sessionId.startsWith("cs_")) return res.status(400).json({ error: "Valid checkout session ID is required." });
   try {
     const session = await stripeRequest(`/checkout/sessions/${encodeURIComponent(sessionId)}`, {}, "GET");
     const invoiceId = String(session.metadata?.invoiceId || "").slice(0, 180) || null;
+    const source = String(session.metadata?.source || "");
     const paid = session.payment_status === "paid";
     const amountTotal = Number(session.amount_total || 0) / 100;
-    if (invoiceId) {
-      const invoiceRef = db.collection("invoices").doc(invoiceId);
-      const invoiceSnap = await invoiceRef.get();
-      if (invoiceSnap.exists) {
-        const invoice = invoiceSnap.data();
-        const total = Number(invoice.total || 0);
-        await invoiceRef.set({
-          paymentStatus: session.payment_status || "unpaid",
-          amountPaid: paid ? Math.min(total, amountTotal) : Number(invoice.amountPaid || 0),
-          balanceDue: paid ? Math.max(0, Number((total - amountTotal).toFixed(2))) : Number(invoice.balanceDue ?? total),
-          status: paid ? "paid" : invoice.status,
-          paidAt: paid ? FieldValue.serverTimestamp() : (invoice.paidAt || null),
-          updatedAt: FieldValue.serverTimestamp(),
-        }, { merge: true });
-      }
+    if (!invoiceId || source !== "chill-pros-operations-center") {
+      return res.status(409).json({ error: "Checkout session is not an issued Chill Pros invoice payment." });
     }
-    await db.collection("payments").doc(sessionId).set({
+
+    const invoiceRef = db.collection("invoices").doc(invoiceId);
+    const invoiceSnap = await invoiceRef.get();
+    if (!invoiceSnap.exists) return res.status(404).json({ error: "Invoice not found for checkout session." });
+    const invoice = invoiceSnap.data();
+    const activeSessionId = String(invoice.stripeCheckoutSessionId || "").slice(0, 220);
+    if (activeSessionId !== sessionId) {
+      logger.error("Payment status session does not match invoice active checkout", {
+        invoiceId,
+        checkoutSessionId: sessionId,
+        activeCheckoutSessionId: activeSessionId || null,
+      });
+      return res.status(409).json({ error: "Checkout session does not match this invoice active payment attempt." });
+    }
+
+    const paymentRef = db.collection("payments").doc(sessionId);
+    const paymentSnap = await paymentRef.get();
+    if (!paymentSnap.exists) {
+      return res.status(409).json({ error: "Checkout session was not issued by native billing." });
+    }
+    const payment = paymentSnap.data();
+    const paymentInvoiceId = String(payment.invoiceId || "").slice(0, 180);
+    const expectedAmount = Number(payment.amount);
+    if (paymentInvoiceId !== invoiceId || !Number.isFinite(expectedAmount) || Math.abs(expectedAmount - amountTotal) > 0.009) {
+      logger.error("Payment status identity or amount mismatch", {
+        invoiceId,
+        checkoutSessionId: sessionId,
+        paymentInvoiceId: paymentInvoiceId || null,
+        expectedAmount,
+        stripeAmount: amountTotal,
+      });
+      return res.status(409).json({ error: "Checkout session amount or invoice identity does not match native billing." });
+    }
+
+    const total = Number(invoice.total || 0);
+    await invoiceRef.set({
+      paymentStatus: session.payment_status || "unpaid",
+      amountPaid: paid ? total : Number(invoice.amountPaid || 0),
+      balanceDue: paid ? 0 : Number(invoice.balanceDue ?? total),
+      status: paid ? "paid" : invoice.status,
+      paidAt: paid ? FieldValue.serverTimestamp() : (invoice.paidAt || null),
+      updatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
+
+    await paymentRef.set({
       provider: "stripe",
       invoiceId,
       checkoutSessionId: sessionId,
