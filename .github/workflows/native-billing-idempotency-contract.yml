@@ -1,0 +1,42 @@
+name: Native Billing Idempotency Contract
+
+on:
+  pull_request:
+  push:
+    branches:
+      - recovery/boodaflow-canonical-v0-proxy
+
+jobs:
+  checkout-idempotency:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Verify native billing checkout is retry-safe
+        run: |
+          node --check functions/native-ops.js
+          node <<'EOF'
+          const assert = require('node:assert/strict');
+          const fs = require('node:fs');
+
+          const source = fs.readFileSync('functions/native-ops.js', 'utf8');
+          const checkout = source.slice(
+            source.indexOf('app.post("/payments/checkout"'),
+            source.indexOf('app.post("/payments/status"')
+          );
+
+          assert.ok(checkout.length > 100, 'checkout route must remain present');
+          assert.match(checkout, /requireStaff, requireOwner/, 'checkout must remain owner-gated');
+          assert.match(checkout, /invoice\.status !== "approved"/, 'checkout must still require an approved invoice');
+          assert.match(checkout, /payment_method_types\[\]\": \[\"card\", \"us_bank_account\"\]/, 'card and ACH support must remain enabled');
+          assert.match(source, /"Idempotency-Key"/, 'Stripe POST helper must support an idempotency key');
+          assert.match(checkout, /idempotencyKey:\s*`chill-pros-checkout-\$\{invoiceId\}-\$\{cents\}`/, 'checkout retries must use the same invoice-and-balance key');
+          assert.doesNotMatch(checkout, /document\.|document\.body|innerHTML/, 'billing hardening must not touch the v0 visual contract');
+
+          console.log('Native billing idempotency contract passed: checkout retries cannot mint duplicate Stripe sessions for the same invoice balance.');
+          EOF
