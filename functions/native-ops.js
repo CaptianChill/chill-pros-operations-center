@@ -178,15 +178,16 @@ app.post("/invoices", requireStaff, async (req, res) => {
 
   const buildRecord = (invoiceLines, quote = null) => {
     const total = totalForLines(invoiceLines);
+    const source = quote || req.body || {};
     return {
       quoteId,
-      customerId: String(req.body?.customerId || quote?.customerId || "").slice(0, 160) || null,
-      customerName: String(req.body?.customerName || quote?.customerName || "").trim().slice(0, 240) || null,
-      customerEmail: String(req.body?.customerEmail || quote?.customerEmail || "").trim().slice(0, 320) || null,
-      jobId: String(req.body?.jobId || quote?.jobId || "").slice(0, 160) || null,
-      equipmentId: String(req.body?.equipmentId || quote?.equipmentId || "").slice(0, 160) || null,
-      scope: String(req.body?.scope || quote?.scope || "").trim().slice(0, 5000) || null,
-      notes: String(req.body?.notes || "").trim().slice(0, 5000) || null,
+      customerId: String(source.customerId || "").slice(0, 160) || null,
+      customerName: String(source.customerName || "").trim().slice(0, 240) || null,
+      customerEmail: String(source.customerEmail || "").trim().slice(0, 320) || null,
+      jobId: String(source.jobId || "").slice(0, 160) || null,
+      equipmentId: String(source.equipmentId || "").slice(0, 160) || null,
+      scope: String(source.scope || "").trim().slice(0, 5000) || null,
+      notes: String(source.notes || "").trim().slice(0, 5000) || null,
       lines: invoiceLines,
       total,
       amountPaid: 0,
@@ -236,9 +237,14 @@ app.post("/invoices", requireStaff, async (req, res) => {
         return { existingInvoiceId };
       }
 
-      const invoiceLines = requestedLines.length ? requestedLines : cleanLines(quote.lines);
+      const invoiceLines = cleanLines(quote.lines);
       if (!invoiceLines.length) {
-        return { errorStatus: 400, error: "At least one invoice line is required." };
+        return { errorStatus: 400, error: "Approved quote has no invoiceable lines." };
+      }
+      const approvedTotal = Number(quote.total);
+      const recomputedTotal = totalForLines(invoiceLines);
+      if (!Number.isFinite(approvedTotal) || Math.abs(recomputedTotal - approvedTotal) > 0.009) {
+        return { errorStatus: 409, error: "Approved quote amount is inconsistent. Invoice was not created." };
       }
 
       const record = buildRecord(invoiceLines, quote);
