@@ -30,10 +30,19 @@
     return error;
   }
 
+  function parseStoredSession(raw) {
+    if (!raw) return null;
+    try {
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' ? parsed : null;
+    } catch {
+      return null;
+    }
+  }
+
   function load() {
     try {
-      const raw = localStorage.getItem(STORE);
-      session = raw ? JSON.parse(raw) : null;
+      session = parseStoredSession(localStorage.getItem(STORE));
     } catch {
       session = null;
     }
@@ -69,6 +78,21 @@
     listeners.forEach((fn) => {
       try { fn(current); } catch {}
     });
+  }
+
+  function sameSession(left, right) {
+    return (left?.idToken || '') === (right?.idToken || '')
+      && (left?.refreshToken || '') === (right?.refreshToken || '')
+      && (left?.localId || '') === (right?.localId || '')
+      && (left?.email || '') === (right?.email || '');
+  }
+
+  function adoptExternalSession(raw) {
+    const next = parseStoredSession(raw);
+    if (sameSession(session, next)) return;
+    session = next;
+    sessionRevision += 1;
+    notify();
   }
 
   function clearSession() {
@@ -182,12 +206,18 @@
       if (session?.refreshToken && Date.now() >= decodeExp(session.idToken) - 60000) {
         try { await refresh(); } catch {}
       }
-      fn(user());
+      if (listeners.has(fn)) fn(user());
     });
     return () => listeners.delete(fn);
   }
 
   load();
+  window.addEventListener?.('storage', (event) => {
+    if (event.key !== STORE) return;
+    if (event.storageArea && event.storageArea !== localStorage) return;
+    adoptExternalSession(event.newValue);
+  });
+
   window.chillProsAuth = {
     signInWithEmailAndPassword,
     signOut,
