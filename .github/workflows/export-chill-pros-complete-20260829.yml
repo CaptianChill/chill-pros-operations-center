@@ -1,0 +1,54 @@
+name: Export Chill Pros Operations Center Complete Project
+
+on:
+  push:
+    branches:
+      - export/chill-pros-complete-20260829
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out canonical Chill Pros recovery source
+        uses: actions/checkout@v4
+        with:
+          ref: b768a25e68ff3cfcffbc920469da27b88467cb18
+          fetch-depth: 0
+
+      - name: Create verified complete source ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          NAME="Chill-Pros-Operations-Center-Complete-Project"
+          SHA="$(git rev-parse HEAD)"
+          STAGE="$RUNNER_TEMP/$NAME"
+          rm -rf "$STAGE"
+          mkdir -p "$STAGE"
+          git archive "$SHA" | tar -x -C "$STAGE"
+          {
+            echo "Project: Chill Pros Operations Center"
+            echo "Repository: CaptianChill/chill-pros-operations-center"
+            echo "Source ref: recovery/boodaflow-canonical-v0-proxy (PR #82)"
+            echo "Source commit: $SHA"
+            echo "Exported UTC: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            echo "Contents: all Git-tracked project source files at the canonical recovery commit."
+            echo "Excluded by design: repository secrets, deployment environment values, .git history, dependency caches, and untracked local files."
+          } > "$STAGE/EXPORT-METADATA.txt"
+          cd "$RUNNER_TEMP"
+          zip -qry "$GITHUB_WORKSPACE/$NAME.zip" "$NAME"
+          unzip -t "$GITHUB_WORKSPACE/$NAME.zip"
+          sha256sum "$GITHUB_WORKSPACE/$NAME.zip" > "$GITHUB_WORKSPACE/$NAME.sha256"
+
+      - name: Upload Chill Pros project ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: Chill-Pros-Operations-Center-Complete-Project
+          path: |
+            Chill-Pros-Operations-Center-Complete-Project.zip
+            Chill-Pros-Operations-Center-Complete-Project.sha256
+          if-no-files-found: error
+          retention-days: 7
