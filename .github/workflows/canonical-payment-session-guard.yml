@@ -1,0 +1,117 @@
+name: Canonical Payment Session Guard
+
+on:
+  pull_request:
+  push:
+    branches:
+      - recovery/boodaflow-canonical-v0-proxy
+
+jobs:
+  payment-session-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Bind payment return reconciliation to the issued checkout session
+        run: |
+          node <<'EOF'
+          const assert = require('node:assert/strict');
+          const fs = require('node:fs');
+          const vm = require('node:vm');
+
+          const source = fs.readFileSync('canonical-payment-session-guard.js', 'utf8');
+          const visual = fs.readFileSync('api/v0-visual.js', 'utf8');
+          assert.match(visual, /canonical-payment-session-guard\.js/, 'visual proxy must load the payment session guard');
+          assert.doesNotMatch(source, /document\.|document\.body|innerHTML/, 'payment guard must not reconstruct or mutate the preserved v0 shell');
+
+          global.window = globalThis;
+          global.sessionStorage = (() => {
+            const values = new Map();
+            return {
+              getItem(key) { return values.has(key) ? values.get(key) : null; },
+              setItem(key, value) { values.set(key, String(value)); },
+              removeItem(key) { values.delete(key); },
+            };
+          })();
+
+          let uid = 'owner-a';
+          global.chillProsAuth = { get currentUser() { return uid ? { uid } : null; } };
+          const calls = [];
+          global.fetch = async (input, init = {}) => {
+            const url = typeof input === 'string' ? input : input.url;
+            const body = typeof init.body === 'string' ? JSON.parse(init.body) : {};
+            calls.push({ url, body });
+            if (url.endsWith('/payments/checkout')) {
+              return new Response(JSON.stringify({
+                ok: true,
+                invoiceId: body.invoiceId,
+                checkoutSessionId: 'cs_owner_a_1',
+                url: 'https://checkout.stripe.test/session',
+              }), { status: 200, headers: { 'content-type': 'application/json' } });
+            }
+            if (url.endsWith('/payments/status')) {
+              return new Response(JSON.stringify({
+                ok: true,
+                invoiceId: 'invoice-a',
+                checkoutSessionId: body.checkoutSessionId,
+                paymentStatus: 'unpaid',
+                status: 'complete',
+              }), { status: 200, headers: { 'content-type': 'application/json' } });
+            }
+            return new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } });
+          };
+
+          vm.runInThisContext(source, { filename: 'canonical-payment-session-guard.js' });
+
+          (async () => {
+            const base = 'https://us-central1-chill-pros-ice-stream.cloudfunctions.net/nativeOpsApi';
+            const checkout = await fetch(`${base}/payments/checkout`, {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ invoiceId: 'invoice-a' }),
+            });
+            assert.equal(checkout.status, 200, 'checkout request must pass through');
+
+            const beforeGoodStatus = calls.length;
+            const good = await fetch(`${base}/payments/status`, {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ checkoutSessionId: 'cs_owner_a_1' }),
+            });
+            assert.equal(good.status, 200, 'the exact issued checkout session must be allowed to reconcile');
+            assert.equal(calls.length, beforeGoodStatus + 1, 'valid status reconciliation must reach native billing exactly once');
+
+            const beforeWrongSession = calls.length;
+            const wrongSession = await fetch(`${base}/payments/status`, {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ checkoutSessionId: 'cs_unissued_old_session' }),
+            });
+            assert.equal(wrongSession.status, 409, 'an unissued or stale checkout session must fail closed');
+            assert.equal(calls.length, beforeWrongSession, 'rejected stale session must never reach native billing');
+
+            uid = 'owner-b';
+            const beforeAccountSwitch = calls.length;
+            const switched = await fetch(`${base}/payments/status`, {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ checkoutSessionId: 'cs_owner_a_1' }),
+            });
+            assert.equal(switched.status, 409, 'checkout session from another authenticated identity must fail closed');
+            assert.equal(calls.length, beforeAccountSwitch, 'cross-account payment status request must not reach native billing');
+
+            const beforeUnrelated = calls.length;
+            await fetch('https://example.com/unrelated', { method: 'POST', body: '{}' });
+            assert.equal(calls.length, beforeUnrelated + 1, 'unrelated requests must pass through exactly once');
+
+            console.log('Canonical payment session guard passed: payment-return status can reconcile only the checkout issued by the same authenticated Operations Center session.');
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          EOF
