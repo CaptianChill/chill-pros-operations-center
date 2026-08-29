@@ -28,9 +28,11 @@ jobs:
           const visual = fs.readFileSync('api/v0-visual.js', 'utf8');
           assert.match(visual, /canonical-payment-session-guard\.js/, 'visual proxy must load the payment session guard');
           assert.doesNotMatch(source, /document\.|document\.body|innerHTML/, 'payment guard must not reconstruct or mutate the preserved v0 shell');
+          assert.match(source, /localStorage/, 'checkout binding must survive the popup being created before checkout returns');
+          assert.doesNotMatch(source, /sessionStorage/, 'per-tab storage would strand the Stripe return popup without the issued-session binding');
 
           global.window = globalThis;
-          global.sessionStorage = (() => {
+          global.localStorage = (() => {
             const values = new Map();
             return {
               getItem(key) { return values.has(key) ? values.get(key) : null; },
@@ -47,17 +49,19 @@ jobs:
             const body = typeof init.body === 'string' ? JSON.parse(init.body) : {};
             calls.push({ url, body });
             if (url.endsWith('/payments/checkout')) {
+              const suffix = body.invoiceId === 'invoice-b' ? '2' : '1';
               return new Response(JSON.stringify({
                 ok: true,
                 invoiceId: body.invoiceId,
-                checkoutSessionId: 'cs_owner_a_1',
+                checkoutSessionId: `cs_owner_a_${suffix}`,
                 url: 'https://checkout.stripe.test/session',
               }), { status: 200, headers: { 'content-type': 'application/json' } });
             }
             if (url.endsWith('/payments/status')) {
+              const invoiceId = body.checkoutSessionId === 'cs_owner_a_2' ? 'invoice-b' : 'invoice-a';
               return new Response(JSON.stringify({
                 ok: true,
-                invoiceId: 'invoice-a',
+                invoiceId,
                 checkoutSessionId: body.checkoutSessionId,
                 paymentStatus: 'unpaid',
                 status: 'complete',
@@ -77,6 +81,13 @@ jobs:
             });
             assert.equal(checkout.status, 200, 'checkout request must pass through');
 
+            const secondCheckout = await fetch(`${base}/payments/checkout`, {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ invoiceId: 'invoice-b' }),
+            });
+            assert.equal(secondCheckout.status, 200, 'a second invoice checkout must not erase the first checkout binding');
+
             const beforeGoodStatus = calls.length;
             const good = await fetch(`${base}/payments/status`, {
               method: 'POST',
@@ -85,6 +96,15 @@ jobs:
             });
             assert.equal(good.status, 200, 'the exact issued checkout session must be allowed to reconcile');
             assert.equal(calls.length, beforeGoodStatus + 1, 'valid status reconciliation must reach native billing exactly once');
+
+            const beforeSecondStatus = calls.length;
+            const second = await fetch(`${base}/payments/status`, {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ checkoutSessionId: 'cs_owner_a_2' }),
+            });
+            assert.equal(second.status, 200, 'multiple active invoice checkout bindings must coexist safely');
+            assert.equal(calls.length, beforeSecondStatus + 1, 'second valid status reconciliation must reach native billing exactly once');
 
             const beforeWrongSession = calls.length;
             const wrongSession = await fetch(`${base}/payments/status`, {
@@ -109,7 +129,7 @@ jobs:
             await fetch('https://example.com/unrelated', { method: 'POST', body: '{}' });
             assert.equal(calls.length, beforeUnrelated + 1, 'unrelated requests must pass through exactly once');
 
-            console.log('Canonical payment session guard passed: payment-return status can reconcile only the checkout issued by the same authenticated Operations Center session.');
+            console.log('Canonical payment session guard passed: popup-safe checkout bindings survive across tabs, multiple invoices coexist, and stale/cross-account sessions fail closed.');
           })().catch((error) => {
             console.error(error);
             process.exit(1);
