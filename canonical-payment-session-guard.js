@@ -22,6 +22,29 @@
     return String(init?.method || (input instanceof Request ? input.method : 'GET') || 'GET').toUpperCase();
   }
 
+  function requestHeaders(input, init) {
+    const headers = new Headers(input instanceof Request ? input.headers : undefined);
+    if (init?.headers) new Headers(init.headers).forEach((value, key) => headers.set(key, value));
+    return headers;
+  }
+
+  function decodeUidFromBearer(value) {
+    try {
+      const token = String(value || '').replace(/^Bearer\s+/i, '');
+      if (!token) return '';
+      const raw = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+      const pad = raw + '='.repeat((4 - raw.length % 4) % 4);
+      const payload = JSON.parse(atob(pad));
+      return String(payload.user_id || payload.sub || '').slice(0, 180);
+    } catch {
+      return '';
+    }
+  }
+
+  function requestUid(input, init) {
+    return decodeUidFromBearer(requestHeaders(input, init).get('authorization'));
+  }
+
   async function requestPayload(input, init) {
     try {
       if (typeof init?.body === 'string') return JSON.parse(init.body);
@@ -84,14 +107,17 @@
 
     if (method === 'POST' && url === CHECKOUT_URL) {
       const payload = await requestPayload(input, init);
+      const requestInvoiceId = String(payload?.invoiceId || '').slice(0, 180);
+      const issuedToUid = requestUid(input, init);
       const response = await innerFetch(input, init);
       if (response.ok) {
         try {
           const data = await response.clone().json();
-          const uid = currentUid();
-          const invoiceId = String(data?.invoiceId || payload?.invoiceId || '').slice(0, 180);
+          const returnedInvoiceId = String(data?.invoiceId || '').slice(0, 180);
           const sessionId = String(data?.checkoutSessionId || '').slice(0, 220);
-          rememberAttempt(uid, invoiceId, sessionId);
+          if (issuedToUid && requestInvoiceId && returnedInvoiceId === requestInvoiceId) {
+            rememberAttempt(issuedToUid, returnedInvoiceId, sessionId);
+          }
         } catch {}
       }
       return response;
