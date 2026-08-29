@@ -103,6 +103,88 @@
     }
   }
 
+  function showPaymentNotice(message, bad = false) {
+    let notice = document.getElementById('cpPaymentReturnNotice');
+    if (!notice) {
+      notice = document.createElement('section');
+      notice.id = 'cpPaymentReturnNotice';
+      notice.className = 'cp-payment-return';
+      const text = document.createElement('span');
+      text.className = 'cp-payment-return-text';
+      const close = document.createElement('button');
+      close.type = 'button';
+      close.className = 'cp-payment-return-close';
+      close.setAttribute('aria-label', 'Dismiss payment status');
+      close.textContent = '×';
+      close.addEventListener('click', () => notice.remove());
+      notice.append(text, close);
+      document.body.appendChild(notice);
+    }
+    notice.dataset.bad = bad ? '1' : '0';
+    const text = notice.querySelector('.cp-payment-return-text');
+    if (text) text.textContent = message;
+  }
+
+  function clearPaymentReturnParams() {
+    try {
+      const url = new URL(location.href);
+      ['payment', 'invoice', 'session_id'].forEach((key) => url.searchParams.delete(key));
+      history.replaceState(history.state, '', `${url.pathname}${url.search}${url.hash}` || '/');
+    } catch {}
+  }
+
+  async function reconcilePaymentReturn() {
+    let url;
+    try { url = new URL(location.href); } catch { return; }
+    const payment = String(url.searchParams.get('payment') || '').toLowerCase();
+    if (payment !== 'success' && payment !== 'cancelled') return;
+
+    const invoiceId = String(url.searchParams.get('invoice') || '').slice(0, 180);
+    const sessionId = String(url.searchParams.get('session_id') || '').slice(0, 220);
+
+    if (payment === 'cancelled') {
+      showPaymentNotice('Payment checkout cancelled. No payment was recorded.');
+      clearPaymentReturnParams();
+      return;
+    }
+
+    if (!sessionId.startsWith('cs_')) {
+      showPaymentNotice('Payment returned without a valid Stripe session. No payment status was changed.', true);
+      return;
+    }
+
+    showPaymentNotice('Verifying secure payment status…');
+    try {
+      const out = await runOnce('payment-return-status', () => secure(BILL, '/payments/status', {
+        checkoutSessionId: sessionId,
+      }));
+      if (!out) return;
+      if (String(out.checkoutSessionId || '') !== sessionId) {
+        throw new Error('Payment session verification mismatch.');
+      }
+
+      const verifiedInvoiceId = String(out.invoiceId || '').slice(0, 180);
+      if (invoiceId && verifiedInvoiceId && invoiceId !== verifiedInvoiceId) {
+        throw new Error('Payment invoice verification mismatch.');
+      }
+      if (verifiedInvoiceId || invoiceId) quoteState.invoiceId = verifiedInvoiceId || invoiceId;
+
+      const paymentStatus = String(out.paymentStatus || 'unpaid').toLowerCase();
+      const checkoutStatus = String(out.status || '').toLowerCase();
+      const amount = Number(out.amountTotal || 0);
+      if (paymentStatus === 'paid') {
+        showPaymentNotice(`Payment confirmed${amount > 0 ? ` • ${money(amount)}` : ''}.`);
+      } else if (checkoutStatus === 'complete') {
+        showPaymentNotice('Payment submitted. Bank payments can remain processing before final confirmation.');
+      } else {
+        showPaymentNotice(`Checkout returned. Payment status: ${paymentStatus || 'pending'}.`);
+      }
+      clearPaymentReturnParams();
+    } catch (error) {
+      showPaymentNotice(error?.message || 'Unable to verify payment status right now.', true);
+    }
+  }
+
   function openQuoteWorkspace() {
     document.getElementById('cpQuoteOverlay')?.remove();
     const back = document.createElement('div');
@@ -346,6 +428,7 @@
     window.addEventListener('click', handleActionClick, true);
     markActionControls();
     new MutationObserver(markActionControls).observe(shell, { childList: true, subtree: true });
+    void reconcilePaymentReturn();
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install, { once: true });
