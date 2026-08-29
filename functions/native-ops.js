@@ -173,41 +173,122 @@ app.post("/quotes/:id/approve", requireStaff, requireOwner, async (req, res) => 
 });
 
 app.post("/invoices", requireStaff, async (req, res) => {
-  let lines = cleanLines(req.body?.lines);
+  const requestedLines = cleanLines(req.body?.lines);
   const quoteId = String(req.body?.quoteId || "").slice(0, 180) || null;
-  let quote = null;
-  if (quoteId) {
-    const quoteSnap = await db.collection("quotes").doc(quoteId).get();
-    if (!quoteSnap.exists) return res.status(404).json({ error: "Quote not found." });
-    quote = quoteSnap.data();
-    if (quote.status !== "approved") return res.status(409).json({ error: "Quote must be owner-approved before creating its invoice." });
-    if (!lines.length) lines = cleanLines(quote.lines);
-  }
-  if (!lines.length) return res.status(400).json({ error: "At least one invoice line is required." });
-  const invoiceRef = db.collection("invoices").doc();
-  const total = totalForLines(lines);
-  const record = {
-    quoteId,
-    customerId: String(req.body?.customerId || quote?.customerId || "").slice(0, 160) || null,
-    customerName: String(req.body?.customerName || quote?.customerName || "").trim().slice(0, 240) || null,
-    customerEmail: String(req.body?.customerEmail || quote?.customerEmail || "").trim().slice(0, 320) || null,
-    jobId: String(req.body?.jobId || quote?.jobId || "").slice(0, 160) || null,
-    equipmentId: String(req.body?.equipmentId || quote?.equipmentId || "").slice(0, 160) || null,
-    scope: String(req.body?.scope || quote?.scope || "").trim().slice(0, 5000) || null,
-    notes: String(req.body?.notes || "").trim().slice(0, 5000) || null,
-    lines,
-    total,
-    amountPaid: 0,
-    balanceDue: total,
-    status: "draft",
-    paymentStatus: "unpaid",
-    createdByUid: req.user.uid,
-    createdByRole: req.staff.role,
-    createdAt: FieldValue.serverTimestamp(),
-    updatedAt: FieldValue.serverTimestamp(),
+
+  const buildRecord = (invoiceLines, quote = null) => {
+    const total = totalForLines(invoiceLines);
+    return {
+      quoteId,
+      customerId: String(req.body?.customerId || quote?.customerId || "").slice(0, 160) || null,
+      customerName: String(req.body?.customerName || quote?.customerName || "").trim().slice(0, 240) || null,
+      customerEmail: String(req.body?.customerEmail || quote?.customerEmail || "").trim().slice(0, 320) || null,
+      jobId: String(req.body?.jobId || quote?.jobId || "").slice(0, 160) || null,
+      equipmentId: String(req.body?.equipmentId || quote?.equipmentId || "").slice(0, 160) || null,
+      scope: String(req.body?.scope || quote?.scope || "").trim().slice(0, 5000) || null,
+      notes: String(req.body?.notes || "").trim().slice(0, 5000) || null,
+      lines: invoiceLines,
+      total,
+      amountPaid: 0,
+      balanceDue: total,
+      status: "draft",
+      paymentStatus: "unpaid",
+      createdByUid: req.user.uid,
+      createdByRole: req.staff.role,
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    };
   };
-  await invoiceRef.set(record);
-  return res.status(201).json({ ok: true, id: invoiceRef.id, ...record, createdAt: null, updatedAt: null });
+
+  if (!quoteId) {
+    if (!requestedLines.length) return res.status(400).json({ error: "At least one invoice line is required." });
+    const invoiceRef = db.collection("invoices").doc();
+    const record = buildRecord(requestedLines);
+    await invoiceRef.set(record);
+    return res.status(201).json({ ok: true, id: invoiceRef.id, ...record, createdAt: null, updatedAt: null });
+  }
+
+  const quoteRef = db.collection("quotes").doc(quoteId);
+
+  try {
+    // Backfill lineage from invoices created before quote.invoiceId existed.
+    const legacyInvoices = await db.collection("invoices").where("quoteId", "==", quoteId).limit(1).get();
+    const legacyInvoiceId = legacyInvoices.empty ? "" : legacyInvoices.docs[0].id;
+    const candidateInvoiceRef = db.collection("invoices").doc();
+
+    const outcome = await db.runTransaction(async (transaction) => {
+      const quoteSnap = await transaction.get(quoteRef);
+      if (!quoteSnap.exists) return { errorStatus: 404, error: "Quote not found." };
+
+      const quote = quoteSnap.data();
+      if (quote.status !== "approved") {
+        return { errorStatus: 409, error: "Quote must be owner-approved before creating its invoice." };
+      }
+
+      const existingInvoiceId = String(quote.invoiceId || legacyInvoiceId || "").slice(0, 180);
+      if (existingInvoiceId) {
+        if (!quote.invoiceId) {
+          transaction.set(quoteRef, {
+            invoiceId: existingInvoiceId,
+            updatedAt: FieldValue.serverTimestamp(),
+          }, { merge: true });
+        }
+        return { existingInvoiceId };
+      }
+
+      const invoiceLines = requestedLines.length ? requestedLines : cleanLines(quote.lines);
+      if (!invoiceLines.length) {
+        return { errorStatus: 400, error: "At least one invoice line is required." };
+      }
+
+      const record = buildRecord(invoiceLines, quote);
+      transaction.set(candidateInvoiceRef, record);
+      transaction.set(quoteRef, {
+        invoiceId: candidateInvoiceRef.id,
+        invoicedAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
+
+      return { created: true, id: candidateInvoiceRef.id, record };
+    });
+
+    if (outcome.errorStatus) return res.status(outcome.errorStatus).json({ error: outcome.error });
+
+    if (outcome.existingInvoiceId) {
+      const existingInvoiceRef = db.collection("invoices").doc(outcome.existingInvoiceId);
+      const existingInvoiceSnap = await existingInvoiceRef.get();
+      if (!existingInvoiceSnap.exists) {
+        logger.error("Quote references missing invoice; refusing duplicate creation", {
+          quoteId,
+          invoiceId: outcome.existingInvoiceId,
+        });
+        return res.status(409).json({
+          error: "Quote already references an invoice that could not be loaded. No duplicate invoice was created.",
+        });
+      }
+      const existing = existingInvoiceSnap.data();
+      return res.json({
+        ok: true,
+        id: existingInvoiceSnap.id,
+        quoteId,
+        total: Number(existing.total || 0),
+        status: existing.status || null,
+        paymentStatus: existing.paymentStatus || null,
+        reused: true,
+      });
+    }
+
+    return res.status(201).json({
+      ok: true,
+      id: outcome.id,
+      ...outcome.record,
+      createdAt: null,
+      updatedAt: null,
+    });
+  } catch (error) {
+    logger.error("Invoice creation failed", { quoteId, message: error.message });
+    return res.status(500).json({ error: "Unable to create invoice right now. No duplicate invoice was created." });
+  }
 });
 
 app.post("/invoices/:id/approve", requireStaff, requireOwner, async (req, res) => {
