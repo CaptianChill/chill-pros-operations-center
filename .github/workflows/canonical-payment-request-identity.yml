@@ -27,6 +27,7 @@ jobs:
           const source = fs.readFileSync('canonical-payment-session-guard.js', 'utf8');
           assert.match(source, /decodeUidFromBearer/, 'checkout ownership must come from the authenticated request token');
           assert.match(source, /issuedToUid\s*=\s*requestUid/, 'checkout must snapshot request identity before awaiting the response');
+          assert.match(source, /STORE_PREFIX/, 'request-bound checkout identity must use the independent per-session storage contract');
           assert.doesNotMatch(source, /document\.|document\.body|innerHTML/, 'payment identity guard must remain DOM-free');
 
           const CHECKOUT = 'https://us-central1-chill-pros-ice-stream.cloudfunctions.net/nativeOpsApi/payments/checkout';
@@ -84,11 +85,12 @@ jobs:
             });
             assert.equal(checkout.status, 200);
 
-            const attempts = JSON.parse(store.get('chillProsCanonicalCheckoutAttempts') || '[]');
-            assert.equal(attempts.length, 1, 'successful checkout should create one local binding');
-            assert.equal(attempts[0].uid, 'owner-old', 'binding must stay with the bearer-token owner, not the account active when the response returns');
-            assert.equal(attempts[0].invoiceId, 'inv-1');
-            assert.equal(attempts[0].sessionId, 'cs_owner_old');
+            const attempt = JSON.parse(store.get('chillProsCanonicalCheckoutAttempt:cs_owner_old') || 'null');
+            assert.ok(attempt, 'successful checkout should create one direct local binding for its Stripe session');
+            assert.equal(attempt.uid, 'owner-old', 'binding must stay with the bearer-token owner, not the account active when the response returns');
+            assert.equal(attempt.invoiceId, 'inv-1');
+            assert.equal(attempt.sessionId, 'cs_owner_old');
+            assert.equal(store.has('chillProsCanonicalCheckoutAttempts'), false, 'new checkout writes must not regress to the shared legacy array');
 
             const beforeDenied = rawCalls.length;
             const denied = await fetch(STATUS, {
@@ -108,7 +110,7 @@ jobs:
             assert.equal(allowed.status, 200, 'original authenticated owner must retain the checkout binding');
             assert.equal(rawCalls.at(-1), STATUS);
 
-            console.log('Canonical payment request identity passed: in-flight checkout responses cannot migrate to a different authenticated account.');
+            console.log('Canonical payment request identity passed: in-flight checkout responses cannot migrate to a different authenticated account, and per-session storage cannot clobber another tab.');
           })().catch((error) => {
             console.error(error);
             process.exit(1);
