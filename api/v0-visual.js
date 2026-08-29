@@ -20,7 +20,7 @@ export default async function handler(req, res) {
     // Delaying the overlay runtime avoids mutating React-managed nodes during Next.js
     // hydration, which can otherwise cause a visually-correct SSR shell to break once
     // the browser takes over.
-    const overlayBootstrap = `<script src="/canonical-auth.js?v=20260828-authretry1"></script><script src="/canonical-auth-retry.js?v=20260828-authretry1"></script><script src="/canonical-chill-bro-session.js?v=20260829-session1"></script><script>(function(){var boot=function(){requestAnimationFrame(function(){requestAnimationFrame(function(){setTimeout(function(){var s=document.createElement('script');s.src='/canonical-top-level.js?v=20260828-authretry1';s.dataset.cpHydrationSafe='1';document.body.appendChild(s);},0);});});};if(document.readyState==='complete'){boot();}else{window.addEventListener('load',boot,{once:true});}})();</script>`;
+    const overlayBootstrap = `<script src="/canonical-auth.js?v=20260828-authretry1"></script><script src="/canonical-auth-retry.js?v=20260828-authretry1"></script><script src="/canonical-payment-session-guard.js?v=20260829-payguard1"></script><script src="/canonical-chill-bro-session.js?v=20260829-session1"></script><script>(function(){var boot=function(){requestAnimationFrame(function(){requestAnimationFrame(function(){setTimeout(function(){var s=document.createElement('script');s.src='/canonical-top-level.js?v=20260828-authretry1';s.dataset.cpHydrationSafe='1';document.body.appendChild(s);},0);});});};if(document.readyState==='complete'){boot();}else{window.addEventListener('load',boot,{once:true});}})();</script>`;
 
     html = html
       .replace(/(src|href)="\/(?!\/)/g, `$1="${SOURCE}/`)
