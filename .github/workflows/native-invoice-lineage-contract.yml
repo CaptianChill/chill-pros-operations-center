@@ -17,7 +17,7 @@ jobs:
         with:
           node-version: 24
 
-      - name: Verify approved quotes cannot mint duplicate invoices
+      - name: Verify approved quotes cannot mint duplicate or altered invoices
         run: |
           node --check functions/native-ops.js
           node <<'EOF'
@@ -41,7 +41,15 @@ jobs:
           assert.match(invoices, /invoiceId: candidateInvoiceRef\.id/, 'the quote must atomically record the canonical invoice id');
           assert.match(invoices, /reused: true/, 'idempotent retries must return the existing invoice rather than minting another');
           assert.match(invoices, /refusing duplicate creation/, 'broken lineage must fail closed rather than silently minting a replacement invoice');
+
+          assert.match(invoices, /const source = quote \|\| req\.body \|\| \{\}/, 'quote-derived invoice fields must select the approved quote as their source');
+          assert.match(invoices, /const invoiceLines = cleanLines\(quote\.lines\)/, 'quote-derived invoices must use the approved quote lines exactly');
+          assert.doesNotMatch(invoices, /requestedLines\.length \? requestedLines : cleanLines\(quote\.lines\)/, 'request-supplied lines must never override an approved quote');
+          assert.match(invoices, /const approvedTotal = Number\(quote\.total\)/, 'approved quote total must be checked before invoice creation');
+          assert.match(invoices, /Math\.abs\(recomputedTotal - approvedTotal\) > 0\.009/, 'approved quote line total drift must fail closed');
+          assert.match(invoices, /buildRecord\(invoiceLines, quote\)/, 'quote-derived invoice metadata must be copied from the approved quote');
+          assert.match(invoices, /buildRecord\(requestedLines\)/, 'standalone invoices must retain the explicit non-quote path');
           assert.doesNotMatch(invoices, /document\.|document\.body|innerHTML/, 'invoice hardening must remain server-side and must not alter the preserved v0 visual contract');
 
-          console.log('Native invoice lineage contract passed: approved quote-to-invoice creation is transaction-protected, legacy-aware, retry-safe, and fail-closed.');
+          console.log('Native invoice lineage contract passed: approved quote-to-invoice creation is immutable, transaction-protected, legacy-aware, retry-safe, and fail-closed.');
           EOF
