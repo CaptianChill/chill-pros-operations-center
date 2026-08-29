@@ -1,0 +1,47 @@
+name: Native Invoice Lineage Contract
+
+on:
+  pull_request:
+  push:
+    branches:
+      - recovery/boodaflow-canonical-v0-proxy
+
+jobs:
+  invoice-lineage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Verify approved quotes cannot mint duplicate invoices
+        run: |
+          node --check functions/native-ops.js
+          node <<'EOF'
+          const assert = require('node:assert/strict');
+          const fs = require('node:fs');
+
+          const source = fs.readFileSync('functions/native-ops.js', 'utf8');
+          const invoices = source.slice(
+            source.indexOf('app.post("/invoices"'),
+            source.indexOf('app.post("/invoices/:id/approve"')
+          );
+
+          assert.ok(invoices.length > 500, 'invoice route must remain present');
+          assert.match(invoices, /quoteId/, 'quote-backed invoices must retain quote lineage');
+          assert.match(invoices, /quote\.status !== "approved"/, 'quote-backed invoice creation must require an approved quote');
+          assert.match(invoices, /\.where\("quoteId", "==", quoteId\)\.limit\(1\)/, 'legacy quote-backed invoices must be detected before a new invoice is created');
+          assert.match(invoices, /db\.runTransaction\(async \(transaction\) =>/, 'quote-to-invoice creation must be protected by a Firestore transaction');
+          assert.match(invoices, /transaction\.get\(quoteRef\)/, 'the quote must be re-read inside the transaction');
+          assert.match(invoices, /quote\.invoiceId \|\| legacyInvoiceId/, 'existing canonical or legacy invoice lineage must be reused');
+          assert.match(invoices, /transaction\.set\(candidateInvoiceRef, record\)/, 'new quote-backed invoice creation must happen inside the transaction');
+          assert.match(invoices, /invoiceId: candidateInvoiceRef\.id/, 'the quote must atomically record the canonical invoice id');
+          assert.match(invoices, /reused: true/, 'idempotent retries must return the existing invoice rather than minting another');
+          assert.match(invoices, /refusing duplicate creation/, 'broken lineage must fail closed rather than silently minting a replacement invoice');
+          assert.doesNotMatch(invoices, /document\.|document\.body|innerHTML/, 'invoice hardening must remain server-side and must not alter the preserved v0 visual contract');
+
+          console.log('Native invoice lineage contract passed: approved quote-to-invoice creation is transaction-protected, legacy-aware, retry-safe, and fail-closed.');
+          EOF
