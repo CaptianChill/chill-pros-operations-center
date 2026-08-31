@@ -158,10 +158,15 @@ const SEED_CUSTOMERS = [
 
 const BLANK = {
   jobs: [], customers: SEED_CUSTOMERS, quotes: [], pms: [],
-  techs: ['Unassigned', 'Chill', 'Tech 2'], seq: { job: 1000, quote: 500 }
+  techs: ['Unassigned', 'Chill', 'Tech 2'], seq: { job: 1000, quote: 500 },
+  settings: {
+    bizName: 'Chill Pros', bizPhone: '', bizEmail: '', bizAddress: '',
+    taxRate: 8.25, notifyNewJob: true, notifyPayment: true, notifyPmDue: true
+  }
 };
 
 let S = Store.load() || structuredClone(BLANK);
+if (!S.settings) S.settings = structuredClone(BLANK.settings);
 const save = () => Store.save(S);
 const uid = () => Math.random().toString(36).slice(2, 10);
 const money = n => '$' + (Number(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -245,6 +250,8 @@ const VIEWS = [
 ];
 
 let route = 'dash';
+let pendingAsk = null;
+function askBro(q) { pendingAsk = q; go('ai'); }
 
 function renderRail() {
   const r = $('#rail');
@@ -271,7 +278,6 @@ document.addEventListener('click', e => {
   const b = e.target.closest('[data-go]');
   if (!b) return;
   e.preventDefault();
-  if (b.dataset.go === 'ai') { Bro.open(); return; }
   go(b.dataset.go);
 });
 
@@ -298,7 +304,12 @@ RENDER.dash = () => {
     notes.push({ cls: 'info', b: `PM checklist in progress`, s: `${p.customer} · ${p.type}` }));
   if (!notes.length) notes.push({ cls: 'ok', b: 'All caught up', s: 'Nothing needs attention right now' });
 
+  const urgent = notes.filter(n => n.cls === 'warn').length;
   $('#view').innerHTML = `
+    <div class="card notifbar ${urgent ? 'hot' : ''}">
+      <div class="sechd" style="margin-bottom:6px">${urgent ? `NEEDS ATTENTION · ${urgent}` : 'NOTIFICATIONS'}</div>
+      ${notes.map(n => `<div class="notif"><span class="dot ${n.cls}"></span><div><b>${esc(n.b)}</b><small>${esc(n.s)}</small></div></div>`).join('')}
+    </div>
     <div class="stats">
       <div class="stat"><div class="l">TODAY'S JOBS</div><div class="v">${jobsToday}</div><div class="u">Created today</div></div>
       <div class="stat"><div class="l">IN PROGRESS</div><div class="v">${inProgress}</div><div class="u">Active</div></div>
@@ -307,7 +318,7 @@ RENDER.dash = () => {
       <div class="stat"><div class="l">PARTS ORDERS</div><div class="v">${partsOrders}</div><div class="u">Pending</div></div>
       <div class="stat"><div class="l">PM VISITS</div><div class="v">${pmVisits}</div><div class="u">This week</div></div>
     </div>
-    <div class="dashgrid">
+    <div class="dashgrid2">
       <div class="card">
         <div class="sechd">QUICK ACTIONS</div>
         <button class="qa-rw" data-go="newcust"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0112 0M16 11a3 3 0 100-6M18 20a6 6 0 00-3-5.2"/></svg></span><span class="t"><b>New customer intake</b><small>Capture customer & equipment</small></span><span class="chev">›</span></button>
@@ -317,25 +328,12 @@ RENDER.dash = () => {
         <button class="qa-rw" data-go="equip"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15.5 6.5a3.5 3.5 0 00-4.9 4.9L4 18l2 2 6.6-6.6a3.5 3.5 0 004.9-4.9l-2.3 2.3-2-2z"/></svg></span><span class="t"><b>Equipment records</b><small>View & manage equipment</small></span><span class="chev">›</span></button>
         <button class="qa-rw" data-go="parts"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7l9-4 9 4-9 4z"/><path d="M3 7v10l9 4 9-4V7"/></svg></span><span class="t"><b>Parts lookup</b><small>Find parts & create orders</small></span><span class="chev">›</span></button>
       </div>
-
-      <div class="card hero">
-        <img src="/logo-texas.webp" alt="Chill Pros">
-        <div class="tag">COMMAND CENTER</div>
-        <div class="badge">License to chill</div>
-      </div>
-
-      <div class="grid" style="gap:14px">
-        <div class="card">
-          <div class="sechd">UPCOMING JOBS</div>
-          ${upcoming.length ? upcoming.map(j => `<div class="rw" style="margin-bottom:8px">
-            <div class="g"><strong>${esc(j.problem)}</strong><small>${esc(j.customer)}${j.site ? ' · ' + esc(j.site) : ''}</small></div>
-            <button class="btn sm gho" data-openjob="${j.id}">View</button></div>`).join('')
-            : `<div class="muted" style="padding:8px 2px">Nothing on the board yet.</div>`}
-        </div>
-        <div class="card">
-          <div class="sechd">NOTIFICATIONS</div>
-          ${notes.map(n => `<div class="notif"><span class="dot ${n.cls}"></span><div><b>${esc(n.b)}</b><small>${esc(n.s)}</small></div></div>`).join('')}
-        </div>
+      <div class="card">
+        <div class="sechd">UPCOMING JOBS</div>
+        ${upcoming.length ? upcoming.map(j => `<div class="rw" style="margin-bottom:8px">
+          <div class="g"><strong>${esc(j.problem)}</strong><small>${esc(j.customer)}${j.site ? ' · ' + esc(j.site) : ''}</small></div>
+          <button class="btn sm gho" data-openjob="${j.id}">View</button></div>`).join('')
+          : `<div class="muted" style="padding:8px 2px">Nothing on the board yet.</div>`}
       </div>
     </div>`;
 };
@@ -462,8 +460,7 @@ document.addEventListener('click', e => {
   const ak = e.target.closest('[data-ask]');
   if (ak) {
     const j = S.jobs.find(x => x.id === ak.dataset.ask);
-    Bro.open();
-    Bro.ask(`${j.trade} — ${j.problem}${j.equipment ? ' on a ' + j.equipment : ''}`);
+    askBro(`${j.trade} — ${j.problem}${j.equipment ? ' on a ' + j.equipment : ''}`);
   }
 });
 
@@ -490,7 +487,7 @@ function newJobModal() {
     actions: [
       { label: 'Save & ask Chill Bro', run: (s, c) => {
           const j = buildJob(s); if (!j) return;
-          c(); go('jobs'); Bro.open(); Bro.ask(`${j.trade} — ${j.problem}${j.equipment ? ' on a ' + j.equipment : ''}`);
+          c(); askBro(`${j.trade} — ${j.problem}${j.equipment ? ' on a ' + j.equipment : ''}`);
         } },
       { label: 'Put on the board', pri: true, run: (s, c) => {
           const j = buildJob(s); if (!j) return;
@@ -793,12 +790,25 @@ RENDER.parts = () => {
 /* ── Quotes & Invoices ── */
 let draft = null;
 
+const Q_STATUS = ['Draft', 'Sent', 'Approved', 'Declined', 'Invoiced', 'Paid'];
+const Q_CLS = { Draft: 'st-draft', Sent: 'st-sent', Approved: 'st-approved',
+  Declined: 'st-declined', Invoiced: 'st-invoiced', Paid: 'st-paid' };
+const PAY_METHODS = ['ACH', 'Debit card', 'Credit card', 'Check', 'Cash'];
+
 function newDraft(seed = {}) {
   return {
     id: uid(), no: ++S.seq.quote, date: today(), status: 'Draft',
     customer: '', site: '', email: '', jobRef: '', scope: '',
-    items: [], taxRate: 8.25, ...seed
+    items: [], taxRate: S.settings.taxRate, ...seed
   };
+}
+function refreshQuoteTotals() {
+  if (!draft) return;
+  const t = qTotals(draft);
+  const a = $('#qSubVal'), b = $('#qTaxVal'), c = $('#qTotalVal');
+  if (a) a.textContent = money(t.sub);
+  if (b) b.textContent = money(t.tax);
+  if (c) c.textContent = money(t.total);
 }
 const qTotals = q => {
   const sub = q.items.reduce((a, i) => a + i.qty * i.price, 0);
@@ -841,7 +851,8 @@ RENDER.quote = () => {
     $('#view').innerHTML = `<div class="rows">${S.quotes.map(q => {
       const t = qTotals(q);
       return `<div class="rw"><div class="g"><strong>#${q.no} · ${esc(q.customer || 'Unnamed')}</strong>
-        <small>${esc(q.date)} · ${esc(q.status)}${q.jobRef ? ' · job ' + esc(q.jobRef) : ''}</small></div>
+        <small>${esc(q.date)}${q.jobRef ? ' · job ' + esc(q.jobRef) : ''}</small></div>
+        <span class="pill ${Q_CLS[q.status] || 'st-draft'}">${esc(q.status)}</span>
         <span class="amt">${money(t.total)}</span>
         <button class="btn sm gho" data-editq="${q.id}">Open</button></div>`;
     }).join('')}</div>`;
@@ -849,82 +860,149 @@ RENDER.quote = () => {
   }
 
   const t = qTotals(draft);
+  const locked = draft.status === 'Paid';
+  const actionsHtml = qActionButtons(draft.status);
+
   $('#view').innerHTML = `<div class="grid" style="grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr)">
     <div class="card">
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:14px">
+        <span class="pill ${Q_CLS[draft.status]}">${esc(draft.status)}</span>
+        <span class="muted" style="font-size:12px">#${draft.no} · ${esc(draft.date)}</span>
+      </div>
       <div class="row2">
-        <div class="field"><label>Customer</label><input class="inp" id="qc" list="custList2" value="${esc(draft.customer)}">
+        <div class="field"><label>Customer</label><input class="inp" id="qc" list="custList2" value="${esc(draft.customer)}" ${locked ? 'disabled' : ''}>
           <datalist id="custList2">${S.customers.map(c => `<option value="${esc(c.name)}">`).join('')}</datalist></div>
-        <div class="field"><label>Email</label><input class="inp" id="qe" type="email" value="${esc(draft.email)}"></div>
+        <div class="field"><label>Email</label><input class="inp" id="qe" type="email" value="${esc(draft.email)}" ${locked ? 'disabled' : ''}></div>
       </div>
       <div class="row2">
-        <div class="field"><label>Site</label><input class="inp" id="qs" value="${esc(draft.site)}"></div>
-        <div class="field"><label>Job reference</label><input class="inp" id="qj" value="${esc(draft.jobRef)}"></div>
+        <div class="field"><label>Site</label><input class="inp" id="qs" value="${esc(draft.site)}" ${locked ? 'disabled' : ''}></div>
+        <div class="field"><label>Job reference</label><input class="inp" id="qj" value="${esc(draft.jobRef)}" ${locked ? 'disabled' : ''}></div>
       </div>
-      <div class="field"><label>Scope of work</label><textarea class="inp" id="qsc">${esc(draft.scope)}</textarea></div>
+      <div class="field"><label>Scope of work</label><textarea class="inp" id="qsc" ${locked ? 'disabled' : ''}>${esc(draft.scope)}</textarea></div>
 
-      <div style="display:flex;align-items:center;gap:9px;margin:16px 0 9px">
+      <div style="display:flex;align-items:center;gap:9px;margin:16px 0 9px;flex-wrap:wrap">
         <strong style="font-size:13.5px">Line items</strong><div style="flex:1"></div>
-        <select class="inp" id="qpick" style="width:auto;max-width:230px;font-size:12.5px;padding:6px 9px">
+        ${locked ? '' : `<select class="inp" id="qpick" style="width:auto;max-width:100%;font-size:13.5px;padding:8px 10px">
           <option value="">Add from rate book…</option>
           ${['Labor','PM','Refrigerant','Parts'].map(c =>
             `<optgroup label="${c}">${RATES.filter(r => r.c === c).map((r, i) =>
               `<option value="${RATES.indexOf(r)}">${esc(r.n)}${r.p ? ' — ' + money(r.p) : ''}</option>`).join('')}</optgroup>`).join('')}
-        </select>
+        </select>`}
       </div>
-      <div class="tblwrap"><table class="tbl"><thead><tr><th>Item</th><th style="width:58px">Qty</th><th style="width:96px">Price</th><th style="width:46px">Tax</th><th style="width:88px" class="n">Amount</th><th style="width:30px"></th></tr></thead>
+      <div class="tblwrap"><table class="tbl" style="min-width:560px"><thead><tr><th style="min-width:170px">Item</th><th style="width:64px">Qty</th><th style="width:92px">Price</th><th style="width:50px">Tax</th><th style="width:90px" class="n">Amount</th><th style="width:34px"></th></tr></thead>
       <tbody>${draft.items.map(i => `<tr>
-        <td><input class="inp" style="padding:5px 8px;font-size:13px" value="${esc(i.n)}" data-li="${i.id}" data-f="n"></td>
-        <td><input class="inp" style="padding:5px 6px;font-size:13px" type="number" min="0" step="0.5" value="${i.qty}" data-li="${i.id}" data-f="qty"></td>
-        <td><input class="inp" style="padding:5px 6px;font-size:13px" type="number" min="0" step="0.01" value="${i.price}" data-li="${i.id}" data-f="price"></td>
-        <td style="text-align:center"><input type="checkbox" ${i.tax ? 'checked' : ''} data-li="${i.id}" data-f="tax" style="accent-color:#38A9DC;width:16px;height:16px"></td>
-        <td class="n">${money(i.qty * i.price)}</td>
-        <td><button class="x" style="width:24px;height:24px;font-size:16px" data-del="${i.id}">&times;</button></td></tr>`).join('')
+        <td><input class="inp" style="padding:7px 9px;font-size:14px;min-width:160px" value="${esc(i.n)}" data-li="${i.id}" data-f="n" ${locked ? 'disabled' : ''}></td>
+        <td><input class="inp" style="padding:7px 6px;font-size:14px;text-align:center" type="number" min="0" step="0.5" value="${i.qty}" data-li="${i.id}" data-f="qty" ${locked ? 'disabled' : ''}></td>
+        <td><input class="inp" style="padding:7px 6px;font-size:14px;text-align:right" type="number" min="0" step="0.01" value="${i.price}" data-li="${i.id}" data-f="price" ${locked ? 'disabled' : ''}></td>
+        <td style="text-align:center"><input type="checkbox" ${i.tax ? 'checked' : ''} data-li="${i.id}" data-f="tax" style="accent-color:#38A9DC;width:18px;height:18px" ${locked ? 'disabled' : ''}></td>
+        <td class="n" data-amt="${i.id}">${money(i.qty * i.price)}</td>
+        <td>${locked ? '' : `<button class="x" style="width:26px;height:26px;font-size:16px" data-del="${i.id}">&times;</button>`}</td></tr>`).join('')
         || '<tr><td colspan="6" class="muted" style="padding:14px 10px">No line items. Pick one from the rate book above.</td></tr>'}</tbody></table></div>
-      <button class="btn sm gho" id="qadd" style="margin-top:9px">+ Blank line</button>
+      ${locked ? '' : '<button class="btn sm gho" id="qadd" style="margin-top:9px">+ Blank line</button>'}
     </div>
 
     <div class="card" style="align-self:start">
-      <div style="display:flex;justify-content:space-between;margin-bottom:7px"><span class="muted">Subtotal</span><span class="amt">${money(t.sub)}</span></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:7px"><span class="muted">Subtotal</span><span class="amt" id="qSubVal">${money(t.sub)}</span></div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">
-        <span class="muted">Tax <input class="inp" id="qtax" type="number" step="0.01" value="${draft.taxRate}" style="width:64px;padding:3px 6px;font-size:12px;display:inline-block">%</span>
-        <span class="amt">${money(t.tax)}</span></div>
+        <span class="muted">Tax <input class="inp" id="qtax" type="number" step="0.01" value="${draft.taxRate}" style="width:60px;padding:4px 6px;font-size:13px;display:inline-block" ${locked ? 'disabled' : ''}>%</span>
+        <span class="amt" id="qTaxVal">${money(t.tax)}</span></div>
       <div style="display:flex;justify-content:space-between;padding-top:11px;border-top:1px solid var(--line-hot);margin-top:4px">
-        <strong>Total</strong><span class="amt" style="font-size:20px;color:var(--ice)">${money(t.total)}</span></div>
-      <div style="display:grid;gap:8px;margin-top:18px">
-        <button class="btn pri" id="qsave">Save quote</button>
-        <button class="btn" id="qinv">Convert to invoice</button>
-        <button class="btn gho" id="qprint">Print / save as PDF</button>
-        <button class="btn gho" id="qcancel">Close without saving</button>
-      </div>
-      <div class="muted" style="margin-top:14px;font-size:12px">Status: ${esc(draft.status)}</div>
+        <strong>Total</strong><span class="amt" id="qTotalVal" style="font-size:20px;color:var(--ice)">${money(t.total)}</span></div>
+      ${draft.status === 'Paid' ? `<div class="muted" style="margin-top:10px;font-size:12.5px">Paid via ${esc(draft.paymentMethod || '—')}${draft.paymentRef ? ' · ref ' + esc(draft.paymentRef) : ''} on ${esc(draft.paidAt || '')}</div>` : ''}
+      <div style="display:grid;gap:8px;margin-top:18px">${actionsHtml}</div>
     </div></div>`;
 
   const sync = syncQuoteFields;
-  $('#qpick').onchange = e => {
+  const qpick = $('#qpick');
+  if (qpick) qpick.onchange = e => {
     const r = RATES[+e.target.value]; if (!r) return;
     sync(); draft.items.push({ id: uid(), n: r.n, qty: 1, price: r.p, tax: r.c === 'Parts' || r.c === 'Refrigerant' });
     RENDER.quote();
   };
-  $('#qadd').onclick = () => { sync(); draft.items.push({ id: uid(), n: '', qty: 1, price: 0, tax: false }); RENDER.quote(); };
-  $('#qtax').onchange = () => { sync(); RENDER.quote(); };
+  const qadd = $('#qadd');
+  if (qadd) qadd.onclick = () => { sync(); draft.items.push({ id: uid(), n: '', qty: 1, price: 0, tax: false }); RENDER.quote(); };
+  $('#qtax').addEventListener('input', () => { sync(); refreshQuoteTotals(); });
   $('#qsave').onclick = () => {
     sync();
     if (!draft.customer.trim()) return toast('Add a customer name');
     const i = S.quotes.findIndex(q => q.id === draft.id);
     i >= 0 ? S.quotes[i] = draft : S.quotes.unshift(draft);
-    save(); toast(`Quote #${draft.no} saved`); draft = null; RENDER.quote();
+    save(); toast(`Quote #${draft.no} saved`);
   };
-  $('#qinv').onclick = () => {
+  const qcancel = $('#qcancel');
+  if (qcancel) qcancel.onclick = () => { draft = null; RENDER.quote(); };
+  const qsend = $('#qsend');
+  if (qsend) qsend.onclick = () => {
     sync();
     if (!draft.items.length) return toast('Add at least one line item');
-    draft.status = 'Invoice'; draft.invoicedAt = today();
-    const i = S.quotes.findIndex(q => q.id === draft.id);
-    i >= 0 ? S.quotes[i] = draft : S.quotes.unshift(draft);
-    save(); toast(`Invoice #${draft.no} created`); RENDER.quote();
+    if (!draft.customer.trim()) return toast('Add a customer name');
+    draft.status = 'Sent'; draft.sentAt = today();
+    persistDraft(); toast('Marked sent to customer');
   };
-  $('#qprint').onclick = () => toast('Print is disabled in this preview');
-  $('#qcancel').onclick = () => { draft = null; RENDER.quote(); };
+  const qapprove = $('#qapprove');
+  if (qapprove) qapprove.onclick = () => { draft.status = 'Approved'; draft.approvedAt = today(); persistDraft(); toast('Marked approved'); };
+  const qdecline = $('#qdecline');
+  if (qdecline) qdecline.onclick = () => { draft.status = 'Declined'; persistDraft(); toast('Marked declined'); };
+  const qresend = $('#qresend');
+  if (qresend) qresend.onclick = () => { draft.status = 'Sent'; draft.sentAt = today(); persistDraft(); toast('Re-sent to customer'); };
+  const qinv = $('#qinv');
+  if (qinv) qinv.onclick = () => {
+    sync();
+    draft.status = 'Invoiced'; draft.invoicedAt = today();
+    persistDraft(); toast(`Invoice #${draft.no} created`);
+  };
+  const qpay = $('#qpay');
+  if (qpay) qpay.onclick = () => recordPayment(draft);
+  const qprint = $('#qprint');
+  if (qprint) qprint.onclick = () => toast('Print is disabled in this preview');
 };
+
+function persistDraft() {
+  const i = S.quotes.findIndex(q => q.id === draft.id);
+  i >= 0 ? S.quotes[i] = draft : S.quotes.unshift(draft);
+  save(); RENDER.quote();
+}
+
+function qActionButtons(status) {
+  const save = '<button class="btn" id="qsave">Save changes</button>';
+  const print = '<button class="btn gho" id="qprint">Print / save as PDF</button>';
+  const cancel = '<button class="btn gho" id="qcancel">Close</button>';
+  const map = {
+    Draft:    `<button class="btn pri" id="qsend">Send to customer</button>${save}${print}${cancel}`,
+    Sent:     `<button class="btn pri" id="qapprove">Mark approved</button><button class="btn" id="qdecline">Mark declined</button>${save}${print}${cancel}`,
+    Approved: `<button class="btn pri" id="qinv">Convert to invoice</button>${save}${print}${cancel}`,
+    Declined: `<button class="btn pri" id="qresend">Re-send to customer</button>${save}${print}${cancel}`,
+    Invoiced: `<button class="btn pri" id="qpay">Record payment</button>${print}${cancel}`,
+    Paid:     `${print}${cancel}`
+  };
+  return map[status] || map.Draft;
+}
+
+function recordPayment(q) {
+  const t = qTotals(q);
+  modal({
+    title: `Record payment · #${q.no}`,
+    body: `<div class="field"><label>Method</label><select class="inp" id="pmMethod">
+        ${PAY_METHODS.map(m => `<option>${m}</option>`).join('')}</select></div>
+      <div class="row2">
+        <div class="field"><label>Amount received</label><input class="inp" id="pmAmt" type="number" step="0.01" value="${t.total.toFixed(2)}"></div>
+        <div class="field"><label>Reference / check #</label><input class="inp" id="pmRef" placeholder="Optional"></div>
+      </div>
+      <div class="muted" style="font-size:12.5px">Total due: ${money(t.total)}</div>`,
+    actions: [
+      { label: 'Cancel', run: (s, c) => c() },
+      { label: 'Confirm payment', pri: true, run: (s, c) => {
+          q.paymentMethod = s.querySelector('#pmMethod').value;
+          q.paidAmount = parseFloat(s.querySelector('#pmAmt').value) || t.total;
+          q.paymentRef = s.querySelector('#pmRef').value.trim();
+          q.paidAt = today(); q.status = 'Paid';
+          const i = S.quotes.findIndex(x => x.id === q.id);
+          i >= 0 ? S.quotes[i] = q : S.quotes.unshift(q);
+          save(); c(); toast(`Payment recorded · ${q.paymentMethod}`); RENDER.quote();
+        } }
+    ]
+  });
+}
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-editq]');
   if (b) { draft = S.quotes.find(q => q.id === b.dataset.editq); go('quote'); }
@@ -934,8 +1012,20 @@ document.addEventListener('input', e => {
   if (li && draft) {
     const it = draft.items.find(x => x.id === li.dataset.li); if (!it) return;
     const f = li.dataset.f;
-    it[f] = f === 'tax' ? li.checked : f === 'n' ? li.value : (parseFloat(li.value) || 0);
-    if (f !== 'n') { syncQuoteFields(); RENDER.quote(); }
+    it[f] = f === 'n' ? li.value : (parseFloat(li.value) || 0);
+    if (f === 'qty' || f === 'price') {
+      const cell = document.querySelector(`[data-amt="${it.id}"]`);
+      if (cell) cell.textContent = money(it.qty * it.price);
+      refreshQuoteTotals();
+    }
+  }
+});
+document.addEventListener('change', e => {
+  const li = e.target.closest('[data-li][data-f="tax"]');
+  if (li && draft) {
+    const it = draft.items.find(x => x.id === li.dataset.li); if (!it) return;
+    it.tax = li.checked;
+    refreshQuoteTotals();
   }
 });
 document.addEventListener('click', e => {
@@ -979,22 +1069,175 @@ RENDER.reports = () => {
 /* ── Settings (manage technicians) ── */
 RENDER.settings = () => {
   $('#topAct').innerHTML = '';
-  $('#view').innerHTML = `<div class="card" style="max-width:480px">
-    <div class="sechd">TECHNICIANS</div>
-    ${S.techs.map(t => `<div class="techrow"><span class="t">${esc(t)}</span>
-      ${t !== 'Unassigned' ? `<button class="btn sm gho" data-rmtech="${esc(t)}">Remove</button>` : ''}</div>`).join('')}
-    <div style="display:flex;gap:8px;margin-top:10px">
-      <input class="inp" id="newTech" placeholder="Add technician name">
-      <button class="btn pri" id="addTech">Add</button>
+  const me = Auth.currentUser();
+  const amAdmin = Auth.isAdmin();
+  $('#view').innerHTML = `<div class="grid" style="max-width:560px;gap:14px">
+    <div class="card">
+      <div class="sechd">ACCOUNT</div>
+      <div class="rw" style="margin-bottom:4px">
+        <div class="g"><strong>${esc(me ? me.email : 'Not signed in')}</strong><small>${me ? (amAdmin ? 'Owner / admin' : 'Worker') : 'Sign in once your account is set up in Firebase'}</small></div>
+        ${me ? '<button class="btn sm gho" id="signOutBtn">Sign out</button>' : '<button class="btn sm pri" id="signInBtn">Sign in</button>'}
+      </div>
     </div>
-  </div>
-  <div class="muted" style="margin-top:16px;font-size:12px;max-width:480px">More preferences — notifications, tax defaults, branding — are coming soon.</div>`;
+
+    ${amAdmin ? `<div class="card">
+      <div class="sechd">MANAGE WORKERS</div>
+      <div class="muted" style="font-size:12px;margin-bottom:10px">Adding a worker creates their real login. Removing one revokes their access to this app immediately.</div>
+      ${Auth.workers().map(w => `<div class="techrow"><span class="t">${esc(w.name || w.email)}<br><small class="muted">${esc(w.email)}</small></span>
+        <button class="btn sm gho" data-rmworker="${esc(w.id)}">Remove</button></div>`).join('') || '<div class="muted" style="padding:6px 0">No workers added yet</div>'}
+      <div class="row2" style="margin-top:12px">
+        <div class="field"><label>Name</label><input class="inp" id="wName" placeholder="Tech name"></div>
+        <div class="field"><label>Email</label><input class="inp" id="wEmail" type="email" placeholder="tech@example.com"></div>
+      </div>
+      <div class="field"><label>Temporary password</label><input class="inp" id="wPass" type="text" placeholder="At least 6 characters"></div>
+      <button class="btn pri sm" id="addWorkerBtn">Add worker</button>
+    </div>` : ''}
+
+    <div class="card">
+      <div class="sechd">BUSINESS INFO</div>
+      <div class="row2">
+        <div class="field"><label>Business name</label><input class="inp" id="setBizName" value="${esc(S.settings.bizName)}"></div>
+        <div class="field"><label>Phone</label><input class="inp" id="setBizPhone" value="${esc(S.settings.bizPhone)}"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Email</label><input class="inp" id="setBizEmail" type="email" value="${esc(S.settings.bizEmail)}"></div>
+        <div class="field"><label>Default tax rate %</label><input class="inp" id="setTaxRate" type="number" step="0.01" value="${S.settings.taxRate}"></div>
+      </div>
+      <div class="field"><label>Business address</label><input class="inp" id="setBizAddress" value="${esc(S.settings.bizAddress)}"></div>
+      <button class="btn pri sm" id="saveBiz">Save business info</button>
+    </div>
+
+    <div class="card">
+      <div class="sechd">NOTIFICATIONS</div>
+      <label class="rw" style="margin-bottom:8px;cursor:pointer">
+        <div class="g"><strong>New job needs a tech</strong><small>Show on the dashboard</small></div>
+        <input type="checkbox" id="notifyNewJob" ${S.settings.notifyNewJob ? 'checked' : ''} style="width:20px;height:20px;accent-color:var(--ice-deep)">
+      </label>
+      <label class="rw" style="margin-bottom:8px;cursor:pointer">
+        <div class="g"><strong>Payment received</strong><small>Show on the dashboard</small></div>
+        <input type="checkbox" id="notifyPayment" ${S.settings.notifyPayment ? 'checked' : ''} style="width:20px;height:20px;accent-color:var(--ice-deep)">
+      </label>
+      <label class="rw" style="cursor:pointer">
+        <div class="g"><strong>PM checklist in progress</strong><small>Show on the dashboard</small></div>
+        <input type="checkbox" id="notifyPmDue" ${S.settings.notifyPmDue ? 'checked' : ''} style="width:20px;height:20px;accent-color:var(--ice-deep)">
+      </label>
+    </div>
+
+    <div class="card">
+      <div class="sechd">TECHNICIANS</div>
+      ${S.techs.map(t => `<div class="techrow"><span class="t">${esc(t)}</span>
+        ${t !== 'Unassigned' ? `<button class="btn sm gho" data-rmtech="${esc(t)}">Remove</button>` : ''}</div>`).join('')}
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <input class="inp" id="newTech" placeholder="Add technician name">
+        <button class="btn pri" id="addTech">Add</button>
+      </div>
+    </div>
+  </div>`;
+
   $('#addTech').onclick = () => {
     const n = $('#newTech').value.trim();
     if (!n) return toast('Enter a name');
     if (S.techs.includes(n)) return toast('Already on the list');
     S.techs.push(n); save(); go('settings');
   };
+  $('#saveBiz').onclick = () => {
+    S.settings.bizName = $('#setBizName').value.trim();
+    S.settings.bizPhone = $('#setBizPhone').value.trim();
+    S.settings.bizEmail = $('#setBizEmail').value.trim();
+    S.settings.bizAddress = $('#setBizAddress').value.trim();
+    S.settings.taxRate = parseFloat($('#setTaxRate').value) || 0;
+    save(); toast('Business info saved');
+  };
+  ['notifyNewJob', 'notifyPayment', 'notifyPmDue'].forEach(k => {
+    $('#' + k).onchange = e => { S.settings[k] = e.target.checked; save(); };
+  });
+  const signOutBtn = $('#signOutBtn');
+  if (signOutBtn) signOutBtn.onclick = () => {
+    modal({
+      title: 'Sign out?',
+      body: '<div class="muted">You can sign back in any time.</div>',
+      actions: [
+        { label: 'Cancel', run: (s, c) => c() },
+        { label: 'Sign out', pri: true, run: () => Auth.signOut() }
+      ]
+    });
+  };
+  const signInBtn = $('#signInBtn');
+  if (signInBtn) signInBtn.onclick = () => {
+    if (!fbReady) return toast('Firebase did not load — check your connection');
+    modal({
+      title: 'Sign in',
+      body: `<div class="field"><label>Email</label><input class="inp" id="siEmail" type="email"></div>
+        <div class="field"><label>Password</label><input class="inp" id="siPass" type="password"></div>`,
+      actions: [
+        { label: 'Cancel', run: (s, c) => c() },
+        { label: 'Sign in', pri: true, run: (s, c) => {
+            const email = s.querySelector('#siEmail').value.trim();
+            const pass = s.querySelector('#siPass').value;
+            if (!email || !pass) return toast('Enter email and password');
+            Auth.signIn(email, pass).then(() => { c(); toast('Signed in'); setTimeout(() => go('settings'), 500); })
+              .catch(err => toast(err.message || 'Could not sign in'));
+          } }
+      ]
+    });
+  };
+  const addWorkerBtn = $('#addWorkerBtn');
+  if (addWorkerBtn) addWorkerBtn.onclick = async () => {
+    const name = $('#wName').value.trim(), email = $('#wEmail').value.trim(), pass = $('#wPass').value;
+    if (!name || !email || !pass) return toast('Fill in name, email and password');
+    if (pass.length < 6) return toast('Password needs at least 6 characters');
+    addWorkerBtn.disabled = true; addWorkerBtn.textContent = 'Adding…';
+    try {
+      await Auth.addWorker(name, email, pass);
+      if (!S.techs.includes(name)) { S.techs.push(name); save(); }
+      toast(`${name} can now sign in`);
+      go('settings');
+    } catch (err) {
+      toast(err.message || 'Could not add worker');
+      addWorkerBtn.disabled = false; addWorkerBtn.textContent = 'Add worker';
+    }
+  };
+};
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-rmworker]'); if (!b) return;
+  const w = Auth.workers().find(x => x.id === b.dataset.rmworker); if (!w) return;
+  modal({
+    title: `Remove ${w.name || w.email}?`,
+    body: '<div class="muted">They will be signed out and unable to open the app again until re-added.</div>',
+    actions: [
+      { label: 'Cancel', run: (s, c) => c() },
+      { label: 'Remove', pri: true, run: async (s, c) => {
+          await Auth.removeWorker(w.id);
+          S.techs = S.techs.filter(t => t !== w.name); save();
+          c(); toast('Access revoked'); go('settings');
+        } }
+    ]
+  });
+});
+
+/* ── AI Diagnostics: a real page now, not a floating drawer ── */
+RENDER.ai = () => {
+  $('#topAct').innerHTML = '';
+  $('#view').innerHTML = `<div class="ai-page">
+      <div class="ai-head">
+        <img class="face avatar" id="broFace" src="/bro-head.webp" alt="">
+        <div class="hdinfo"><strong>Chill Bro</strong><small><i></i><span id="broStatus">Field brain loaded · works offline</span></small></div>
+        <button class="vbtn" id="broVoice" aria-label="Voice on or off" aria-pressed="false"></button>
+      </div>
+      <div class="bro-thread" id="broThread"></div>
+      <div class="bro-chips" id="broChips"></div>
+      <div class="bro-cmp">
+        <textarea id="broInput" rows="1" placeholder="What's the unit doing?"></textarea>
+        <button class="mic" id="broMic" aria-label="Speak" hidden>
+          <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg>
+        </button>
+        <button class="snd" id="broSend" aria-label="Send">
+          <svg viewBox="0 0 24 24"><path d="M4 12h15M13 6l6 6-6 6"/></svg>
+        </button>
+      </div>
+    </div>`;
+  Bro.mount();
+  if (pendingAsk) { const q = pendingAsk; pendingAsk = null; setTimeout(() => Bro.send(q), 400); }
 };
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-rmtech]'); if (!b) return;
@@ -1006,6 +1249,116 @@ document.addEventListener('click', e => {
 const BRO_API = '';
 
 /* ── voice: Chill Bro speaks; mic where the browser supports it ── */
+
+/* ── auth: lightweight local session, no backend to check a ── */
+/* password against — this personalizes the app and gates the ── */
+/* splash screen; it is not real account security.              */
+/* ── Firebase project already deployed at this domain — reused ── */
+/* here directly (not via the orphaned firebase-config.js, which  */
+/* also auto-mounts old broken chill-bro-v3 scripts we removed).  */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBsBEKMggwSUvEmdTTK1rjYOcdPyYCCLOc",
+  authDomain: "chill-pros-ice-stream.firebaseapp.com",
+  projectId: "chill-pros-ice-stream",
+  storageBucket: "chill-pros-ice-stream.firebasestorage.app",
+  messagingSenderId: "260000821827",
+  appId: "1:260000821827:web:4d65bb9f17a29001eedaf6"
+};
+let fbApp = null, fbAuth = null, fbDb = null, fbReady = false;
+try {
+  if (window.firebase && firebase.initializeApp) {
+    fbApp = firebase.apps.length ? firebase.app() : firebase.initializeApp(FIREBASE_CONFIG);
+    fbAuth = firebase.auth();
+    fbDb = firebase.firestore();
+    fbReady = true;
+  }
+} catch (e) { fbReady = false; }
+
+const Auth = (() => {
+  let adminEmails = [];
+  let workers = [];   // [{email, name}]
+  let current = null; // firebase user object once signed in + authorized
+
+  async function loadRoster() {
+    if (!fbReady) return;
+    const adminsDoc = await fbDb.collection('app_config').doc('admins').get();
+    if (adminsDoc.exists) {
+      adminEmails = adminsDoc.data().emails || [];
+    } else if (current) {
+      // first person ever to sign in becomes the owner/admin
+      adminEmails = [current.email];
+      await fbDb.collection('app_config').doc('admins').set({ emails: adminEmails });
+    }
+    const snap = await fbDb.collection('workers').get();
+    workers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  }
+
+  function isAdmin(email) { return adminEmails.includes((email || '').toLowerCase()); }
+  function isAuthorized(email) {
+    const e = (email || '').toLowerCase();
+    return isAdmin(e) || workers.some(w => (w.email || '').toLowerCase() === e);
+  }
+
+  function signIn(email, password) {
+    if (!fbReady) return Promise.reject(new Error('Firebase did not load — check your connection and reload.'));
+    return fbAuth.signInWithEmailAndPassword(email.trim(), password);
+  }
+  function signOut() {
+    if (fbReady) fbAuth.signOut();
+    current = null;
+    location.reload();
+  }
+
+  /* Creates a worker's login via the Auth REST API directly — this   */
+  /* does NOT touch the admin's own signed-in session, unlike the SDK's */
+  /* own createUserWithEmailAndPassword (which would sign the admin out */
+  /* and into the new account instead).                                 */
+  async function addWorker(name, email, password) {
+    const res = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${FIREBASE_CONFIG.apiKey}`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), password, returnSecureToken: true }) }
+    );
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message === 'EMAIL_EXISTS' ? 'That email already has a login' : data.error.message);
+    await fbDb.collection('workers').doc(data.localId).set({
+      name: name.trim(), email: email.trim().toLowerCase(), addedAt: today(), addedBy: current ? current.email : ''
+    });
+    await loadRoster();
+  }
+
+  /* Revokes app access immediately (removed from the authorized roster). */
+  /* Their Firebase login credential itself still technically exists —   */
+  /* fully deleting it requires a small server-side admin function.       */
+  async function removeWorker(id) {
+    await fbDb.collection('workers').doc(id).delete();
+    await loadRoster();
+  }
+
+  function onChange(cb) {
+    if (!fbReady) { cb(null); return; }
+    fbAuth.onAuthStateChanged(async user => {
+      if (!user) { current = null; cb(null); return; }
+      current = user;
+      await loadRoster();
+      if (!isAuthorized(user.email)) {
+        await fbAuth.signOut();
+        current = null;
+        cb('unauthorized');
+        return;
+      }
+      cb(user);
+    });
+  }
+
+  return {
+    signIn, signOut, onChange, addWorker, removeWorker, loadRoster,
+    isAdmin: () => current && isAdmin(current.email),
+    workers: () => workers,
+    currentUser: () => current
+  };
+})();
+
 const Voice = (() => {
   const KEY = 'chillpros.voice';
   const synth = window.speechSynthesis || null;
@@ -1084,7 +1437,7 @@ const Voice = (() => {
 
 
 const Bro = (() => {
-  const el = {}; let msgs = [], busy = false, bound = false, talkTimer = null;
+  const el = {}; let msgs = [], busy = false, talkTimer = null;
 
   const CHIPS = [
     ['Walk me through a PM', 'Walk me through an HVAC PM'],
@@ -1204,11 +1557,10 @@ const Bro = (() => {
     el.input.focus();
   }
 
-  function init() {
-    if (bound) return;
-    bound = true;
-    el.panel = $('#bro'); el.thread = $('#broThread'); el.input = $('#broInput');
+  function mount() {
+    el.thread = $('#broThread'); el.input = $('#broInput');
     el.send = $('#broSend'); el.status = $('#broStatus'); el.chips = $('#broChips');
+    if (!el.thread) return;
 
     el.chips.innerHTML = CHIPS.map(([l, q]) =>
       `<button class="chip" data-chip="${esc(q)}">${esc(l)}</button>`).join('');
@@ -1223,7 +1575,7 @@ const Bro = (() => {
     });
     el.input.addEventListener('input', () => {
       el.input.style.height = 'auto';
-      el.input.style.height = Math.min(el.input.scrollHeight, 110) + 'px';
+      el.input.style.height = Math.min(el.input.scrollHeight, 92) + 'px';
     });
 
     Voice.mount({
@@ -1232,46 +1584,72 @@ const Bro = (() => {
       onText: t => { el.input.value = t; send(); }
     });
 
-    $('#broTab').addEventListener('click', toggle);
-    $('#broClose').addEventListener('click', close);
-    document.addEventListener('keydown', e => {
-      if (e.key === 'Escape' && el.panel.classList.contains('open')) close();
-    });
-
     setTalking(true, 1400);
     bubble('bro', `Yoooo, what it do. Chill Bro in the building — cap on, shades on, ice for a head.\n\nI got your field cases loaded: True GDM-69 restrictions, Kool-It E1 probes, control circuit troubleshooting, parts sourcing, superheat/subcool, plus every PM checklist and your real rate book.\n\nRun it — make, model, what it's doing.`);
+    el.input.focus();
   }
 
-  function open() { init(); el.panel.classList.add('open'); el.panel.setAttribute('aria-hidden', 'false'); setTimeout(() => el.input.focus(), 260); }
-  function close() {
-    Voice.stop(); setTalking(false);
-    el.panel.classList.remove('open'); el.panel.setAttribute('aria-hidden', 'true');
-  }
-  function toggle() { init(); el.panel.classList.contains('open') ? close() : open(); }
-
-  return { mount: init, open, close, toggle, ask: q => { open(); setTimeout(() => send(q), 340); } };
+  return { mount, send };
 })();
 
-Bro.mount();
-go('dash');
-if (!Store.persistent) {
-  setTimeout(() => toast('Private/incognito mode — data resets on reload. Persists once deployed.'), 900);
-}
-
-/* ── dismiss loading splash ─────────────────────── */
+/* ── splash → real Firebase sign-in gate → app ───── */
 (function () {
   const s = document.getElementById('splash');
-  if (!s) return;
-  let done = false;
-  const hide = () => {
-    if (done) return; done = true;
+
+  function enterApp() {
+    go('dash');
+    if (!Store.persistent) {
+      setTimeout(() => toast('Private/incognito mode — data resets on reload. Persists once deployed.'), 900);
+    }
+    if (!s) return;
     s.classList.add('gone');
     setTimeout(() => s.remove(), 600);
-  };
+  }
+
+  function showSignIn(msg) {
+    if (!s) { enterApp(); return; }
+    s.innerHTML = `
+      <img class="bro" src="/bro-full.jpg" alt="Chill Bro">
+      <div class="cap icy-title" style="font-size:26px">CHILL PROS</div>
+      <div class="cap" style="font-size:11px;margin-top:-10px">COMMAND CENTER</div>
+      <div class="signin-form">
+        ${msg ? `<div class="signin-msg">${esc(msg)}</div>` : ''}
+        <input class="inp" id="signinEmail" type="email" placeholder="Email" autocomplete="username">
+        <input class="inp" id="signinPass" type="password" placeholder="Password" autocomplete="current-password">
+        <button class="btn pri" id="signinBtn">Sign in</button>
+        <div class="muted" style="font-size:11.5px;text-align:center">Ask your owner to add your login if you don't have one yet.</div>
+      </div>`;
+    const emailInput = document.getElementById('signinEmail');
+    const passInput = document.getElementById('signinPass');
+    const btn = document.getElementById('signinBtn');
+    const submit = () => {
+      const email = emailInput.value.trim(), pass = passInput.value;
+      if (!email || !pass) { (email ? passInput : emailInput).focus(); return; }
+      btn.disabled = true; btn.textContent = 'Signing in…';
+      Auth.signIn(email, pass).catch(err => {
+        btn.disabled = false; btn.textContent = 'Sign in';
+        const friendly = /invalid|wrong|password|credential/i.test(err.code || err.message)
+          ? 'Wrong email or password' : (err.message || 'Could not sign in');
+        showSignIn(friendly);
+      });
+      // success is handled by Auth.onChange below — no need to call enterApp() here
+    };
+    btn.addEventListener('click', submit);
+    passInput.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+    setTimeout(() => emailInput.focus(), 300);
+  }
+
   const minShow = new Promise(r => setTimeout(r, 1100));
   const loaded = document.readyState === 'complete'
     ? Promise.resolve()
     : new Promise(r => window.addEventListener('load', r, { once: true }));
-  Promise.all([minShow, loaded]).then(hide);
-  setTimeout(hide, 5000);
+
+  /* Sign-in is not required to open the app right now — it opens     */
+  /* straight to the dashboard regardless. Real Firebase sign-in is    */
+  /* still fully wired and stays available from Settings for whenever  */
+  /* an account has been created in the Firebase console and it's      */
+  /* ready to be turned into an actual gate.                           */
+  Promise.all([minShow, loaded]).then(enterApp);
+
+  if (fbReady) Auth.onChange(() => {}); // keeps roster/admin state current in the background
 })();
