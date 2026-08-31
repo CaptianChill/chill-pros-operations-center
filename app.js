@@ -249,8 +249,8 @@ let route = 'dash';
 function renderRail() {
   const r = $('#rail');
   r.innerHTML = `<div class="mark">
-      <span class="ic"><img src="/icon-192.png" alt="Chill Pros" width="24" height="24" style="border-radius:5px"></span>
-      <span><b class="name">Chill Pros</b><small>COMMAND CENTER</small></span></div>`
+      <img src="/logo-texas.webp" alt="Chill Pros">
+      <small>COMMAND CENTER</small></div>`
     + VIEWS.map(v => `<button class="navbtn" data-go="${v.k}" ${route === v.k ? 'aria-current="page"' : ''}>
         <svg viewBox="0 0 24 24">${ICONS[v.k]}</svg><span>${v.l}</span></button>`).join('')
     + '<div class="rail-sp"></div>';
@@ -309,7 +309,7 @@ RENDER.dash = () => {
     </div>
     <div class="dashgrid">
       <div class="card">
-        <div style="font-weight:750;font-size:13px;letter-spacing:.02em;margin-bottom:6px">QUICK ACTIONS</div>
+        <div class="sechd">QUICK ACTIONS</div>
         <button class="qa-rw" data-go="newcust"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0112 0M16 11a3 3 0 100-6M18 20a6 6 0 00-3-5.2"/></svg></span><span class="t"><b>New customer intake</b><small>Capture customer & equipment</small></span><span class="chev">›</span></button>
         <button class="qa-rw" data-go="jobs"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h5v14H4zM10 5h5v9h-5zM16 5h4v6h-4z"/></svg></span><span class="t"><b>View today's jobs</b><small>See your scheduled jobs</small></span><span class="chev">›</span></button>
         <button class="qa-rw" data-go="queue"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16v10l-3 6H7l-3-6z"/><path d="M4 14h4l2 3h4l2-3h4"/></svg></span><span class="t"><b>Office queue</b><small>Send data to the office</small></span><span class="chev">›</span></button>
@@ -319,21 +319,21 @@ RENDER.dash = () => {
       </div>
 
       <div class="card hero">
-        <div class="word">CHILL PROS</div>
+        <img src="/logo-texas.webp" alt="Chill Pros">
         <div class="tag">COMMAND CENTER</div>
         <div class="badge">License to chill</div>
       </div>
 
       <div class="grid" style="gap:14px">
         <div class="card">
-          <div style="font-weight:750;font-size:13px;letter-spacing:.02em;margin-bottom:8px">UPCOMING JOBS</div>
+          <div class="sechd">UPCOMING JOBS</div>
           ${upcoming.length ? upcoming.map(j => `<div class="rw" style="margin-bottom:8px">
             <div class="g"><strong>${esc(j.problem)}</strong><small>${esc(j.customer)}${j.site ? ' · ' + esc(j.site) : ''}</small></div>
             <button class="btn sm gho" data-openjob="${j.id}">View</button></div>`).join('')
             : `<div class="muted" style="padding:8px 2px">Nothing on the board yet.</div>`}
         </div>
         <div class="card">
-          <div style="font-weight:750;font-size:13px;letter-spacing:.02em;margin-bottom:4px">NOTIFICATIONS</div>
+          <div class="sechd">NOTIFICATIONS</div>
           ${notes.map(n => `<div class="notif"><span class="dot ${n.cls}"></span><div><b>${esc(n.b)}</b><small>${esc(n.s)}</small></div></div>`).join('')}
         </div>
       </div>
@@ -359,7 +359,7 @@ RENDER.newcust = () => {
       </div>
       <button class="btn pri" id="ncSave">Save customer</button>
     </div>
-    <div style="font-weight:750;font-size:13px;letter-spacing:.02em;margin-bottom:8px">ALL CUSTOMERS</div>
+    <div class="sechd">ALL CUSTOMERS</div>
     <div class="rows">${list.map(c => {
       const n = S.jobs.filter(j => j.customer.toLowerCase() === c.name.toLowerCase()).length;
       return `<div class="rw"><div class="g"><strong>${esc(c.name)}</strong>
@@ -567,7 +567,7 @@ RENDER.equip = () => {
       <b style="display:block;font-size:16px;margin-bottom:6px">Full equipment records are coming soon</b>
       <div class="muted">Every unit you service will show up here automatically — pulled straight from your jobs and care plans, no double entry.</div>
     </div>
-    ${rows.length ? `<div style="font-weight:750;font-size:13px;letter-spacing:.02em;margin-bottom:8px">EQUIPMENT SEEN SO FAR</div>
+    ${rows.length ? `<div class="sechd">EQUIPMENT SEEN SO FAR</div>
     <div class="rows">${rows.map(([cust, eq]) => `<div class="rw"><div class="g"><strong>${esc(cust)}</strong>
       <small>${eq.map(esc).join(' · ')}</small></div></div>`).join('')}</div>` : ''}`;
 };
@@ -620,10 +620,10 @@ function renderCarePlans() {
           ${t}<br><span style="font-size:11px;font-weight:500;opacity:.8">${PLANS.tiers[t].label}</span></button>`).join('')}</div>
       ${['HVAC','Refrigeration','Ice Machine','Kitchen'].map(cat => `
         <div style="margin-bottom:15px"><div class="muted" style="font-weight:700;margin-bottom:6px">${cat}</div>
-        ${rows.filter(r => r.cat === cat).map(r => `<div style="display:flex;align-items:center;gap:10px;padding:5px 0">
-          <span style="flex:1;font-size:13.5px">${esc(r.name)}</span>
-          <span class="muted" style="font-size:12px;width:64px;text-align:right">${money(r.price)}/mo</span>
-          <input class="inp" type="number" min="0" value="${r.q}" data-qty="${r.code}" style="width:62px;padding:5px 7px;font-size:13px">
+        ${rows.filter(r => r.cat === cat).map(r => `<div class="lrow">
+          <span class="nm">${esc(r.name)}</span>
+          <span class="pr">${money(r.price)}/mo</span>
+          <input class="inp" type="number" min="0" value="${r.q}" data-qty="${r.code}">
         </div>`).join('')}</div>`).join('')}
     </div>
     <div class="card" style="align-self:start">
@@ -752,18 +752,18 @@ RENDER.parts = () => {
 
   $('#view').innerHTML = `<div class="grid" style="grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr)">
     <div class="card">
-      <div style="font-weight:750;font-size:13px;letter-spacing:.02em;margin-bottom:10px">PARTS &amp; REFRIGERANT</div>
-      ${partsRates.map(r => `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--line)">
-        <span style="flex:1;font-size:13.5px">${esc(r.n)}</span>
-        <span class="muted" style="font-size:12px;width:70px;text-align:right">${money(r.p)}</span>
+      <div class="sechd">PARTS &amp; REFRIGERANT</div>
+      ${partsRates.map(r => `<div class="lrow">
+        <span class="nm">${esc(r.n)}</span>
+        <span class="pr">${money(r.p)}</span>
         <button class="btn sm gho" data-addpart="${esc(r.n)}">+ Add</button>
       </div>`).join('')}
-      ${recent.length ? `<div style="font-weight:750;font-size:13px;letter-spacing:.02em;margin:18px 0 8px">RECENT PARTS ORDERS</div>
+      ${recent.length ? `<div class="sechd">RECENT PARTS ORDERS</div>
       <div class="rows">${recent.map(q => `<div class="rw"><div class="g"><strong>#${q.no} · ${esc(q.customer || 'Unnamed')}</strong>
         <small>${esc(q.date)} · ${esc(q.status)}</small></div><span class="amt">${money(qTotals(q).total)}</span></div>`).join('')}</div>` : ''}
     </div>
     <div class="card" style="align-self:start">
-      <div style="font-weight:750;font-size:13px;letter-spacing:.02em;margin-bottom:10px">ORDER CART</div>
+      <div class="sechd">ORDER CART</div>
       ${partsCart.length ? partsCart.map(i => `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px">
         <span>${i.qty}× ${esc(i.n)}</span><span>${money(i.qty * i.price)}</span></div>`).join('')
         : `<div class="muted" style="padding:6px 0">Nothing added yet</div>`}
@@ -871,7 +871,7 @@ RENDER.quote = () => {
               `<option value="${RATES.indexOf(r)}">${esc(r.n)}${r.p ? ' — ' + money(r.p) : ''}</option>`).join('')}</optgroup>`).join('')}
         </select>
       </div>
-      <table class="tbl"><thead><tr><th>Item</th><th style="width:58px">Qty</th><th style="width:96px">Price</th><th style="width:46px">Tax</th><th style="width:88px" class="n">Amount</th><th style="width:30px"></th></tr></thead>
+      <div class="tblwrap"><table class="tbl"><thead><tr><th>Item</th><th style="width:58px">Qty</th><th style="width:96px">Price</th><th style="width:46px">Tax</th><th style="width:88px" class="n">Amount</th><th style="width:30px"></th></tr></thead>
       <tbody>${draft.items.map(i => `<tr>
         <td><input class="inp" style="padding:5px 8px;font-size:13px" value="${esc(i.n)}" data-li="${i.id}" data-f="n"></td>
         <td><input class="inp" style="padding:5px 6px;font-size:13px" type="number" min="0" step="0.5" value="${i.qty}" data-li="${i.id}" data-f="qty"></td>
@@ -879,7 +879,7 @@ RENDER.quote = () => {
         <td style="text-align:center"><input type="checkbox" ${i.tax ? 'checked' : ''} data-li="${i.id}" data-f="tax" style="accent-color:#38A9DC;width:16px;height:16px"></td>
         <td class="n">${money(i.qty * i.price)}</td>
         <td><button class="x" style="width:24px;height:24px;font-size:16px" data-del="${i.id}">&times;</button></td></tr>`).join('')
-        || '<tr><td colspan="6" class="muted" style="padding:14px 10px">No line items. Pick one from the rate book above.</td></tr>'}</tbody></table>
+        || '<tr><td colspan="6" class="muted" style="padding:14px 10px">No line items. Pick one from the rate book above.</td></tr>'}</tbody></table></div>
       <button class="btn sm gho" id="qadd" style="margin-top:9px">+ Blank line</button>
     </div>
 
@@ -896,7 +896,7 @@ RENDER.quote = () => {
         <button class="btn gho" id="qprint">Print / save as PDF</button>
         <button class="btn gho" id="qcancel">Close without saving</button>
       </div>
-      <div class="muted" style="margin-top:14px;font-size:12px">Status: ${esc(draft.status)} · preview mode</div>
+      <div class="muted" style="margin-top:14px;font-size:12px">Status: ${esc(draft.status)}</div>
     </div></div>`;
 
   const sync = syncQuoteFields;
@@ -968,7 +968,7 @@ RENDER.reports = () => {
       <div class="stat"><div class="l">ALL QUOTES</div><div class="v">${money(quoteTotal)}</div></div>
     </div>
     <div class="card" style="max-width:520px">
-      <div style="font-weight:750;font-size:13px;letter-spacing:.02em;margin-bottom:10px">JOBS BY TRADE</div>
+      <div class="sechd">JOBS BY TRADE</div>
       ${byTrade.length ? byTrade.map(x => `<div style="display:flex;justify-content:space-between;padding:5px 0">
         <span class="pill ${tradeCls(x.t)}">${x.t}</span><span class="amt">${x.n}</span></div>`).join('')
         : `<div class="muted">No jobs logged yet</div>`}
@@ -980,7 +980,7 @@ RENDER.reports = () => {
 RENDER.settings = () => {
   $('#topAct').innerHTML = '';
   $('#view').innerHTML = `<div class="card" style="max-width:480px">
-    <div style="font-weight:750;font-size:13px;letter-spacing:.02em;margin-bottom:10px">TECHNICIANS</div>
+    <div class="sechd">TECHNICIANS</div>
     ${S.techs.map(t => `<div class="techrow"><span class="t">${esc(t)}</span>
       ${t !== 'Unassigned' ? `<button class="btn sm gho" data-rmtech="${esc(t)}">Remove</button>` : ''}</div>`).join('')}
     <div style="display:flex;gap:8px;margin-top:10px">
@@ -1005,117 +1005,83 @@ document.addEventListener('click', e => {
 
 const BRO_API = '';
 
-function BRO_SVG(id) {
-  return `<svg class="avatar" viewBox="0 0 64 88" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <radialGradient id="core${id}" cx="42%" cy="30%" r="75%">
-        <stop offset="0" stop-color="#FFFFFF" stop-opacity=".95"/>
-        <stop offset=".35" stop-color="#D6F3FF" stop-opacity=".95"/>
-        <stop offset=".7" stop-color="#7FD4F5" stop-opacity=".95"/>
-        <stop offset="1" stop-color="#1F7FB0" stop-opacity="1"/>
-      </radialGradient>
-      <linearGradient id="cube${id}" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stop-color="#D6F3FF" stop-opacity=".95"/>
-        <stop offset=".55" stop-color="#8FDCF7" stop-opacity=".9"/>
-        <stop offset="1" stop-color="#2C8FC4" stop-opacity=".95"/>
-      </linearGradient>
-      <linearGradient id="cap${id}" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#22262E"/>
-        <stop offset=".55" stop-color="#0A0D12"/>
-        <stop offset="1" stop-color="#020304"/>
-      </linearGradient>
-      <linearGradient id="polo${id}" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#1C3450"/>
-        <stop offset=".5" stop-color="#0C0F14"/>
-        <stop offset="1" stop-color="#020304"/>
-      </linearGradient>
-      <filter id="glow${id}" x="-60%" y="-60%" width="220%" height="220%">
-        <feGaussianBlur in="SourceGraphic" stdDeviation="1.3" result="b"/>
-        <feMerge>
-          <feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/>
-        </feMerge>
-      </filter>
-    </defs>
-    <g class="sway">
-      <!-- soft ground shadow -->
-      <ellipse cx="32" cy="76" rx="15" ry="3" fill="#000" opacity=".35"/>
+/* ── voice: Chill Bro speaks; mic where the browser supports it ── */
+const Voice = (() => {
+  const KEY = 'chillpros.voice';
+  const synth = window.speechSynthesis || null;
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+  let on = false, btn = null, mic = null, rec = null, recording = false;
+  try { on = localStorage.getItem(KEY) === '1'; } catch {}
 
-      <!-- body: polo with shading + icy rim glow -->
-      <path d="M23 58c-1 6-2 11-1 15h5l1-13" fill="#12283F"/>
-      <path d="M38 58c2 6 3 11 2 15h-5l-2-13" fill="#12283F"/>
-      <path d="M22 44c-3 4-4 9-2 15 3 3 17 3 20 0 2-6 1-11-2-15z" fill="url(#polo${id})"
-        stroke="#7FD4F5" stroke-width=".6" stroke-opacity=".55" filter="url(#glow${id})"/>
-      <path d="M26 44l4 5 2-5z" fill="#EAFBFF" opacity=".9"/>
-      <path d="M38 44l-4 5-2-5z" fill="#EAFBFF" opacity=".9"/>
-      <text x="24.3" y="53.2" font-size="4.4" font-weight="700" fill="#7FD4F5" font-family="ui-sans-serif,system-ui">CP</text>
-      <path d="M33.5 49.3l.5 1 1.1.1-.8.8.2 1.1-1-.5-1 .5.2-1.1-.8-.8 1.1-.1z" fill="none" stroke="#7FD4F5" stroke-width=".5"/>
-      <path d="M20 46c-3 2-4 5-4 8" stroke="#020304" stroke-width="3" stroke-linecap="round" fill="none"/>
+  const ON_ICO  = '<svg viewBox="0 0 24 24"><path d="M11 5L6 9H3v6h3l5 4z"/><path d="M16 9.5a3.5 3.5 0 010 5M19 6.5a8 8 0 010 11"/></svg>';
+  const OFF_ICO = '<svg viewBox="0 0 24 24"><path d="M11 5L6 9H3v6h3l5 4z"/><path d="M17 9.5l5 5M22 9.5l-5 5"/></svg>';
 
-      <!-- shaka hand: crackled ice gradient -->
-      <g class="shaka">
-        <path d="M45 49c1-3 4-4 6-2l4 7c1 2 0 4-2 4l-1-2-2 3c-1 2-3 2-4 0l-1-3-1 2c-2 1-4-1-3-3z"
-          fill="url(#core${id})" stroke="#EAFBFF" stroke-width=".9" filter="url(#glow${id})"/>
-        <path d="M46 50l3 2M49 48l2 5M52 51l1 5M50 55l3-1" stroke="#0E3A55" stroke-width=".4" stroke-opacity=".6" fill="none"/>
-      </g>
+  function paint() {
+    if (!btn) return;
+    btn.innerHTML = on ? ON_ICO : OFF_ICO;
+    btn.classList.toggle('on', on);
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    btn.setAttribute('aria-label', on ? 'Turn Chill Bro voice off' : 'Turn Chill Bro voice on');
+  }
 
-      <!-- neck -->
-      <rect x="27" y="38" width="10" height="8" fill="#7A5640"/>
+  /* strip markup so the synth reads clean prose, not tag soup */
+  function plain(html) {
+    return String(html)
+      .replace(/<br\s*\/?>/gi, '. ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+      .replace(/[\u2022\u00b7]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim().slice(0, 600);
+  }
 
-      <!-- ICE CUBE HEAD -->
-      <g>
-        <!-- glowing outer rim, drawn first so it sits behind the crisp edge -->
-        <path d="M10 20L32 8l22 12v20L32 52 10 40z" fill="none" stroke="#7FD4F5" stroke-width="2.2"
-          stroke-opacity=".55" filter="url(#glow${id})"/>
-        <path d="M10 20L32 8l22 12v20L32 52 10 40z" fill="url(#core${id})" stroke="#EAFBFF" stroke-width="1.1"/>
+  function stop() { try { synth && synth.cancel(); } catch {} }
 
-        <!-- crackle facets: layered lines at varied opacity for a crystalline look -->
-        <path d="M10 20L32 32M54 20L32 32M32 32V52M10 20L10 40M54 20L54 40"
-          stroke="#EAFBFF" stroke-opacity=".55" stroke-width="1"/>
-        <path d="M18 16l3 8-4 6M46 17l-3 7 4 7M24 45l3-6-2-7M40 45l-3-6 2-7"
-          stroke="#BFE9FA" stroke-opacity=".4" stroke-width=".6" fill="none"/>
-        <path d="M15 27l6 2M43 28l6-2M22 38l5 2M36 39l5-3"
-          stroke="#FFFFFF" stroke-opacity=".3" stroke-width=".5" fill="none"/>
+  function speak(html, onTalk) {
+    if (!on || !synth) return false;
+    const text = plain(html);
+    if (!text) return false;
+    stop();
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 1.03; u.pitch = 0.85;
+    u.onstart = () => onTalk && onTalk(true);
+    u.onend = () => onTalk && onTalk(false);
+    u.onerror = () => onTalk && onTalk(false);
+    try { synth.speak(u); return true; } catch { return false; }
+  }
 
-        <!-- specular highlight -->
-        <path d="M14 19L28 12" stroke="#FFFFFF" stroke-opacity=".85" stroke-width="2.4" stroke-linecap="round"/>
-        <path d="M16 22L24 17" stroke="#FFFFFF" stroke-opacity=".4" stroke-width="1" stroke-linecap="round"/>
+  function mount(o) {
+    btn = o.btn; mic = o.mic;
+    if (!synth && btn) { btn.hidden = true; }
+    paint();
+    btn && btn.addEventListener('click', () => {
+      on = !on;
+      try { localStorage.setItem(KEY, on ? '1' : '0'); } catch {}
+      if (!on) stop();
+      paint();
+      toast(on ? 'Chill Bro will talk out loud' : 'Chill Bro muted');
+    });
 
-        <!-- black trucker cap, shaded -->
-        <path d="M15 15Q32 -3 49 15l1 4Q32 8 14 19z" fill="url(#cap${id})"/>
-        <path d="M15 15Q32 -3 49 15" fill="none" stroke="#7FD4F5" stroke-width="1" stroke-opacity=".6" filter="url(#glow${id})"/>
-        <path d="M14 18Q7 21 10 26L20 21z" fill="#020304"/>
-        <path d="M14 18Q7 21 10 26" fill="none" stroke="#4FB3E0" stroke-width=".6" stroke-opacity=".5"/>
-        <rect x="17" y="9" width="7" height="4.4" fill="#0A2A66"/>
-        <rect x="17" y="12" width="7" height="1.4" fill="#fff"/>
-        <rect x="17" y="13.4" width="7" height="1.4" fill="#C8102E"/>
-        <circle cx="20.5" cy="11" r=".7" fill="#fff"/>
-        <text x="32" y="12" font-size="4.6" font-weight="800" fill="#D6F3FF" text-anchor="middle" font-family="ui-sans-serif,system-ui">CHILL</text>
-        <text x="32" y="16.5" font-size="4.6" font-weight="800" fill="#D6F3FF" text-anchor="middle" font-family="ui-sans-serif,system-ui">PROS</text>
+    if (SR && mic) {
+      mic.hidden = false;
+      rec = new SR();
+      rec.lang = 'en-US'; rec.interimResults = false; rec.maxAlternatives = 1;
+      rec.onresult = e => { const t = e.results[0][0].transcript; if (t) o.onText(t); };
+      rec.onend = () => { recording = false; mic.classList.remove('rec'); };
+      rec.onerror = () => { recording = false; mic.classList.remove('rec'); };
+      mic.addEventListener('click', () => {
+        if (recording) { try { rec.stop(); } catch {} return; }
+        try { rec.start(); recording = true; mic.classList.add('rec'); }
+        catch { toast('Could not start the mic'); }
+      });
+    }
+  }
 
-        <!-- brows -->
-        <g class="brow brow-l" style="transform-origin:22px 22px">
-          <path d="M18 21l7-1.5" stroke="#06263B" stroke-width="1.4" stroke-linecap="round"/>
-        </g>
-        <g class="brow brow-r" style="transform-origin:42px 22px">
-          <path d="M39 19.5l7 1.5" stroke="#06263B" stroke-width="1.4" stroke-linecap="round"/>
-        </g>
+  return { mount, speak, stop, enabled: () => on && !!synth };
+})();
 
-        <!-- sunglasses with rim glow + reflective sweep -->
-        <rect x="17" y="23" width="12" height="7.5" rx="2.2" fill="#05070A" stroke="#4FB3E0" stroke-width=".5" stroke-opacity=".6"/>
-        <rect x="35" y="23" width="12" height="7.5" rx="2.2" fill="#05070A" stroke="#4FB3E0" stroke-width=".5" stroke-opacity=".6"/>
-        <rect x="29" y="25.5" width="6" height="2" fill="#05070A"/>
-        <path class="glint" d="M19.5 25.5l6-2.3" stroke="#EAFBFF" stroke-width="1.2" stroke-linecap="round"/>
-        <path class="glint" d="M37.5 25.5l6-2.3" stroke="#EAFBFF" stroke-width="1.2" stroke-linecap="round"/>
-        <path d="M18.5 28.5l3-1" stroke="#0E3A55" stroke-width=".5" stroke-opacity=".7"/>
-        <path d="M36.5 28.5l3-1" stroke="#0E3A55" stroke-width=".5" stroke-opacity=".7"/>
 
-        <!-- mouth -->
-        <path class="mouth-idle" d="M25 38q7 5 14 0" stroke="#06263B" stroke-width="2.2" fill="none" stroke-linecap="round"/>
-        <ellipse class="mouth-talk" cx="32" cy="38" rx="5" ry="3" fill="#06263B" style="transform-origin:32px 38px"/>
-      </g>
-    </g>
-  </svg>`;
-}
 
 const Bro = (() => {
   const el = {}; let msgs = [], busy = false, bound = false, talkTimer = null;
@@ -1228,9 +1194,10 @@ const Bro = (() => {
     await new Promise(r => setTimeout(r, 500));
     const a = await answer(q);
     dots.remove();
-    const talkMs = Math.min(4200, Math.max(1200, a.html.length * 12));
-    setTalking(true, talkMs);
     bubble('bro', a.html + (a.src ? `<span class="src">${esc(a.src)}</span>` : ''));
+    if (!Voice.speak(a.html, v => setTalking(v))) {
+      setTalking(true, Math.min(4200, Math.max(1200, a.html.length * 12)));
+    }
     msgs.push({ role: 'assistant', content: a.html });
     el.status.textContent = 'Field brain loaded · works offline';
     busy = false; el.send.disabled = false;
@@ -1242,8 +1209,6 @@ const Bro = (() => {
     bound = true;
     el.panel = $('#bro'); el.thread = $('#broThread'); el.input = $('#broInput');
     el.send = $('#broSend'); el.status = $('#broStatus'); el.chips = $('#broChips');
-    $('#broFace').innerHTML = BRO_SVG('a');
-    $('#broTabFace').innerHTML = BRO_SVG('b');
 
     el.chips.innerHTML = CHIPS.map(([l, q]) =>
       `<button class="chip" data-chip="${esc(q)}">${esc(l)}</button>`).join('');
@@ -1261,6 +1226,12 @@ const Bro = (() => {
       el.input.style.height = Math.min(el.input.scrollHeight, 110) + 'px';
     });
 
+    Voice.mount({
+      btn: $('#broVoice'),
+      mic: $('#broMic'),
+      onText: t => { el.input.value = t; send(); }
+    });
+
     $('#broTab').addEventListener('click', toggle);
     $('#broClose').addEventListener('click', close);
     document.addEventListener('keydown', e => {
@@ -1272,7 +1243,10 @@ const Bro = (() => {
   }
 
   function open() { init(); el.panel.classList.add('open'); el.panel.setAttribute('aria-hidden', 'false'); setTimeout(() => el.input.focus(), 260); }
-  function close() { el.panel.classList.remove('open'); el.panel.setAttribute('aria-hidden', 'true'); }
+  function close() {
+    Voice.stop(); setTalking(false);
+    el.panel.classList.remove('open'); el.panel.setAttribute('aria-hidden', 'true');
+  }
   function toggle() { init(); el.panel.classList.contains('open') ? close() : open(); }
 
   return { mount: init, open, close, toggle, ask: q => { open(); setTimeout(() => send(q), 340); } };
@@ -1283,3 +1257,21 @@ go('dash');
 if (!Store.persistent) {
   setTimeout(() => toast('Private/incognito mode — data resets on reload. Persists once deployed.'), 900);
 }
+
+/* ── dismiss loading splash ─────────────────────── */
+(function () {
+  const s = document.getElementById('splash');
+  if (!s) return;
+  let done = false;
+  const hide = () => {
+    if (done) return; done = true;
+    s.classList.add('gone');
+    setTimeout(() => s.remove(), 600);
+  };
+  const minShow = new Promise(r => setTimeout(r, 1100));
+  const loaded = document.readyState === 'complete'
+    ? Promise.resolve()
+    : new Promise(r => window.addEventListener('load', r, { once: true }));
+  Promise.all([minShow, loaded]).then(hide);
+  setTimeout(hide, 5000);
+})();
