@@ -249,7 +249,7 @@ let route = 'dash';
 function renderRail() {
   const r = $('#rail');
   r.innerHTML = `<div class="mark">
-      <span class="ic"><b>CP</b></span>
+      <span class="ic"><img src="/icon-192.png" alt="Chill Pros" width="24" height="24" style="border-radius:5px"></span>
       <span><b class="name">Chill Pros</b><small>COMMAND CENTER</small></span></div>`
     + VIEWS.map(v => `<button class="navbtn" data-go="${v.k}" ${route === v.k ? 'aria-current="page"' : ''}>
         <svg viewBox="0 0 24 24">${ICONS[v.k]}</svg><span>${v.l}</span></button>`).join('')
