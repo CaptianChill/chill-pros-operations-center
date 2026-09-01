@@ -1,0 +1,73 @@
+name: Native Billing Idempotency Contract
+
+on:
+  pull_request:
+  push:
+    branches:
+      - recovery/boodaflow-canonical-v0-proxy
+
+jobs:
+  checkout-idempotency:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Verify native billing checkout is retry-safe
+        run: |
+          node --check functions/native-ops.js
+          node <<'EOF'
+          const assert = require('node:assert/strict');
+          const fs = require('node:fs');
+
+          const source = fs.readFileSync('functions/native-ops.js', 'utf8');
+          const invoices = source.slice(
+            source.indexOf('app.post("/invoices"'),
+            source.indexOf('app.post("/invoices/:id/approve"')
+          );
+          const checkout = source.slice(
+            source.indexOf('app.post("/payments/checkout"'),
+            source.indexOf('app.post("/payments/status"')
+          );
+          const status = source.slice(
+            source.indexOf('app.post("/payments/status"'),
+            source.indexOf('exports.nativeOpsApi')
+          );
+
+          assert.ok(invoices.length > 100, 'invoice route must remain present');
+          assert.match(invoices, /quote\.status !== "approved"/, 'invoice creation from a quote must require owner-approved quote state');
+          assert.ok(checkout.length > 100, 'checkout route must remain present');
+          assert.match(checkout, /requireStaff, requireOwner/, 'checkout must remain owner-gated');
+          assert.match(checkout, /invoice\.status !== "approved"/, 'checkout must still require an approved invoice');
+          assert.match(checkout, /payment_method_types\[\]\": \[\"card\", \"us_bank_account\"\]/, 'card and ACH support must remain enabled');
+          assert.match(source, /"Idempotency-Key"/, 'Stripe POST helper must support an idempotency key');
+          assert.match(checkout, /stripeCheckoutSessionId/, 'checkout must inspect the invoice existing Stripe session before minting another');
+          assert.match(checkout, /checkout\/sessions\/\$\{encodeURIComponent\(existingSessionId\)\}/, 'existing checkout must be verified against Stripe');
+          assert.match(checkout, /existingInvoiceId !== invoiceId/, 'reused Stripe checkout must be bound to the same invoice metadata');
+          assert.match(checkout, /Math\.abs\(existingAmount - balance\) > 0\.009/, 'existing Stripe checkout amount must match the invoice balance before reuse or settlement');
+          assert.match(checkout, /existingPaymentStatus === "paid"/, 'already-paid checkout must block replacement collection');
+          assert.match(checkout, /amountPaid:\s*total[\s\S]*balanceDue:\s*0/, 'a paid full-balance checkout must settle the invoice instead of losing prior paid amount');
+          assert.match(checkout, /existingStatus === "complete"/, 'completed delayed-payment checkout must block duplicate collection while processing');
+          assert.match(checkout, /existingStatus === "open" && existingSession\.url/, 'an open checkout must be reused instead of replaced');
+          assert.match(checkout, /existingStatus !== "expired"/, 'only an expired checkout may be replaced');
+          assert.match(checkout, /retryAnchor = existingSession\.id/, 'expired-session replacement must rotate its retry anchor');
+          assert.match(checkout, /idempotencyKey:\s*`chill-pros-checkout-\$\{invoiceId\}-\$\{cents\}-\$\{retryAnchor\}`/, 'checkout retry key must be stable per payment attempt and rotate after expiry');
+          assert.match(checkout, /No new checkout was created/, 'Stripe verification failure must fail closed before duplicate collection');
+
+          assert.ok(status.length > 100, 'payment status reconciliation route must remain present');
+          assert.match(status, /requireStaff, requireOwner/, 'payment settlement reconciliation must remain owner-gated');
+          assert.match(status, /metadata\?\.source/, 'payment reconciliation must verify the Chill Pros Stripe metadata source');
+          assert.match(status, /activeSessionId !== sessionId/, 'payment reconciliation must reject a Stripe session that is not the invoice active checkout');
+          assert.match(status, /db\.collection\("payments"\)\.doc\(sessionId\)/, 'payment reconciliation must require the native billing issuance record');
+          assert.match(status, /paymentInvoiceId !== invoiceId/, 'payment reconciliation must bind the native payment record to the same invoice');
+          assert.match(status, /Math\.abs\(expectedAmount - amountTotal\) > 0\.009/, 'payment reconciliation must reject Stripe/native amount mismatches');
+          assert.match(status, /amountPaid:\s*paid \? total/, 'confirmed full-balance checkout must preserve prior collections by settling amountPaid to invoice total');
+          assert.match(status, /balanceDue:\s*paid \? 0/, 'confirmed full-balance checkout must settle balance due to zero');
+          assert.doesNotMatch(checkout + status, /document\.|document\.body|innerHTML/, 'billing hardening must not touch the v0 visual contract');
+
+          console.log('Native billing idempotency contract passed: approved quote lineage, checkout identity, amount integrity, paid settlement, delayed payments, retries, and expired-session replacement are duplicate-safe.');
+          EOF

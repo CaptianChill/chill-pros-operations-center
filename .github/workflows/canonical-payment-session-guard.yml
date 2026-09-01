@@ -1,0 +1,176 @@
+name: Canonical Payment Session Guard
+
+on:
+  pull_request:
+  push:
+    branches:
+      - recovery/boodaflow-canonical-v0-proxy
+
+jobs:
+  payment-session-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Bind payment return reconciliation to the issued checkout session
+        run: |
+          node <<'EOF'
+          const assert = require('node:assert/strict');
+          const fs = require('node:fs');
+          const vm = require('node:vm');
+
+          const source = fs.readFileSync('canonical-payment-session-guard.js', 'utf8');
+          const visual = fs.readFileSync('api/v0-visual.js', 'utf8');
+          assert.match(visual, /canonical-payment-session-guard\.js/, 'visual proxy must load the payment session guard');
+          assert.doesNotMatch(source, /document\.|document\.body|innerHTML/, 'payment guard must not reconstruct or mutate the preserved v0 shell');
+          assert.match(source, /localStorage/, 'checkout binding must survive the popup being created before checkout returns');
+          assert.doesNotMatch(source, /sessionStorage/, 'per-tab storage would strand the Stripe return popup without the issued-session binding');
+          assert.match(source, /decodeUidFromBearer/, 'checkout binding must use the authenticated request identity');
+          assert.match(source, /STORE_PREFIX/, 'each checkout session must have an independent storage key');
+          assert.match(source, /findLegacyAttempt/, 'existing preview checkout bindings must remain readable during the storage migration');
+
+          global.window = globalThis;
+          global.localStorage = (() => {
+            const values = new Map();
+            return {
+              _values: values,
+              getItem(key) { return values.has(key) ? values.get(key) : null; },
+              setItem(key, value) { values.set(key, String(value)); },
+              removeItem(key) { values.delete(key); },
+            };
+          })();
+
+          let uid = 'owner-a';
+          global.chillProsAuth = { get currentUser() { return uid ? { uid } : null; } };
+          const calls = [];
+
+          function tokenFor(subject) {
+            return `e30.${Buffer.from(JSON.stringify({ user_id: subject, exp: 4102444800 })).toString('base64url')}.sig`;
+          }
+
+          function authHeaders(subject = uid) {
+            return {
+              Authorization: `Bearer ${tokenFor(subject)}`,
+              'content-type': 'application/json',
+            };
+          }
+
+          global.fetch = async (input, init = {}) => {
+            const url = typeof input === 'string' ? input : input.url;
+            const body = typeof init.body === 'string' ? JSON.parse(init.body) : {};
+            calls.push({ url, body });
+            if (url.endsWith('/payments/checkout')) {
+              const suffix = body.invoiceId === 'invoice-b' ? '2' : '1';
+              return new Response(JSON.stringify({
+                ok: true,
+                invoiceId: body.invoiceId,
+                checkoutSessionId: `cs_owner_a_${suffix}`,
+                url: 'https://checkout.stripe.test/session',
+              }), { status: 200, headers: { 'content-type': 'application/json' } });
+            }
+            if (url.endsWith('/payments/status')) {
+              const invoiceId = body.checkoutSessionId === 'cs_owner_a_2' ? 'invoice-b' : 'invoice-a';
+              return new Response(JSON.stringify({
+                ok: true,
+                invoiceId,
+                checkoutSessionId: body.checkoutSessionId,
+                paymentStatus: 'unpaid',
+                status: 'complete',
+              }), { status: 200, headers: { 'content-type': 'application/json' } });
+            }
+            return new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } });
+          };
+
+          vm.runInThisContext(source, { filename: 'canonical-payment-session-guard.js' });
+
+          (async () => {
+            const base = 'https://us-central1-chill-pros-ice-stream.cloudfunctions.net/nativeOpsApi';
+            const checkout = await fetch(`${base}/payments/checkout`, {
+              method: 'POST',
+              headers: authHeaders('owner-a'),
+              body: JSON.stringify({ invoiceId: 'invoice-a' }),
+            });
+            assert.equal(checkout.status, 200, 'checkout request must pass through');
+
+            const secondCheckout = await fetch(`${base}/payments/checkout`, {
+              method: 'POST',
+              headers: authHeaders('owner-a'),
+              body: JSON.stringify({ invoiceId: 'invoice-b' }),
+            });
+            assert.equal(secondCheckout.status, 200, 'a second invoice checkout must not erase the first checkout binding');
+
+            const directKeys = [...localStorage._values.keys()].filter(key => key.startsWith('chillProsCanonicalCheckoutAttempt:'));
+            assert.deepEqual(new Set(directKeys), new Set([
+              'chillProsCanonicalCheckoutAttempt:cs_owner_a_1',
+              'chillProsCanonicalCheckoutAttempt:cs_owner_a_2',
+            ]), 'concurrent-tab-safe storage must keep each checkout in an independent key');
+            assert.equal(localStorage.getItem('chillProsCanonicalCheckoutAttempts'), null, 'new checkout writes must not use the shared legacy array');
+
+            const beforeGoodStatus = calls.length;
+            const good = await fetch(`${base}/payments/status`, {
+              method: 'POST',
+              headers: authHeaders('owner-a'),
+              body: JSON.stringify({ checkoutSessionId: 'cs_owner_a_1' }),
+            });
+            assert.equal(good.status, 200, 'the exact issued checkout session must be allowed to reconcile');
+            assert.equal(calls.length, beforeGoodStatus + 1, 'valid status reconciliation must reach native billing exactly once');
+
+            const beforeSecondStatus = calls.length;
+            const second = await fetch(`${base}/payments/status`, {
+              method: 'POST',
+              headers: authHeaders('owner-a'),
+              body: JSON.stringify({ checkoutSessionId: 'cs_owner_a_2' }),
+            });
+            assert.equal(second.status, 200, 'multiple active invoice checkout bindings must coexist safely');
+            assert.equal(calls.length, beforeSecondStatus + 1, 'second valid status reconciliation must reach native billing exactly once');
+
+            localStorage.setItem('chillProsCanonicalCheckoutAttempts', JSON.stringify([{
+              uid: 'owner-a',
+              invoiceId: 'invoice-a',
+              sessionId: 'cs_legacy_return',
+              createdAt: Date.now(),
+            }]));
+            const beforeLegacyStatus = calls.length;
+            const legacy = await fetch(`${base}/payments/status`, {
+              method: 'POST',
+              headers: authHeaders('owner-a'),
+              body: JSON.stringify({ checkoutSessionId: 'cs_legacy_return' }),
+            });
+            assert.equal(legacy.status, 200, 'a still-valid checkout issued by the immediately previous preview must remain reconcilable');
+            assert.equal(calls.length, beforeLegacyStatus + 1, 'valid legacy binding must reach native billing exactly once');
+            assert.ok(localStorage.getItem('chillProsCanonicalCheckoutAttempt:cs_legacy_return'), 'legacy binding must migrate to its independent direct key');
+
+            const beforeWrongSession = calls.length;
+            const wrongSession = await fetch(`${base}/payments/status`, {
+              method: 'POST',
+              headers: authHeaders('owner-a'),
+              body: JSON.stringify({ checkoutSessionId: 'cs_unissued_old_session' }),
+            });
+            assert.equal(wrongSession.status, 409, 'an unissued or stale checkout session must fail closed');
+            assert.equal(calls.length, beforeWrongSession, 'rejected stale session must never reach native billing');
+
+            uid = 'owner-b';
+            const beforeAccountSwitch = calls.length;
+            const switched = await fetch(`${base}/payments/status`, {
+              method: 'POST',
+              headers: authHeaders('owner-b'),
+              body: JSON.stringify({ checkoutSessionId: 'cs_owner_a_1' }),
+            });
+            assert.equal(switched.status, 409, 'checkout session from another authenticated identity must fail closed');
+            assert.equal(calls.length, beforeAccountSwitch, 'cross-account payment status request must not reach native billing');
+
+            const beforeUnrelated = calls.length;
+            await fetch('https://example.com/unrelated', { method: 'POST', body: '{}' });
+            assert.equal(calls.length, beforeUnrelated + 1, 'unrelated requests must pass through exactly once');
+
+            console.log('Canonical payment session guard passed: popup-safe checkout bindings use independent cross-tab-safe keys, legacy returns migrate safely, multiple invoices coexist, and stale/cross-account sessions fail closed.');
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          EOF

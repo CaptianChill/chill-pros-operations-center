@@ -5,49 +5,67 @@ on:
   push:
     branches:
       - main
-      - recovery/pre-ionos-chill-bro-v5
+      - recovery/boodaflow-canonical-v0-proxy
 
 jobs:
   contract:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Verify canonical Chill Bro source exists
+      - name: Verify canonical server source exists
         run: |
           test -f functions/chill-bro.js
-          test -f chill-bro-recovered.js
-          test -f chill-bro-recovered.css
+          test -f functions/native-ops.js
           grep -q 'require("./chill-bro")' functions/main.js
-          grep -q 'src="chill-bro-recovered.js' index.html
-          grep -q 'href="chill-bro-recovered.css' index.html
-      - name: Verify single active frontend runtime
+          grep -q 'require("./native-ops")' functions/main.js
+          grep -q 'chillBroApi' functions/chill-bro.js
+          grep -q 'nativeOpsApi' functions/native-ops.js
+      - name: Verify top-level frontend integration
         run: |
-          if grep -q 'src="chill-bro-v3.js' index.html; then
-            echo "Legacy Chill Bro V3 runtime must not be loaded by index.html"
+          test -f canonical-auth.js
+          test -f canonical-top-level.js
+          test -f canonical-overlay.css
+          test -f api/v0-visual.js
+          test -f vercel.json
+          ! test -f canonical-runtime.js
+          ! test -f canonical-shell.css
+          grep -q 'canonical-auth.js' api/v0-visual.js
+          grep -q 'canonical-top-level.js' api/v0-visual.js
+          grep -q 'canonical-overlay.css' api/v0-visual.js
+          grep -q '"dest": "/api/v0-visual"' vercel.json
+      - name: Block shell and competing auth regressions
+        run: |
+          if grep -RniE 'ionos-receptionist|IONOS connection pending|document\.body\.innerHTML|canonical-frame|renderLogin' canonical-auth.js canonical-top-level.js api/v0-visual.js 2>/dev/null; then
+            echo "Recovery shell or competing runtime pattern found"
             exit 1
           fi
-          if grep -q 'href="chill-bro-v3.css' index.html; then
-            echo "Legacy Chill Bro V3 stylesheet must not be loaded by index.html"
+          if grep -qE 'firebase\.auth\(' canonical-top-level.js; then
+            echo "Canonical runtime must consume chillProsAuth rather than a second auth client"
             exit 1
           fi
-      - name: Block receptionist and shell regressions
+      - name: Verify one authenticated token source
         run: |
-          if grep -RniE "ionos-receptionist|IONOS connection pending" index.html firebase-config.js chill-bro-recovered.js 2>/dev/null; then
-            echo "Legacy IONOS/receptionist dependency found in active Operations Center path"
-            exit 1
-          fi
-          if grep -RniE "document\.body\.innerHTML" chill-bro-recovered.js firebase-config.js 2>/dev/null; then
-            echo "Active Chill Bro/bootstrap code must not replace the approved Operations Center body"
-            exit 1
-          fi
-      - name: Verify mobile release protections
+          grep -q 'window.chillProsAuth' canonical-auth.js
+          grep -q 'window.chillProsAuth' canonical-top-level.js
+          grep -q 'getIdToken' canonical-top-level.js
+      - name: Verify immutable v0 visual source
         run: |
-          grep -q "chillBroLauncher" v0-contract-patch.js
-          grep -q "maximum-scale=1" v0-contract-patch.js
-          grep -q "font-size:16px" v0-contract-patch.css
-          grep -q "overflow-x:hidden" v0-contract-patch.css
-      - name: Verify v0 visual contract documentation
+          grep -q 'chill-pros-operation-ceneter-v2-qv0by9k5v-chill-pros.vercel.app' api/v0-visual.js
+          grep -q 'dpl_FUSXSKKJ2USpEMMf4q1nCQR6qQ3T' api/v0-visual.js
+          grep -q 'top-level-v0' api/v0-visual.js
+      - name: Verify mobile release protections and exact v0 controls
         run: |
-          grep -q "chill-pros-operation-ceneter-v2" docs/chill-bro-v4-source-of-truth.md
-          grep -q "dpl_FUSXSKKJ2USpEMMf4q1nCQR6qQ3T" docs/chill-bro-v4-source-of-truth.md
-          grep -q "oC7tJVEtyTz" docs/chill-bro-v4-source-of-truth.md
+          grep -q 'font-size:16px' canonical-overlay.css
+          grep -q '@media(max-width:800px)' canonical-overlay.css
+          grep -q '100dvh' canonical-overlay.css
+          ! grep -q 'cpChillBroLauncher' canonical-top-level.js
+          grep -q 'AI Parts Intelligence' canonical-top-level.js
+          grep -q 'Chill Bro' canonical-top-level.js
+      - name: Verify revenue and Chill Bro paths
+        run: |
+          grep -q 'nativeOpsApi' canonical-top-level.js
+          grep -q "'/quotes'" canonical-top-level.js
+          grep -q "'/invoices'" canonical-top-level.js
+          grep -q "'/payments/checkout'" canonical-top-level.js
+          grep -q 'chillBroApi' canonical-top-level.js
+          grep -q 'chill-bro-approved.webp' canonical-top-level.js

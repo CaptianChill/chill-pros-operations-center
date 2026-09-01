@@ -1,0 +1,118 @@
+name: Canonical Payment Request Identity
+
+on:
+  pull_request:
+  push:
+    branches:
+      - recovery/boodaflow-canonical-v0-proxy
+
+jobs:
+  payment-request-identity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Keep checkout ownership bound to the authenticated request
+        run: |
+          node <<'EOF'
+          const assert = require('node:assert/strict');
+          const fs = require('node:fs');
+          const vm = require('node:vm');
+
+          const source = fs.readFileSync('canonical-payment-session-guard.js', 'utf8');
+          assert.match(source, /decodeUidFromBearer/, 'checkout ownership must come from the authenticated request token');
+          assert.match(source, /issuedToUid\s*=\s*requestUid/, 'checkout must snapshot request identity before awaiting the response');
+          assert.match(source, /STORE_PREFIX/, 'request-bound checkout identity must use the independent per-session storage contract');
+          assert.doesNotMatch(source, /document\.|document\.body|innerHTML/, 'payment identity guard must remain DOM-free');
+
+          const CHECKOUT = 'https://us-central1-chill-pros-ice-stream.cloudfunctions.net/nativeOpsApi/payments/checkout';
+          const STATUS = 'https://us-central1-chill-pros-ice-stream.cloudfunctions.net/nativeOpsApi/payments/status';
+          const store = new Map();
+          const rawCalls = [];
+
+          function token(uid) {
+            return `e30.${Buffer.from(JSON.stringify({ user_id: uid, exp: 4102444800 })).toString('base64url')}.sig`;
+          }
+
+          global.window = globalThis;
+          global.localStorage = {
+            getItem(key) { return store.has(key) ? store.get(key) : null; },
+            setItem(key, value) { store.set(key, String(value)); },
+            removeItem(key) { store.delete(key); },
+          };
+          global.chillProsAuth = { currentUser: { uid: 'owner-old' } };
+
+          global.fetch = async (input, init = {}) => {
+            const url = typeof input === 'string' ? input : input.url;
+            rawCalls.push(url);
+            if (url === CHECKOUT) {
+              // Simulate another tab changing the active account while the server is
+              // finishing the checkout created with owner-old's bearer token.
+              global.chillProsAuth.currentUser = { uid: 'owner-new' };
+              return new Response(JSON.stringify({
+                ok: true,
+                invoiceId: 'inv-1',
+                checkoutSessionId: 'cs_owner_old',
+                url: 'https://checkout.stripe.test/session',
+              }), { status: 200, headers: { 'content-type': 'application/json' } });
+            }
+            if (url === STATUS) {
+              return new Response(JSON.stringify({
+                ok: true,
+                invoiceId: 'inv-1',
+                checkoutSessionId: 'cs_owner_old',
+                paymentStatus: 'paid',
+              }), { status: 200, headers: { 'content-type': 'application/json' } });
+            }
+            throw new Error(`Unexpected request: ${url}`);
+          };
+
+          vm.runInThisContext(source, { filename: 'canonical-payment-session-guard.js' });
+
+          (async () => {
+            const checkout = await fetch(CHECKOUT, {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${token('owner-old')}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ invoiceId: 'inv-1' }),
+            });
+            assert.equal(checkout.status, 200);
+
+            const attempt = JSON.parse(store.get('chillProsCanonicalCheckoutAttempt:cs_owner_old') || 'null');
+            assert.ok(attempt, 'successful checkout should create one direct local binding for its Stripe session');
+            assert.equal(attempt.uid, 'owner-old', 'binding must stay with the bearer-token owner, not the account active when the response returns');
+            assert.equal(attempt.invoiceId, 'inv-1');
+            assert.equal(attempt.sessionId, 'cs_owner_old');
+            assert.equal(store.has('chillProsCanonicalCheckoutAttempts'), false, 'new checkout writes must not regress to the shared legacy array');
+
+            const beforeDenied = rawCalls.length;
+            const denied = await fetch(STATUS, {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${token('owner-new')}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ checkoutSessionId: 'cs_owner_old' }),
+            });
+            assert.equal(denied.status, 409, 'new account must not inherit the old account checkout binding');
+            assert.equal(rawCalls.length, beforeDenied, 'cross-account status request must fail before reaching billing');
+
+            global.chillProsAuth.currentUser = { uid: 'owner-old' };
+            const allowed = await fetch(STATUS, {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${token('owner-old')}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ checkoutSessionId: 'cs_owner_old' }),
+            });
+            assert.equal(allowed.status, 200, 'original authenticated owner must retain the checkout binding');
+            assert.equal(rawCalls.at(-1), STATUS);
+
+            console.log('Canonical payment request identity passed: in-flight checkout responses cannot migrate to a different authenticated account, and per-session storage cannot clobber another tab.');
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          EOF

@@ -1,0 +1,112 @@
+name: Canonical Auth Retry Contract
+
+on:
+  pull_request:
+  push:
+    branches:
+      - recovery/boodaflow-canonical-v0-proxy
+
+jobs:
+  auth-retry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Verify revoked-token recovery stays scoped to canonical APIs
+        run: |
+          node <<'EOF'
+          const assert = require('node:assert/strict');
+          const fs = require('node:fs');
+          const vm = require('node:vm');
+
+          const source = fs.readFileSync('canonical-auth-retry.js', 'utf8');
+          assert.match(source, /nativeOpsApi\//, 'native billing must be protected');
+          assert.match(source, /chillBroApi\//, 'Chill Bro must be protected');
+          assert.doesNotMatch(source, /document\.|document\.body|innerHTML/, 'auth retry must not mutate the v0 visual contract');
+
+          global.window = globalThis;
+          let currentToken = 'old-token';
+          let forceRefreshes = 0;
+          let rawCalls = [];
+
+          global.chillProsAuth = {
+            get currentUser() {
+              return {
+                async getIdToken(forceRefresh = false) {
+                  if (forceRefresh) {
+                    forceRefreshes += 1;
+                    currentToken = 'new-token';
+                  }
+                  return currentToken;
+                },
+              };
+            },
+          };
+
+          global.fetch = async (input, init = {}) => {
+            const url = typeof input === 'string' ? input : input.url;
+            const headers = new Headers(input instanceof Request ? input.headers : undefined);
+            if (init.headers) new Headers(init.headers).forEach((value, key) => headers.set(key, value));
+            rawCalls.push({ url, authorization: headers.get('authorization') || '' });
+
+            if (url.includes('/nativeOpsApi/quotes')) {
+              const status = rawCalls.filter((call) => call.url.includes('/nativeOpsApi/quotes')).length === 1 ? 401 : 200;
+              return new Response(JSON.stringify(status === 200 ? { id: 'q-recovered' } : { error: 'Invalid or expired session.' }), {
+                status,
+                headers: { 'content-type': 'application/json' },
+              });
+            }
+            return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+              status: 401,
+              headers: { 'content-type': 'application/json' },
+            });
+          };
+
+          vm.runInThisContext(source, { filename: 'canonical-auth-retry.js' });
+
+          (async () => {
+            const protectedResponse = await fetch(
+              'https://us-central1-chill-pros-ice-stream.cloudfunctions.net/nativeOpsApi/quotes',
+              {
+                method: 'POST',
+                headers: { Authorization: 'Bearer old-token', 'Content-Type': 'application/json' },
+                body: JSON.stringify({ lines: [{ description: 'test', quantity: 1, unitPrice: 1 }] }),
+              }
+            );
+            assert.equal(protectedResponse.status, 200, 'canonical billing should retry once after a revoked-token 401');
+            const protectedCalls = rawCalls.filter((call) => call.url.includes('/nativeOpsApi/quotes'));
+            assert.deepEqual(
+              protectedCalls.map((call) => call.authorization),
+              ['Bearer old-token', 'Bearer new-token'],
+              'retry must replace only the canonical bearer token with a forced-refresh token'
+            );
+            assert.equal(forceRefreshes, 1, '401 recovery must force exactly one canonical token refresh');
+
+            const beforeUnrelated = rawCalls.length;
+            const unrelated = await fetch('https://example.com/not-canonical', {
+              headers: { Authorization: 'Bearer new-token' },
+            });
+            assert.equal(unrelated.status, 401);
+            assert.equal(rawCalls.length, beforeUnrelated + 1, 'unrelated requests must never be retried');
+            assert.equal(forceRefreshes, 1, 'unrelated 401 responses must not touch canonical auth');
+
+            const beforeForeign = rawCalls.length;
+            const foreign = await fetch(
+              'https://us-central1-chill-pros-ice-stream.cloudfunctions.net/chillBroApi/chat',
+              { method: 'POST', headers: { Authorization: 'Bearer foreign-token' }, body: '{}' }
+            );
+            assert.equal(foreign.status, 401);
+            assert.equal(rawCalls.length, beforeForeign + 1, 'a noncanonical bearer token must not be retried');
+            assert.equal(forceRefreshes, 1, 'foreign auth must not trigger canonical refresh');
+
+            console.log('Canonical auth retry contract passed: revoked-token recovery is one-shot, same-session, API-scoped, and DOM-free.');
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          EOF
