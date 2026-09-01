@@ -43,6 +43,52 @@ service cloud.firestore {
       allow create, update, delete: if isOwner() || isOffice();
     }
 
+    match /Jobs/{jobId} {
+      allow read: if signedIn();
+      allow create, update: if isOwner() || isOffice() || isTechnician();
+      allow delete: if isOwner() || isOffice();
+    }
+
+    match /Equipment/{equipmentId} {
+      allow read: if signedIn();
+      allow create, update: if isOwner() || isOffice() || isTechnician();
+      allow delete: if isOwner() || isOffice();
+    }
+
+    match /CarePlans/{planId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isOwner() || isOffice();
+    }
+
+    match /RateBook/{itemId} {
+      allow read: if signedIn();
+      allow write: if isOwner();
+    }
+
+    // Quotes, invoices, and payments are only ever written by the
+    // nativeOpsApi Cloud Function (Admin SDK, bypasses these rules) so
+    // amounts and status transitions are always server-validated. Staff can
+    // read them directly for a live billing view.
+    match /quotes/{quoteId} {
+      allow read: if isOwner() || isOffice();
+      allow write: if false;
+    }
+
+    match /invoices/{invoiceId} {
+      allow read: if isOwner() || isOffice();
+      allow write: if false;
+    }
+
+    match /payments/{paymentId} {
+      allow read: if isOwner() || isOffice();
+      allow write: if false;
+    }
+
+    match /privateIntegrations/{integrationId} {
+      allow read: if isOwner();
+      allow write: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

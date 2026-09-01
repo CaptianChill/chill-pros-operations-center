@@ -20,12 +20,15 @@ const JOBBER_AUTHORIZE_URL = "https://api.getjobber.com/api/oauth/authorize";
 const JOBBER_TOKEN_URL = "https://api.getjobber.com/api/oauth/token";
 const JOBBER_GRAPHQL_URL = "https://api.getjobber.com/api/graphql";
 const JOBBER_GRAPHQL_VERSION = "2025-04-16";
-const FRONTEND_URL = "https://captianchill.github.io/chill-pros-operations-center/launch.html";
-const ALLOWED_ORIGINS = new Set([
-  "https://captianchill.github.io",
-  "https://chill-pros-ice-stream.web.app",
-  "https://chill-pros-ice-stream.firebaseapp.com",
-]);
+const FRONTEND_URL = "https://chill-pros-operations-center.vercel.app/settings";
+const ALLOWED_ORIGINS = new Set(["https://chill-pros-operations-center.vercel.app"]);
+
+function originAllowed(origin) {
+  if (!origin) return false;
+  if (ALLOWED_ORIGINS.has(origin)) return true;
+  return /^https:\/\/chill-pros-operations-center(?:-[a-z0-9-]+)?-chill-pros\.vercel\.app$/i.test(origin)
+    || /^https:\/\/chill-pros-operations-center-git-[a-z0-9-]+-chill-pros\.vercel\.app$/i.test(origin);
+}
 
 const app = express();
 app.disable("x-powered-by");
@@ -33,7 +36,7 @@ app.use(express.json({ limit: "250kb" }));
 
 app.use((req, res, next) => {
   const origin = req.get("origin");
-  if (origin && ALLOWED_ORIGINS.has(origin)) {
+  if (origin && originAllowed(origin)) {
     res.set("Access-Control-Allow-Origin", origin);
     res.set("Vary", "Origin");
     res.set("Access-Control-Allow-Headers", "Authorization, Content-Type");

@@ -2,21 +2,5 @@
   "functions": {
     "source": "functions",
     "runtime": "nodejs20"
-  },
-  "hosting": {
-    "public": ".",
-    "ignore": [
-      "firebase.json",
-      ".firebaserc",
-      "**/.*",
-      "**/node_modules/**",
-      "functions/**"
-    ],
-    "rewrites": [
-      {
-        "source": "/",
-        "destination": "/owner-command-center.html"
-      }
-    ]
   }
 }

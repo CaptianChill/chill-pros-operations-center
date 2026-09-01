@@ -14,12 +14,7 @@ const db = getFirestore();
 const STRIPE_SECRET_KEY = defineSecret("STRIPE_SECRET_KEY");
 const OWNER_EMAIL = "chillprostx@gmail.com";
 const DEFAULT_RETURN_URL = "https://chill-pros-operations-center.vercel.app";
-const ALLOWED_ORIGINS = new Set([
-  "https://captianchill.github.io",
-  "https://chill-pros-ice-stream.web.app",
-  "https://chill-pros-ice-stream.firebaseapp.com",
-  "https://chill-pros-operations-center.vercel.app",
-]);
+const ALLOWED_ORIGINS = new Set(["https://chill-pros-operations-center.vercel.app"]);
 
 function originAllowed(origin) {
   if (!origin) return false;
