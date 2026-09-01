@@ -1,5 +1,6 @@
 (() => {
   const OWNER_EMAILS = new Set(["chillprostx@gmail.com"]);
+  const technicianPortal = new URLSearchParams(window.location.search).get("portal") === "technician";
   const ROLE_VIEWS = {
     owner: ["dashboard", "new-customer", "office-queue", "today-jobs", "technicians", "maintenance", "equipment", "parts", "ai", "reports", "settings"],
     office: ["dashboard", "new-customer", "office-queue", "today-jobs", "technicians", "maintenance", "equipment", "parts"],
@@ -65,6 +66,11 @@
     if (shell) shell.style.visibility = visible ? "hidden" : "visible";
   }
 
+  function setAuthError(message) {
+    const errorBox = document.getElementById("authError");
+    if (errorBox) errorBox.textContent = message;
+  }
+
   function showSessionBar(user, profile) {
     document.getElementById("sessionBar")?.remove();
     const bar = document.createElement("div");
@@ -91,13 +97,17 @@
 
     try {
       const snapshot = await window.chillProsDb.collection("Users").doc(user.uid).get();
-      if (!snapshot.exists) return fallback;
+      if (!snapshot.exists) return technicianPortal ? null : fallback;
       const data = snapshot.data() || {};
       const role = ["owner", "office", "technician"].includes(data.role) ? data.role : fallbackRole;
-      return { ...fallback, ...data, role };
+      const profile = { ...fallback, ...data, role };
+      if (technicianPortal && (profile.role !== "technician" || !String(profile.technicianName || "").trim())) {
+        return null;
+      }
+      return profile;
     } catch (error) {
-      console.warn("Unable to read user profile; using fallback role:", error);
-      return fallback;
+      console.warn("Unable to read user profile:", error);
+      return technicianPortal ? null : fallback;
     }
   }
 
@@ -212,6 +222,7 @@
       auth.onAuthStateChanged(async (user) => {
         if (!user) {
           currentProfile = null;
+          window.CHILL_PROS_SESSION = null;
           unsubscribeCustomers?.();
           unsubscribeTechnicians?.();
           document.getElementById("sessionBar")?.remove();
@@ -220,6 +231,16 @@
         }
 
         currentProfile = await getUserProfile(user);
+        if (!currentProfile) {
+          window.CHILL_PROS_SESSION = null;
+          unsubscribeCustomers?.();
+          unsubscribeTechnicians?.();
+          setGateVisible(true);
+          setAuthError("This account is not configured as a Chill Pros technician. Ask the owner to activate the technician profile.");
+          await auth.signOut();
+          return;
+        }
+
         patchTechnicianPersistence();
         applyRole(currentProfile);
         startRealtimeListeners();
@@ -228,7 +249,7 @@
       });
     } catch (error) {
       console.error("Authentication SDK failed to load:", error);
-      document.getElementById("authError").textContent = "Authentication could not load. Check the internet connection.";
+      setAuthError("Authentication could not load. Check the internet connection.");
     }
   }
 
