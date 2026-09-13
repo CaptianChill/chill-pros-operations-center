@@ -20,6 +20,7 @@ window.FIELD_FORGED_CONFIG = {
 document.write('<link rel="stylesheet" href="brand-lock.css?v=20260729-logo">');
 document.write('<link rel="stylesheet" href="final-template.css?v=20260729-logo">');
 document.write('<link rel="stylesheet" href="production-owner.css?v=20260729-logo">');
+document.write('<link rel="stylesheet" href="payroll-v1.css?v=20260913-payroll">');
 document.write('<link rel="manifest" href="manifest.webmanifest?v=20260729-logo">');
 document.write('<link rel="icon" type="image/jpeg" href="chill-pros-logo.jpeg?v=20260729-logo">');
 document.write('<link rel="apple-touch-icon" href="chill-pros-logo.jpeg?v=20260729-logo">');
@@ -34,5 +35,7 @@ document.write('<script src="auth-diagnostics.js?v=20260729-logo"><\/script>');
 document.write('<script src="final-template.js?v=20260729-logo"><\/script>');
 document.write('<script src="production-owner.js?v=20260729-logo"><\/script>');
 document.write('<script src="production-reset.js?v=20260729-logo"><\/script>');
+// Payroll owner/admin workspace. ACH and tax submission stay disabled until the Neon cutover is verified and a licensed provider is connected.
+document.write('<script src="payroll-v1.js?v=20260913-payroll"><\/script>');
 // Secure Jobber OAuth and synchronization controls.
 document.write('<script src="jobber-integration.js?v=20260729-logo"><\/script>');
