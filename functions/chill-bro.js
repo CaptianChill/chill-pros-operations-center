@@ -33,8 +33,8 @@ const TRUSTED_WEB_FAMILIES = [
 function originAllowed(origin) {
   if (!origin) return false;
   if (ALLOWED_ORIGINS.has(origin)) return true;
-  return /^https:\/\/chill-pros-operations-center(?:-[a-z0-9-]+)?-chill-pros\.vercel\.app$/i.test(origin)
-    || /^https:\/\/chill-pros-operations-center-git-[a-z0-9-]+-chill-pros\.vercel\.app$/i.test(origin);
+  return /^https:\/\/chill-bros(?:-[a-z0-9-]+)?-chill-pros\.vercel\.app$/i.test(origin)
+    || /^https:\/\/chill-bros-git-[a-z0-9-]+-chill-pros\.vercel\.app$/i.test(origin);
 }
 
 const app = express();
