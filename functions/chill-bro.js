@@ -19,7 +19,7 @@ const ALLOWED_ORIGINS = new Set([
   "https://captianchill.github.io",
   "https://chill-pros-ice-stream.web.app",
   "https://chill-pros-ice-stream.firebaseapp.com",
-  "https://chill-pros-operations-center.vercel.app",
+  "https://chill-bros.vercel.app",
 ]);
 
 const TRUSTED_WEB_FAMILIES = [
