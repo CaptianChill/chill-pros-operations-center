@@ -1,4 +1,8 @@
 (() => {
+  const currentHost = window.location.hostname;
+  const portal = new URLSearchParams(window.location.search).get("portal");
+  const technicianPortal = portal === "technician";
+  const emailStorageKey = technicianPortal ? "chillProsLastTechnicianEmail" : "chillProsLastEmail";
   const FRIENDLY_ERRORS = {
     "auth/invalid-credential": "Firebase rejected the email/password combination. Re-enter the password or use Forgot password.",
     "auth/wrong-password": "The password does not match this Firebase user.",
@@ -7,8 +11,10 @@
     "auth/invalid-email": "The email address format is invalid.",
     "auth/too-many-requests": "Firebase temporarily blocked attempts after repeated failures. Wait a few minutes or reset the password.",
     "auth/network-request-failed": "The sign-in request could not reach Firebase. Check the connection and retry.",
-    "auth/unauthorized-domain": "This website domain is not authorized in Firebase. Add captianchill.github.io under Authentication > Settings > Authorized domains.",
-    "auth/operation-not-allowed": "Email/Password sign-in is not enabled in Firebase Authentication."
+    "auth/unauthorized-domain": `This website domain is not authorized in Firebase. Add ${currentHost} under Authentication > Settings > Authorized domains.`,
+    "auth/operation-not-allowed": "Email/Password sign-in is not enabled in Firebase Authentication.",
+    "auth/not-technician-account": "This account is not configured as a Chill Pros technician. Use the technician account assigned by the owner.",
+    "auth/technician-profile-unavailable": "Technician access could not be verified. Check the connection and try again; if it continues, ask the owner to confirm the Firebase technician profile and permissions."
   };
 
   const waitFor = (test, timeout = 12000) => new Promise((resolve, reject) => {
@@ -25,9 +31,69 @@
     }, 100);
   });
 
+  function safeStorageGet(key) {
+    try {
+      return window.localStorage?.getItem(key) || "";
+    } catch (error) {
+      console.warn("Saved sign-in email is unavailable; continuing without it:", error);
+      return "";
+    }
+  }
+
+  function safeStorageSet(key, value) {
+    try {
+      window.localStorage?.setItem(key, value);
+    } catch (error) {
+      console.warn("Unable to save the sign-in email; authentication will continue:", error);
+    }
+  }
+
   function formatError(error) {
     const code = error?.code || "auth/unknown";
     return `${FRIENDLY_ERRORS[code] || error?.message || "Sign-in failed."} (${code})`;
+  }
+
+  async function rejectTechnicianSession(auth, code, message, cause) {
+    try {
+      await auth.signOut();
+    } catch (signOutError) {
+      console.error("Unable to clear rejected technician session:", signOutError);
+    }
+
+    const error = new Error(message);
+    error.code = code;
+    if (cause) error.cause = cause;
+    throw error;
+  }
+
+  async function verifyTechnicianAccount(user, auth) {
+    try {
+      const db = await waitFor(() => window.chillProsDb);
+      const snapshot = await db.collection("Users").doc(user.uid).get();
+      const profile = snapshot.exists ? (snapshot.data() || {}) : null;
+      const technicianName = typeof profile?.technicianName === "string"
+        ? profile.technicianName.trim()
+        : "";
+
+      if (!profile || profile.role !== "technician" || !technicianName) {
+        return rejectTechnicianSession(
+          auth,
+          "auth/not-technician-account",
+          "Technician role profile is missing or invalid."
+        );
+      }
+
+      return profile;
+    } catch (error) {
+      if (error?.code === "auth/not-technician-account") throw error;
+      console.error("Technician profile verification failed:", error);
+      return rejectTechnicianSession(
+        auth,
+        "auth/technician-profile-unavailable",
+        "Technician role profile could not be verified.",
+        error
+      );
+    }
   }
 
   async function install() {
@@ -38,7 +104,26 @@
     const errorBox = document.getElementById("authError");
     const submitButton = form.querySelector('button[type="submit"]');
 
-    emailInput.value = localStorage.getItem("chillProsLastEmail") || emailInput.value || "chillprostx@gmail.com";
+    if (technicianPortal) {
+      const heading = form.querySelector("h2");
+      const description = form.querySelector("p");
+      if (heading) heading.textContent = "Technician Sign-In";
+      if (description) description.textContent = "Use your assigned Chill Pros technician account.";
+      document.title = "Chill Pros Technician Sign-In";
+
+      if (auth.currentUser) {
+        errorBox.textContent = "Preparing a separate technician sign-in…";
+        try {
+          await auth.signOut();
+        } catch (error) {
+          console.error("Unable to clear the existing session for technician sign-in:", error);
+          errorBox.textContent = "Could not clear the existing account session. Use Sign out, then reopen the technician link.";
+          return;
+        }
+      }
+    }
+
+    emailInput.value = safeStorageGet(emailStorageKey);
 
     const controls = document.createElement("div");
     controls.className = "auth-recovery-controls";
@@ -57,7 +142,7 @@
     document.getElementById("forgotAuthPassword").addEventListener("click", async () => {
       const email = emailInput.value.trim().toLowerCase();
       if (!email) {
-        errorBox.textContent = "Enter the owner email first.";
+        errorBox.textContent = "Enter your account email first.";
         return;
       }
       errorBox.textContent = "Sending password reset email…";
@@ -79,11 +164,17 @@
       submitButton.disabled = true;
       submitButton.textContent = "SIGNING IN…";
       try {
-        localStorage.setItem("chillProsLastEmail", email);
-        await auth.signInWithEmailAndPassword(email, password);
-        errorBox.textContent = "Sign-in successful. Loading owner dashboard…";
+        safeStorageSet(emailStorageKey, email);
+        const credential = await auth.signInWithEmailAndPassword(email, password);
+        if (technicianPortal) {
+          errorBox.textContent = "Verifying technician access…";
+          await verifyTechnicianAccount(credential.user, auth);
+        }
+        errorBox.textContent = technicianPortal
+          ? "Sign-in successful. Loading technician workspace…"
+          : "Sign-in successful. Loading your workspace…";
       } catch (error) {
-        console.error("Firebase owner sign-in failed:", error);
+        console.error("Firebase sign-in failed:", error);
         errorBox.textContent = formatError(error);
       } finally {
         submitButton.disabled = false;
