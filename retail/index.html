@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#090D10">
+  <meta name="description" content="FieldForged Ops is a modern field-service operations platform for contractors.">
+  <title>FieldForged Ops</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Primary navigation">
+      <a class="brand" href="#dashboard" aria-label="FieldForged Ops dashboard">
+        <span class="brand-mark" data-short-name>FF</span>
+        <span class="brand-copy">
+          <strong data-product-name>FieldForged Ops</strong>
+          <small data-product-edition>Contractor Edition</small>
+        </span>
+      </a>
+
+      <nav class="nav-list">
+        <button class="nav-item active" data-view="dashboard"><span>01</span>Overview</button>
+        <button class="nav-item" data-view="intake"><span>02</span>New intake</button>
+        <button class="nav-item" data-view="jobs"><span>03</span>Jobs</button>
+        <button class="nav-item" data-view="equipment"><span>04</span>Equipment</button>
+        <button class="nav-item" data-view="quotes"><span>05</span>Quotes</button>
+        <button class="nav-item" data-view="parts"><span>06</span>Parts</button>
+        <button class="nav-item" data-view="team"><span>07</span>Team</button>
+        <button class="nav-item" data-view="reports"><span>08</span>Reports</button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="workspace-card">
+          <span class="workspace-avatar" data-short-name>NM</span>
+          <div>
+            <strong data-company-name>Northstar Mechanical</strong>
+            <small>Active workspace</small>
+          </div>
+        </div>
+        <button class="settings-button" type="button" data-view="settings">Workspace settings</button>
+        <small class="powered-by" data-powered-by>Powered by FieldForged Technologies</small>
+      </div>
+    </aside>
+
+    <main class="main-panel">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">FIELD OPERATIONS</p>
+          <h1 id="pageTitle">Operations overview</h1>
+        </div>
+        <div class="topbar-actions">
+          <button class="icon-button" aria-label="Notifications">3</button>
+          <div class="user-chip">
+            <span>BB</span>
+            <div><strong>Owner</strong><small>Administrator</small></div>
+          </div>
+        </div>
+      </header>
+
+      <section id="dashboard" class="view active">
+        <article class="hero-card">
+          <div>
+            <p class="eyebrow">COMMAND CENTER</p>
+            <h2 data-product-descriptor>Field service operations, without the office chaos.</h2>
+            <p>Capture the service call once. Move it from intake to dispatch, documentation, quote approval and closeout without rebuilding the same information in multiple systems.</p>
+            <div class="hero-actions">
+              <button class="primary-button" data-view-target="intake">Create service intake</button>
+              <button class="secondary-button" data-view-target="jobs">Open active jobs</button>
+            </div>
+          </div>
+          <div class="workflow-visual" aria-label="Workflow summary">
+            <div><span>01</span><strong>Intake</strong><small>Customer + asset captured</small></div>
+            <i></i>
+            <div><span>02</span><strong>Dispatch</strong><small>Team assigned</small></div>
+            <i></i>
+            <div><span>03</span><strong>Approve</strong><small>Quote decision tracked</small></div>
+          </div>
+        </article>
+
+        <div class="metrics-grid">
+          <article class="metric-card"><span>Active jobs</span><strong>14</strong><small class="positive">+3 this week</small></article>
+          <article class="metric-card"><span>Needs quote</span><strong>5</strong><small>2 waiting over 24h</small></article>
+          <article class="metric-card"><span>Awaiting parts</span><strong>3</strong><small>$2,840 committed</small></article>
+          <article class="metric-card"><span>Approval rate</span><strong>72%</strong><small class="positive">+8% this month</small></article>
+        </div>
+
+        <div class="dashboard-grid">
+          <article class="panel jobs-panel">
+            <div class="panel-header">
+              <div><p class="eyebrow">LIVE WORKFLOW</p><h3>Priority jobs</h3></div>
+              <button class="text-button" data-view-target="jobs">View all</button>
+            </div>
+            <div class="job-row">
+              <span class="status-dot urgent"></span>
+              <div><strong>Walk-in cooler not holding temperature</strong><small>La Fonda Restaurant · True TUC-48</small></div>
+              <span class="status-pill quote">Needs quote</span>
+              <time>18 min</time>
+            </div>
+            <div class="job-row">
+              <span class="status-dot active"></span>
+              <div><strong>RTU compressor replacement</strong><small>Westview Dental · Carrier 48TC</small></div>
+              <span class="status-pill progress">In progress</span>
+              <time>1h 12m</time>
+            </div>
+            <div class="job-row">
+              <span class="status-dot waiting"></span>
+              <div><strong>Ice machine water valve</strong><small>Riverwalk Hotel · Hoshizaki KM-650</small></div>
+              <span class="status-pill parts">Waiting parts</span>
+              <time>Yesterday</time>
+            </div>
+          </article>
+
+          <article class="panel automation-panel">
+            <div class="panel-header">
+              <div><p class="eyebrow">AUTOMATION</p><h3>Office workload removed</h3></div>
+            </div>
+            <div class="automation-stat"><strong>6.8h</strong><span>Estimated admin time saved this week</span></div>
+            <ul class="activity-list">
+              <li><span>✓</span>4 field reports standardized</li>
+              <li><span>✓</span>3 quote reminders scheduled</li>
+              <li><span>✓</span>8 equipment records updated</li>
+              <li><span>✓</span>2 parts requests routed</li>
+            </ul>
+          </article>
+        </div>
+
+        <div class="module-grid">
+          <button class="module-card" data-view-target="intake"><span>IN</span><strong>Smart intake</strong><small>Customer, site, equipment and complaint in one record.</small></button>
+          <button class="module-card" data-view-target="equipment"><span>EQ</span><strong>Asset intelligence</strong><small>Model, serial, history, warranty and documentation.</small></button>
+          <button class="module-card" data-view-target="quotes"><span>QA</span><strong>Quote approval</strong><small>Track recommendations, decisions and follow-up.</small></button>
+          <button class="module-card" data-view-target="parts"><span>PI</span><strong>Parts workflow</strong><small>Verification, sourcing and order status in context.</small></button>
+        </div>
+      </section>
+
+      <section id="intake" class="view">
+        <div class="section-heading"><div><p class="eyebrow">ONE-TIME ENTRY</p><h2>New service intake</h2></div><span class="section-badge">Retail prototype</span></div>
+        <form class="form-panel" id="retailIntakeForm">
+          <div class="form-section"><h3>Customer</h3><div class="form-grid two"><label>Company<input name="customer" placeholder="Customer or company" required></label><label>Contact<input name="contact" placeholder="Primary contact"></label><label>Phone<input name="phone" type="tel"></label><label>Email<input name="email" type="email"></label></div><label>Service address<input name="address"></label></div>
+          <div class="form-section"><h3>Equipment</h3><div class="form-grid three"><label>Category<select name="category"><option>HVAC</option><option>Refrigeration</option><option>Ice machine</option><option>Commercial kitchen equipment</option><option>Plumbing</option><option>Electrical</option><option>Other</option></select></label><label>Manufacturer<input name="manufacturer"></label><label>Model<input name="model"></label><label>Serial<input name="serial"></label><label>Asset ID<input name="asset"></label><label>Location<input name="location" placeholder="Rooftop, kitchen, suite..."></label></div></div>
+          <div class="form-section"><h3>Service details</h3><label>Customer complaint<textarea name="complaint" rows="3" required></textarea></label><label>Technician findings<textarea name="findings" rows="4"></textarea></label><label>Recommended action<textarea name="recommendation" rows="3"></textarea></label><div class="form-grid two"><label>Workflow status<select name="status"><option>Needs review</option><option>Needs quote</option><option>Scheduled</option><option>Waiting parts</option><option>Ready to invoice</option></select></label><label>Estimated value<input name="estimate" type="number" step="0.01"></label></div></div>
+          <div class="form-actions"><button class="primary-button" type="submit">Submit to workflow</button><button class="secondary-button" type="reset">Clear</button></div>
+        </form>
+      </section>
+
+      <section id="jobs" class="view placeholder-view"><p class="eyebrow">OPERATIONS</p><h2>Jobs and dispatch</h2><p>Retail job queue, assignment, scheduling and field status tools will reuse the validated Operations Center workflow under the new tenant-aware interface.</p></section>
+      <section id="equipment" class="view placeholder-view"><p class="eyebrow">ASSET INTELLIGENCE</p><h2>Equipment records</h2><p>Service history, model and serial data, warranty details, QR identification and supporting documents.</p></section>
+      <section id="quotes" class="view placeholder-view"><p class="eyebrow">REVENUE WORKFLOW</p><h2>Quotes and approvals</h2><p>Quote-ready recommendations, customer decisions, reminders and approval-cycle reporting.</p></section>
+      <section id="parts" class="view placeholder-view"><p class="eyebrow">PROCUREMENT</p><h2>Parts workflow</h2><p>OEM verification, sourcing comparisons, approval status and parts-order tracking.</p></section>
+      <section id="team" class="view placeholder-view"><p class="eyebrow">ACCESS</p><h2>Team and roles</h2><p>Owner, office, dispatcher and technician access with workspace-level permissions.</p></section>
+      <section id="reports" class="view placeholder-view"><p class="eyebrow">PERFORMANCE</p><h2>Reports</h2><p>Cycle time, quote conversion, technician completion, revenue opportunity and office workload metrics.</p></section>
+      <section id="settings" class="view">
+        <div class="section-heading"><div><p class="eyebrow">WHITE LABEL</p><h2>Workspace branding</h2></div><span class="section-badge">Configuration preview</span></div>
+        <div class="settings-grid">
+          <form class="panel settings-form" id="brandingForm">
+            <label>Company name<input id="companyNameInput" value="Northstar Mechanical"></label>
+            <label>Workspace initials<input id="shortNameInput" value="NM" maxlength="3"></label>
+            <label>Primary color<input id="primaryColorInput" type="color" value="#0A7569"></label>
+            <label class="toggle-row"><span><strong>Remove FieldForged footer</strong><small>Available with White Label plan</small></span><input id="removeBrandingInput" type="checkbox"></label>
+            <button class="primary-button" type="submit">Apply preview</button>
+          </form>
+          <article class="panel plan-card">
+            <p class="eyebrow">WHITE LABEL PACKAGE</p>
+            <h3>Your brand. Your domain. Our operating engine.</h3>
+            <ul>
+              <li>Custom logo, colors and company terminology</li>
+              <li>Private branded workspace and login experience</li>
+              <li>Custom domain deployment</li>
+              <li>Up to 30 users at launch</li>
+              <li>FieldForged core updates and managed support</li>
+            </ul>
+            <div class="price-line"><span>Starting at</span><strong>$3,500 setup</strong><small>+ $599 monthly</small></div>
+          </article>
+        </div>
+      </section>
+
+      <footer class="footer"><span data-product-name>FieldForged Ops</span><small data-powered-by>Powered by FieldForged Technologies</small></footer>
+    </main>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="tenant-config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
