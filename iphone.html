@@ -3,35 +3,75 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
-  <meta name="theme-color" content="#02070c">
+  <meta name="theme-color" content="#071018">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Chill Pros Owner">
   <title>Chill Pros — Owner Mobile</title>
   <style>
-    html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02070c}
-    #phoneApp{display:block;width:100%;height:100dvh;border:0;background:#02070c}
-    #loading{position:fixed;inset:0;display:grid;place-items:center;background:#02070c;color:#7edbff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-weight:800;letter-spacing:.08em;z-index:2}
+    html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#071018}
+    #phoneApp{display:block;width:100%;height:100dvh;border:0;background:#071018}
+    #loading{position:fixed;inset:0;display:grid;place-items:center;padding:24px;background:#071018;color:#72d7ff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;text-align:center;z-index:2}
+    #loading>div{display:grid;justify-items:center;gap:10px;max-width:28rem}
+    #loading strong{font-size:.78rem;font-weight:800;letter-spacing:.08em}
+    #loading span{color:#a9bbc6;font-size:.76rem;line-height:1.45}
+    #loading button{min-height:44px;padding:0 18px;border:1px solid rgba(114,215,255,.45);border-radius:12px;background:#72d7ff;color:#041019;font:800 .75rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:.04em}
+    #loading button[hidden]{display:none}
   </style>
 </head>
 <body>
-  <div id="loading">LOADING OWNER CONSOLE…</div>
+  <div id="loading" role="status" aria-live="polite" aria-atomic="true">
+    <div>
+      <strong id="loadingTitle">LOADING CHILL PROS…</strong>
+      <span id="loadingDetail">Preparing the Owner Command Center.</span>
+      <button type="button" id="retryLoad" hidden>TRY AGAIN</button>
+    </div>
+  </div>
   <iframe id="phoneApp" src="index.html" title="Chill Pros Owner Mobile Console"></iframe>
   <script>
     const frame = document.getElementById('phoneApp');
     const loading = document.getElementById('loading');
+    const loadingTitle = document.getElementById('loadingTitle');
+    const loadingDetail = document.getElementById('loadingDetail');
+    const retryLoad = document.getElementById('retryLoad');
+    let loadTimer = window.setTimeout(() => showLoadError('The Command Center is taking longer than expected.'), 12000);
+
+    function showLoadError(message) {
+      window.clearTimeout(loadTimer);
+      loadingTitle.textContent = 'UNABLE TO LOAD';
+      loadingDetail.textContent = message;
+      retryLoad.hidden = false;
+      loading.setAttribute('role','alert');
+    }
+
+    retryLoad.addEventListener('click', () => {
+      retryLoad.hidden = true;
+      loading.setAttribute('role','status');
+      loadingTitle.textContent = 'LOADING CHILL PROS…';
+      loadingDetail.textContent = 'Preparing the Owner Command Center.';
+      frame.src = `index.html?retry=${Date.now()}`;
+      loadTimer = window.setTimeout(() => showLoadError('The Command Center still could not be reached. Check your connection and try again.'), 12000);
+    });
+
+    frame.addEventListener('error', () => showLoadError('The mobile application could not be reached. Check your connection and try again.'));
 
     frame.addEventListener('load', () => {
+      window.clearTimeout(loadTimer);
       const doc = frame.contentDocument;
-      if (!doc) return;
+      if (!doc) {
+        showLoadError('The mobile application loaded without accessible content. Try again.');
+        return;
+      }
 
       doc.body.classList.add('iphone-field-mode','iphone-owner-mode');
       doc.title = 'Chill Pros — Owner Mobile';
 
-      const stylesheet = doc.createElement('link');
-      stylesheet.rel = 'stylesheet';
-      stylesheet.href = 'iphone.css';
-      doc.head.appendChild(stylesheet);
+      ['iphone.css', 'iphone-polish.css', 'iphone-finish.css', 'iphone-command.css', 'iphone-command-structure.css'].forEach(href => {
+        const stylesheet = doc.createElement('link');
+        stylesheet.rel = 'stylesheet';
+        stylesheet.href = href;
+        doc.head.appendChild(stylesheet);
+      });
 
       const labels = ['Home','Intake','Queue','Jobs','Techs'];
       doc.querySelectorAll('.side-link').forEach((button,index) => {
@@ -40,12 +80,77 @@
 
       const ownerStrip = doc.createElement('div');
       ownerStrip.className = 'owner-mobile-strip';
-      ownerStrip.innerHTML = '<strong>OWNER MOBILE</strong><span>Full administrative access</span><button type="button" id="ownerMoreButton" aria-expanded="false">MORE</button>';
+      ownerStrip.setAttribute('role','banner');
+      ownerStrip.innerHTML = '<div><strong>Chill Pros Command Center</strong><span>Owner operations workspace</span></div><button type="button" id="ownerMoreButton" aria-expanded="false" aria-controls="ownerMobileMenu" aria-haspopup="true">MORE</button>';
       doc.querySelector('.main-panel')?.prepend(ownerStrip);
 
-      const ownerMenu = doc.createElement('div');
+      const setupCommandDashboard = () => {
+        const dashboard = doc.getElementById('dashboard');
+        const metrics = dashboard?.querySelector('.metrics-grid');
+        const featureGrid = dashboard?.querySelector('.feature-grid');
+        const lowerGrid = dashboard?.querySelector('.lower-grid');
+        if (!dashboard || !metrics || !featureGrid) return;
+
+        dashboard.classList.add('mobile-command-dashboard');
+        metrics.setAttribute('aria-label','Owner operating metrics');
+
+        const commandHeader = doc.createElement('section');
+        commandHeader.className = 'mobile-command-intro';
+        commandHeader.setAttribute('aria-labelledby','mobileCommandTitle');
+        commandHeader.innerHTML = `
+          <div>
+            <p class="eyebrow">LIVE OPERATIONS</p>
+            <h2 id="mobileCommandTitle">Owner Command Center</h2>
+            <p>Jobs, office priorities, and business health in one view.</p>
+          </div>
+          <span class="mobile-live-chip"><i aria-hidden="true"></i> Live</span>`;
+        dashboard.insertBefore(commandHeader, metrics);
+
+        const cards = [...featureGrid.querySelectorAll('.feature-card')];
+        const findCard = label => cards.find(card => card.querySelector('h2')?.textContent.trim() === label);
+        const jobsCard = findCard("TODAY'S JOBS");
+        const queueCard = findCard('OFFICE QUEUE');
+        const intakeCard = findCard('NEW CUSTOMER');
+        const aiCard = findCard('AI DIAGNOSTICS');
+
+        const primaryZone = doc.createElement('section');
+        primaryZone.className = 'mobile-command-primary';
+        primaryZone.setAttribute('aria-label','Primary operations');
+        [jobsCard, queueCard].forEach((card, index) => {
+          if (!card) return;
+          card.classList.add('command-priority-card', index === 0 ? 'jobs-priority-card' : 'queue-priority-card');
+          const title = card.querySelector('h2');
+          if (title) title.insertAdjacentHTML('beforebegin', `<span class="command-card-kicker">${index === 0 ? 'FIELD' : 'OFFICE'}</span>`);
+          primaryZone.appendChild(card);
+        });
+
+        const sectionLabel = doc.createElement('div');
+        sectionLabel.className = 'mobile-section-heading';
+        sectionLabel.innerHTML = '<div><p class="eyebrow">QUICK ACTIONS</p><h3>Move work forward</h3></div>';
+        featureGrid.before(primaryZone, sectionLabel);
+
+        [intakeCard, aiCard].forEach(card => {
+          if (card) featureGrid.appendChild(card);
+        });
+        featureGrid.classList.add('mobile-quick-actions');
+
+        if (lowerGrid) {
+          const operationsLabel = doc.createElement('div');
+          operationsLabel.className = 'mobile-section-heading mobile-support-heading';
+          operationsLabel.innerHTML = '<div><p class="eyebrow">BUSINESS PULSE</p><h3>Schedule and recent activity</h3></div>';
+          lowerGrid.before(operationsLabel);
+          lowerGrid.classList.add('mobile-support-grid');
+          lowerGrid.querySelector('.weather-card')?.classList.add('mobile-secondary-card');
+        }
+      };
+      setupCommandDashboard();
+
+      const ownerMenu = doc.createElement('nav');
+      ownerMenu.id = 'ownerMobileMenu';
       ownerMenu.className = 'owner-mobile-menu';
       ownerMenu.setAttribute('aria-hidden','true');
+      ownerMenu.setAttribute('aria-label','Owner tools');
+      ownerMenu.inert = true;
       ownerMenu.innerHTML = `
         <button data-owner-view="maintenance">Maintenance</button>
         <button data-owner-view="equipment">Equipment</button>
@@ -56,16 +161,24 @@
       doc.body.appendChild(ownerMenu);
 
       const moreButton = doc.getElementById('ownerMoreButton');
-      const closeMenu = () => {
+      const menuButtons = [...ownerMenu.querySelectorAll('button')];
+      const closeMenu = ({ restoreFocus = false } = {}) => {
         ownerMenu.classList.remove('open');
         ownerMenu.setAttribute('aria-hidden','true');
+        ownerMenu.inert = true;
         moreButton?.setAttribute('aria-expanded','false');
+        if (restoreFocus) moreButton?.focus();
+      };
+      const openMenu = () => {
+        ownerMenu.classList.add('open');
+        ownerMenu.setAttribute('aria-hidden','false');
+        ownerMenu.inert = false;
+        moreButton?.setAttribute('aria-expanded','true');
+        menuButtons[0]?.focus();
       };
       moreButton?.addEventListener('click', () => {
-        const opening = !ownerMenu.classList.contains('open');
-        ownerMenu.classList.toggle('open', opening);
-        ownerMenu.setAttribute('aria-hidden', String(!opening));
-        moreButton.setAttribute('aria-expanded', String(opening));
+        if (ownerMenu.classList.contains('open')) closeMenu();
+        else openMenu();
       });
       ownerMenu.querySelectorAll('[data-owner-view]').forEach(button => {
         button.addEventListener('click', () => {
@@ -77,6 +190,23 @@
       });
       doc.addEventListener('click', event => {
         if (!ownerMenu.contains(event.target) && event.target !== moreButton) closeMenu();
+      });
+      doc.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && ownerMenu.classList.contains('open')) {
+          event.preventDefault();
+          closeMenu({ restoreFocus: true });
+          return;
+        }
+        if (event.key !== 'Tab' || !ownerMenu.classList.contains('open') || !menuButtons.length) return;
+        const firstButton = menuButtons[0];
+        const lastButton = menuButtons[menuButtons.length - 1];
+        if (event.shiftKey && doc.activeElement === firstButton) {
+          event.preventDefault();
+          lastButton.focus();
+        } else if (!event.shiftKey && doc.activeElement === lastButton) {
+          event.preventDefault();
+          firstButton.focus();
+        }
       });
 
       loading.remove();

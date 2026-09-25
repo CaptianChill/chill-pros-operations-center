@@ -1,0 +1,255 @@
+/* Direction C structural mobile command center. Presentation only. */
+.iphone-field-mode .mobile-command-dashboard{
+  padding-bottom:24px;
+}
+
+.iphone-field-mode .mobile-command-intro{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+  margin:4px 0 14px;
+  padding:2px 2px 0;
+}
+
+.iphone-field-mode .mobile-command-intro h2{
+  margin:2px 0 4px;
+  color:var(--cp-text);
+  font-size:1.3rem;
+  line-height:1.12;
+  letter-spacing:-.025em;
+}
+
+.iphone-field-mode .mobile-command-intro p:last-child{
+  margin:0;
+  max-width:31ch;
+  color:var(--cp-muted);
+  font-size:.75rem;
+  line-height:1.45;
+}
+
+.iphone-field-mode .mobile-live-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  min-height:28px;
+  padding:0 10px;
+  border:1px solid rgba(143,226,191,.2);
+  border-radius:999px;
+  background:rgba(143,226,191,.07);
+  color:#9be6c5;
+  font-size:.66rem;
+  font-weight:800;
+  white-space:nowrap;
+}
+
+.iphone-field-mode .mobile-live-chip i{
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:#79d8ae;
+  box-shadow:0 0 0 4px rgba(121,216,174,.1);
+}
+
+.iphone-field-mode .mobile-command-primary{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:10px;
+  margin:0 0 18px;
+}
+
+.iphone-field-mode .command-priority-card{
+  position:relative;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  grid-template-areas:
+    'kicker button'
+    'title button'
+    'text button';
+  align-items:center;
+  gap:3px 14px;
+  min-height:120px;
+  padding:18px;
+  overflow:hidden;
+  border:1px solid rgba(114,215,255,.18);
+  border-radius:18px;
+  background:
+    radial-gradient(circle at 100% 0%,rgba(114,215,255,.14),transparent 42%),
+    linear-gradient(145deg,rgba(255,255,255,.025),transparent 48%),
+    #101b25;
+}
+
+.iphone-field-mode .command-priority-card::after{
+  content:'';
+  position:absolute;
+  inset:auto -34px -46px auto;
+  width:118px;
+  height:118px;
+  border:1px solid rgba(114,215,255,.08);
+  border-radius:50%;
+}
+
+.iphone-field-mode .command-priority-card .feature-art{
+  display:none;
+}
+
+.iphone-field-mode .command-card-kicker{
+  grid-area:kicker;
+  color:var(--cp-accent);
+  font-size:.62rem;
+  font-weight:850;
+  letter-spacing:.14em;
+}
+
+.iphone-field-mode .command-priority-card h2{
+  grid-area:title;
+  margin:0;
+  font-size:1.08rem;
+  letter-spacing:-.015em;
+}
+
+.iphone-field-mode .command-priority-card p{
+  grid-area:text;
+  margin:3px 0 0;
+  max-width:34ch;
+  color:#9fb1bd;
+  font-size:.74rem;
+  line-height:1.45;
+}
+
+.iphone-field-mode .command-priority-card .primary-action{
+  grid-area:button;
+  position:relative;
+  z-index:1;
+  width:46px;
+  min-width:46px;
+  height:46px;
+  padding:0;
+  overflow:hidden;
+  color:transparent;
+  border-radius:14px;
+  box-shadow:none;
+}
+
+.iphone-field-mode .command-priority-card .primary-action::after{
+  content:'→';
+  position:absolute;
+  inset:0;
+  display:grid;
+  place-items:center;
+  color:#041019;
+  font-size:1.15rem;
+}
+
+.iphone-field-mode .queue-priority-card{
+  border-color:rgba(255,214,138,.16);
+  background:
+    radial-gradient(circle at 100% 0%,rgba(255,214,138,.1),transparent 42%),
+    linear-gradient(145deg,rgba(255,255,255,.025),transparent 48%),
+    #101b25;
+}
+
+.iphone-field-mode .queue-priority-card .command-card-kicker{
+  color:#ffd68a;
+}
+
+.iphone-field-mode .mobile-section-heading{
+  display:flex;
+  align-items:end;
+  justify-content:space-between;
+  margin:0 2px 9px;
+}
+
+.iphone-field-mode .mobile-section-heading .eyebrow{
+  margin:0 0 2px;
+  color:#7f96a5;
+  font-size:.6rem;
+  letter-spacing:.13em;
+}
+
+.iphone-field-mode .mobile-section-heading h3{
+  margin:0;
+  color:#e8f1f5;
+  font-size:.92rem;
+  letter-spacing:-.01em;
+}
+
+.iphone-field-mode .mobile-quick-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-bottom:20px;
+}
+
+.iphone-field-mode .mobile-quick-actions .feature-card{
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+  min-height:156px;
+  padding:14px;
+}
+
+.iphone-field-mode .mobile-quick-actions .feature-art{
+  flex:0 0 auto;
+  margin-bottom:10px;
+}
+
+.iphone-field-mode .mobile-quick-actions .feature-card h2{
+  margin:0 0 4px;
+  font-size:.84rem;
+}
+
+.iphone-field-mode .mobile-quick-actions .feature-card p{
+  flex:1;
+  margin:0 0 12px;
+  font-size:.69rem;
+  line-height:1.4;
+}
+
+.iphone-field-mode .mobile-quick-actions .primary-action{
+  width:100%;
+  min-height:42px;
+  padding:0 10px;
+  font-size:.66rem;
+}
+
+.iphone-field-mode .mobile-support-heading{
+  margin-top:2px;
+}
+
+.iphone-field-mode .mobile-support-grid{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:10px;
+}
+
+.iphone-field-mode .mobile-support-grid .glass-card{
+  min-height:auto;
+}
+
+.iphone-field-mode .mobile-secondary-card{
+  opacity:.86;
+}
+
+@media(max-width:359px){
+  .iphone-field-mode .mobile-quick-actions{
+    grid-template-columns:1fr;
+  }
+
+  .iphone-field-mode .mobile-quick-actions .feature-card{
+    min-height:auto;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  .iphone-field-mode .mobile-live-chip i{
+    box-shadow:none;
+  }
+}
+
+@media(forced-colors:active){
+  .iphone-field-mode .mobile-live-chip,
+  .iphone-field-mode .command-priority-card{
+    border:1px solid CanvasText;
+  }
+}
